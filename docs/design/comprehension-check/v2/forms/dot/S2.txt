@@ -1,0 +1,14 @@
+/// Keeps a sensor reading inside its range.
+pub fn clamp(value: i32, low: i32, high: i32) -> i32
+    intent "Keeps a reading inside the sensor's range, unchanged when it already is."
+    requires low <= high
+    ensures result >= low and result <= high
+    ensures (value >= low and value <= high) implies result == value
+{
+    if value < low { low } else { if value > high { high } else { value } }
+}
+
+example clamp(value: 12, low: 0, high: 10) == 10
+---
+S2.1 What does clamp(value: -3, low: 0, high: 10) return?
+S2.2 If the second `ensures` line were deleted, could a body that always returns `low` still satisfy everything the function promises? Answer yes or no.

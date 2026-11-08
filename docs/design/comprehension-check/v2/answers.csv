@@ -1,0 +1,715 @@
+form,model,repetition,question,answer,correct
+dot,deepseek/deepseek-v4.1-flash,1,S1.1,.Flat,yes
+dot,deepseek/deepseek-v4.1-flash,1,S1.2,.PerDay,yes
+dot,deepseek/deepseek-v4.1-flash,1,S1.3,"It violates the requires days_late >= 0 precondition, so the call is invalid (e.g., runtime error/abort).",yes
+dot,deepseek/deepseek-v4.1-flash,1,S1.4,No,yes
+dot,deepseek/deepseek-v4.1-flash,1,S1.5,No,yes
+dot,deepseek/deepseek-v4.1-flash,2,S1.1,.Flat,yes
+dot,deepseek/deepseek-v4.1-flash,2,S1.2,.PerDay,yes
+dot,deepseek/deepseek-v4.1-flash,2,S1.3,It violates the requires days_late >= 0 precondition (rejected/error).,yes
+dot,deepseek/deepseek-v4.1-flash,2,S1.4,No.,yes
+dot,deepseek/deepseek-v4.1-flash,2,S1.5,No.,yes
+dot,deepseek/deepseek-v4.1-flash,1,S2.1,0,yes
+dot,deepseek/deepseek-v4.1-flash,1,S2.2,Yes,yes
+dot,deepseek/deepseek-v4.1-flash,2,S2.1,0,yes
+dot,deepseek/deepseek-v4.1-flash,2,S2.2,Yes — returning low still satisfies the remaining ensures because low <= high.,yes
+dot,deepseek/deepseek-v4.1-flash,1,S3.1,no,yes
+dot,deepseek/deepseek-v4.1-flash,1,S3.2,yes,no
+dot,deepseek/deepseek-v4.1-flash,2,S3.1,No,yes
+dot,deepseek/deepseek-v4.1-flash,2,S3.2,No,yes
+dot,deepseek/deepseek-v4.1-flash,1,S4.1,"It returns .Clear (Alert.Clear), because next(.Green) is .Yellow and alert_for(.Yellow) matches otherwise.",yes
+dot,deepseek/deepseek-v4.1-flash,1,S4.2,The left .Red is Light.Red; the right .Red is Alert.Red.,yes
+dot,deepseek/deepseek-v4.1-flash,1,S4.3,"The decide would no longer cover Light.Yellow; with no otherwise, it would be a non-exhaustive/compile-time error.",yes
+dot,deepseek/deepseek-v4.1-flash,1,S4.4,"Because the three rows already cover every Light value (Red, Green, Yellow), so no default otherwise is needed.",yes
+dot,deepseek/deepseek-v4.1-flash,2,S4.1,Alert.Clear,yes
+dot,deepseek/deepseek-v4.1-flash,2,S4.2,The first Red is Light.Red; the second Red is Alert.Red.,yes
+dot,deepseek/deepseek-v4.1-flash,2,S4.3,It would become non-exhaustive: next(.Yellow) would have no matching row and would error.,yes
+dot,deepseek/deepseek-v4.1-flash,2,S4.4,"Because the three rows already cover every Light variant, so an otherwise row is unnecessary.",yes
+dot,deepseek/deepseek-v4.1-flash,1,S5.1,.Pass,yes
+dot,deepseek/deepseek-v4.1-flash,1,S5.2,.Fail,yes
+dot,deepseek/deepseek-v4.1-flash,1,S5.3,"Yes, the row | score >= 90 => .Honors can never be the one that decides.",yes
+dot,deepseek/deepseek-v4.1-flash,1,S5.4,Leave it to the reader to notice.,no
+dot,deepseek/deepseek-v4.1-flash,2,S5.1,Pass (.Pass),yes
+dot,deepseek/deepseek-v4.1-flash,2,S5.2,Fail (.Fail),yes
+dot,deepseek/deepseek-v4.1-flash,2,S5.3,"Yes — the score >= 90 => .Honors row can never decide, because any score >= 90 already satisfies the earlier score >= 60 row.",yes
+dot,deepseek/deepseek-v4.1-flash,2,S5.4,It would leave it to the reader to notice; the language does not report that unreachable row.,no
+qualified,deepseek/deepseek-v4.1-flash,1,S1.1,Fee.Flat,yes
+qualified,deepseek/deepseek-v4.1-flash,1,S1.2,Fee.PerDay,yes
+qualified,deepseek/deepseek-v4.1-flash,1,S1.3,"It violates the requires days_late >= 0 precondition, so the call is invalid (likely a runtime error or rejected).",yes
+qualified,deepseek/deepseek-v4.1-flash,1,S1.4,No,yes
+qualified,deepseek/deepseek-v4.1-flash,1,S1.5,No,yes
+qualified,deepseek/deepseek-v4.1-flash,2,S1.1,Fee.Flat,yes
+qualified,deepseek/deepseek-v4.1-flash,2,S1.2,Fee.PerDay,yes
+qualified,deepseek/deepseek-v4.1-flash,2,S1.3,"It violates the requires days_late >= 0 precondition, so the call is invalid/fails.",yes
+qualified,deepseek/deepseek-v4.1-flash,2,S1.4,No.,yes
+qualified,deepseek/deepseek-v4.1-flash,2,S1.5,No.,yes
+qualified,deepseek/deepseek-v4.1-flash,1,S2.1,0,yes
+qualified,deepseek/deepseek-v4.1-flash,1,S2.2,Yes,yes
+qualified,deepseek/deepseek-v4.1-flash,2,S2.1,0,yes
+qualified,deepseek/deepseek-v4.1-flash,2,S2.2,Yes (the remaining requires/ensures allow always returning low; the intent would be violated).,yes
+qualified,deepseek/deepseek-v4.1-flash,1,S3.1,No.,yes
+qualified,deepseek/deepseek-v4.1-flash,1,S3.2,No.,yes
+qualified,deepseek/deepseek-v4.1-flash,1,S4.1,Alert.Clear,yes
+qualified,deepseek/deepseek-v4.1-flash,1,S4.2,Light.Red belongs to Light; Alert.Red belongs to Alert.,yes
+qualified,deepseek/deepseek-v4.1-flash,1,S4.3,next(Light.Yellow) would have no matching row and would likely fail/error as a non-exhaustive match.,yes
+qualified,deepseek/deepseek-v4.1-flash,1,S4.4,"All three Light variants (Red, Yellow, Green) are explicitly covered, so no otherwise row is needed.",yes
+qualified,deepseek/deepseek-v4.1-flash,2,S4.1,"Alert.Clear — next(Light.Green) is Light.Yellow, and alert_for(Light.Yellow) falls through to otherwise.",yes
+qualified,deepseek/deepseek-v4.1-flash,2,S4.2,The left Red is Light.Red from enum Light; the right Red is Alert.Red from enum Alert.,yes
+qualified,deepseek/deepseek-v4.1-flash,2,S4.3,"It would no longer cover all Light values; calling next(Light.Yellow) would have no matching row and no otherwise, so it would be non-exhaustive/failing.",yes
+qualified,deepseek/deepseek-v4.1-flash,2,S4.4,"Because the three rows already cover every Light variant: Red, Green, and Yellow, so an otherwise row is unnecessary.",yes
+qualified,deepseek/deepseek-v4.1-flash,1,S5.1,Grade.Pass,yes
+qualified,deepseek/deepseek-v4.1-flash,1,S5.2,Grade.Fail,yes
+qualified,deepseek/deepseek-v4.1-flash,1,S5.3,"Yes, the score >= 90 row.",yes
+qualified,deepseek/deepseek-v4.1-flash,1,S5.4,It would leave it to the reader to notice.,no
+qualified,deepseek/deepseek-v4.1-flash,2,S5.1,Grade.Pass,yes
+qualified,deepseek/deepseek-v4.1-flash,2,S5.2,Grade.Fail,yes
+qualified,deepseek/deepseek-v4.1-flash,2,S5.3,The row | score >= 90 => Grade.Honors can never decide.,yes
+qualified,deepseek/deepseek-v4.1-flash,2,S5.4,Leave it to the reader to notice.,no
+short,deepseek/deepseek-v4.1-flash,1,S1.1,Flat,yes
+short,deepseek/deepseek-v4.1-flash,1,S1.2,PerDay,yes
+short,deepseek/deepseek-v4.1-flash,1,S1.3,"It violates the requires days_late >= 0 precondition, so the call is invalid/error.",yes
+short,deepseek/deepseek-v4.1-flash,1,S1.4,No,yes
+short,deepseek/deepseek-v4.1-flash,1,S1.5,No,yes
+short,deepseek/deepseek-v4.1-flash,2,S1.1,Flat,yes
+short,deepseek/deepseek-v4.1-flash,2,S1.2,PerDay,yes
+short,deepseek/deepseek-v4.1-flash,2,S1.3,It violates the days_late >= 0 precondition and is rejected/aborts.,yes
+short,deepseek/deepseek-v4.1-flash,2,S1.4,No,yes
+short,deepseek/deepseek-v4.1-flash,2,S1.5,No,yes
+short,deepseek/deepseek-v4.1-flash,1,S2.1,0,yes
+short,deepseek/deepseek-v4.1-flash,1,S2.2,Yes — returning low still satisfies the remaining ensures that the result is between low and high (assuming low <= high).,yes
+short,deepseek/deepseek-v4.1-flash,2,S2.1,0,yes
+short,deepseek/deepseek-v4.1-flash,2,S2.2,Yes,yes
+short,deepseek/deepseek-v4.1-flash,1,S3.1,No,yes
+short,deepseek/deepseek-v4.1-flash,1,S3.2,No,yes
+short,deepseek/deepseek-v4.1-flash,2,S3.1,No,yes
+short,deepseek/deepseek-v4.1-flash,2,S3.2,No,yes
+short,deepseek/deepseek-v4.1-flash,1,S4.1,Alert.Clear,yes
+short,deepseek/deepseek-v4.1-flash,1,S4.2,The left Red is Light.Red; the right Red is Alert.Red.,yes
+short,deepseek/deepseek-v4.1-flash,1,S4.3,next(Yellow) would have no matching row and would fail/error unless the compiler requires exhaustiveness.,yes
+short,deepseek/deepseek-v4.1-flash,1,S4.4,"Because the rows already cover all Light variants: Red, Green, and Yellow.",yes
+short,deepseek/deepseek-v4.1-flash,2,S4.1,"Clear (Alert.Clear), because next(Green) is Yellow and alert_for(Yellow) falls to otherwise.",yes
+short,deepseek/deepseek-v4.1-flash,2,S4.2,The left Red is Light.Red; the right Red is Alert.Red.,yes
+short,deepseek/deepseek-v4.1-flash,2,S4.3,"It would no longer handle Light.Yellow; since there is no otherwise, next(Yellow) would have no matching row, likely causing a missing-case/compile error.",yes
+short,deepseek/deepseek-v4.1-flash,2,S4.4,"Because Red, Green, and Yellow already cover every possible Light value, so an otherwise row is unnecessary.",yes
+short,deepseek/deepseek-v4.1-flash,1,S5.1,Pass,yes
+short,deepseek/deepseek-v4.1-flash,1,S5.2,Fail,yes
+short,deepseek/deepseek-v4.1-flash,1,S5.3,"Yes, the row | score >= 90 => Honors can never be the one that decides.",yes
+short,deepseek/deepseek-v4.1-flash,1,S5.4,It would leave it to the reader to notice.,no
+short,deepseek/deepseek-v4.1-flash,2,S5.1,Pass,yes
+short,deepseek/deepseek-v4.1-flash,2,S5.2,Fail,yes
+short,deepseek/deepseek-v4.1-flash,2,S5.3,"Yes, the row | score >= 90 => Honors can never decide.",yes
+short,deepseek/deepseek-v4.1-flash,2,S5.4,Leave it to the reader to notice.,no
+dot,qwen/qwen3.8-omni-flash,1,S1.1,.Flat,yes
+dot,qwen/qwen3.8-omni-flash,1,S1.2,.PerDay,yes
+dot,qwen/qwen3.8-omni-flash,1,S1.3,"It violates the requires days_late >= 0 precondition, so the call is a contract error / undefined behavior rather than returning a normal Fee.",yes
+dot,qwen/qwen3.8-omni-flash,1,S1.4,No.,yes
+dot,qwen/qwen3.8-omni-flash,1,S1.5,No.,yes
+dot,qwen/qwen3.8-omni-flash,2,S1.1,.Flat,yes
+dot,qwen/qwen3.8-omni-flash,2,S1.2,.PerDay,yes
+dot,qwen/qwen3.8-omni-flash,2,S1.3,"It violates the requires days_late >= 0 precondition, so the call is erroneous/undefined rather than returning a specified Fee.",yes
+dot,qwen/qwen3.8-omni-flash,2,S1.4,No.,yes
+dot,qwen/qwen3.8-omni-flash,2,S1.5,No.,yes
+dot,qwen/qwen3.8-omni-flash,1,S2.1,0,yes
+dot,qwen/qwen3.8-omni-flash,1,S2.2,yes,yes
+dot,qwen/qwen3.8-omni-flash,2,S2.1,0,yes
+dot,qwen/qwen3.8-omni-flash,2,S2.2,yes,yes
+dot,qwen/qwen3.8-omni-flash,1,S3.1,No.,yes
+dot,qwen/qwen3.8-omni-flash,1,S3.2,No.,yes
+dot,qwen/qwen3.8-omni-flash,2,S3.1,no,yes
+dot,qwen/qwen3.8-omni-flash,2,S3.2,no,yes
+dot,qwen/qwen3.8-omni-flash,1,S4.1,.Clear (an Alert value).,yes
+dot,qwen/qwen3.8-omni-flash,1,S4.2,The .Red in light == .Red is Light.Red; the .Red after => is Alert.Red.,yes
+dot,qwen/qwen3.8-omni-flash,1,S4.3,"next would be non-exhaustive: .Yellow would have no defined result, so the checker/compiler would reject it (or next(.Yellow) would be undefined/stuck).",yes
+dot,qwen/qwen3.8-omni-flash,1,S4.4,"Because the three rows already cover every possible Light value, so an otherwise row is unnecessary/unreachable.",yes
+dot,qwen/qwen3.8-omni-flash,2,S4.1,.Clear (an Alert).,yes
+dot,qwen/qwen3.8-omni-flash,2,S4.2,The left .Red is Light.Red; the right .Red is Alert.Red.,yes
+dot,qwen/qwen3.8-omni-flash,2,S4.3,next would be incomplete/non-exhaustive; next(.Yellow) would have no defined result (likely a compile-time or runtime match failure).,yes
+dot,qwen/qwen3.8-omni-flash,2,S4.4,"Because all Light cases are explicitly covered, so no default row is needed.",yes
+dot,qwen/qwen3.8-omni-flash,1,S5.1,.Pass,yes
+dot,qwen/qwen3.8-omni-flash,1,S5.2,.Fail,yes
+dot,qwen/qwen3.8-omni-flash,1,S5.3,Yes; the score >= 90 => .Honors row is shadowed by the earlier score >= 60 row.,yes
+dot,qwen/qwen3.8-omni-flash,1,S5.4,"The snippet gives no indication of an unreachable-row check, so it would leave it to the reader.",no
+dot,qwen/qwen3.8-omni-flash,2,S5.1,.Pass,yes
+dot,qwen/qwen3.8-omni-flash,2,S5.2,.Fail,yes
+dot,qwen/qwen3.8-omni-flash,2,S5.3,"Yes; the score >= 90 => .Honors row can never decide, because every score ≥ 90 also matches the earlier score >= 60 => .Pass row.",yes
+dot,qwen/qwen3.8-omni-flash,2,S5.4,It would leave it to the reader; nothing shown indicates the language reports unreachable/shadowed decide rows.,no
+qualified,qwen/qwen3.8-omni-flash,1,S1.1,Fee.Flat,yes
+qualified,qwen/qwen3.8-omni-flash,1,S1.2,Fee.PerDay,yes
+qualified,qwen/qwen3.8-omni-flash,1,S1.3,"It violates the requires days_late >= 0 precondition, so the call is invalid/undefined (rejected or a contract failure).",yes
+qualified,qwen/qwen3.8-omni-flash,1,S1.4,No,yes
+qualified,qwen/qwen3.8-omni-flash,1,S1.5,No,yes
+qualified,qwen/qwen3.8-omni-flash,2,S1.1,Fee.Flat,yes
+qualified,qwen/qwen3.8-omni-flash,2,S1.2,Fee.PerDay,yes
+qualified,qwen/qwen3.8-omni-flash,2,S1.3,"It violates the requires days_late >= 0 precondition, so the call is invalid/undefined rather than returning a Fee.",yes
+qualified,qwen/qwen3.8-omni-flash,2,S1.4,No.,yes
+qualified,qwen/qwen3.8-omni-flash,2,S1.5,No.,yes
+qualified,qwen/qwen3.8-omni-flash,1,S2.1,0,yes
+qualified,qwen/qwen3.8-omni-flash,1,S2.2,yes,yes
+qualified,qwen/qwen3.8-omni-flash,2,S2.1,0,yes
+qualified,qwen/qwen3.8-omni-flash,2,S2.2,yes,yes
+qualified,qwen/qwen3.8-omni-flash,1,S3.1,no,yes
+qualified,qwen/qwen3.8-omni-flash,1,S3.2,no,yes
+qualified,qwen/qwen3.8-omni-flash,2,S3.1,no,yes
+qualified,qwen/qwen3.8-omni-flash,2,S3.2,no,yes
+qualified,qwen/qwen3.8-omni-flash,1,S4.1,Alert.Clear,yes
+qualified,qwen/qwen3.8-omni-flash,1,S4.2,The left Red belongs to Light; the right Red belongs to Alert.,yes
+qualified,qwen/qwen3.8-omni-flash,1,S4.3,"next would be incomplete/non-exhaustive for Light.Yellow, so next(Light.Yellow) would have no defined result.",yes
+qualified,qwen/qwen3.8-omni-flash,1,S4.4,"Because all Light cases are explicitly covered, so an otherwise row is unnecessary.",yes
+qualified,qwen/qwen3.8-omni-flash,2,S4.1,Alert.Clear,yes
+qualified,qwen/qwen3.8-omni-flash,2,S4.2,The left Red is Light.Red; the right Red is Alert.Red.,yes
+qualified,qwen/qwen3.8-omni-flash,2,S4.3,"next would no longer cover every Light value, so it would be incomplete/non-exhaustive; a call like next(Light.Yellow) would have no defined result.",yes
+qualified,qwen/qwen3.8-omni-flash,2,S4.4,"Because next already explicitly handles all three Light variants, so no fallback is needed.",yes
+qualified,qwen/qwen3.8-omni-flash,1,S5.1,Grade.Pass.,yes
+qualified,qwen/qwen3.8-omni-flash,1,S5.2,Grade.Fail.,yes
+qualified,qwen/qwen3.8-omni-flash,1,S5.3,Yes—the score >= 90 => Grade.Honors row is shadowed by the earlier score >= 60 row.,yes
+qualified,qwen/qwen3.8-omni-flash,1,S5.4,Nothing in the snippet indicates the language warns about it; the reader must notice.,no
+qualified,qwen/qwen3.8-omni-flash,2,S5.1,"Grade.Pass, because the first matching row (score >= 60) wins.",yes
+qualified,qwen/qwen3.8-omni-flash,2,S5.2,"Grade.Fail, via the otherwise row.",yes
+qualified,qwen/qwen3.8-omni-flash,2,S5.3,"Yes—the score >= 90 => Grade.Honors row, since it is shadowed by the earlier score >= 60 row.",yes
+qualified,qwen/qwen3.8-omni-flash,2,S5.4,Leave it to the reader; the snippet gives no indication that the language flags such logically shadowed rows.,no
+short,qwen/qwen3.8-omni-flash,1,S1.1,Flat,yes
+short,qwen/qwen3.8-omni-flash,1,S1.2,PerDay,yes
+short,qwen/qwen3.8-omni-flash,1,S1.3,"It violates the requires precondition, so the call is erroneous/undefined (no specified return).",yes
+short,qwen/qwen3.8-omni-flash,1,S1.4,No,yes
+short,qwen/qwen3.8-omni-flash,1,S1.5,No,yes
+short,qwen/qwen3.8-omni-flash,2,S1.1,Flat,yes
+short,qwen/qwen3.8-omni-flash,2,S1.2,PerDay,yes
+short,qwen/qwen3.8-omni-flash,2,S1.3,"It violates the requires days_late >= 0 precondition, so the call fails as a contract/verification error rather than returning a Fee.",yes
+short,qwen/qwen3.8-omni-flash,2,S1.4,No,yes
+short,qwen/qwen3.8-omni-flash,2,S1.5,No,yes
+short,qwen/qwen3.8-omni-flash,1,S2.1,0,yes
+short,qwen/qwen3.8-omni-flash,1,S2.2,yes,yes
+short,qwen/qwen3.8-omni-flash,2,S2.1,0,yes
+short,qwen/qwen3.8-omni-flash,2,S2.2,yes,yes
+short,qwen/qwen3.8-omni-flash,1,S3.1,no,yes
+short,qwen/qwen3.8-omni-flash,1,S3.2,no,yes
+short,qwen/qwen3.8-omni-flash,2,S3.1,No.,yes
+short,qwen/qwen3.8-omni-flash,2,S3.2,No.,yes
+short,qwen/qwen3.8-omni-flash,1,S4.1,Clear,yes
+short,qwen/qwen3.8-omni-flash,1,S4.2,The left Red is Light.Red; the right Red is Alert.Red.,yes
+short,qwen/qwen3.8-omni-flash,1,S4.3,"next would be non-exhaustive, so it would likely fail to compile/verify; next(Yellow) would have no defined result.",yes
+short,qwen/qwen3.8-omni-flash,1,S4.4,"Because the rows already cover every possible Light value, making otherwise unnecessary/unreachable.",yes
+short,qwen/qwen3.8-omni-flash,2,S4.1,Clear.,yes
+short,qwen/qwen3.8-omni-flash,2,S4.2,The Red in the condition belongs to Light; the Red after => belongs to Alert.,yes
+short,qwen/qwen3.8-omni-flash,2,S4.3,"next would become non-exhaustive, so next(Yellow) would have no defined result (likely an error).",yes
+short,qwen/qwen3.8-omni-flash,2,S4.4,"Because next already handles every possible Light value, so otherwise is unnecessary.",yes
+short,qwen/qwen3.8-omni-flash,1,S5.1,Pass — the first row (score >= 60) matches and decides before the >= 90 row.,yes
+short,qwen/qwen3.8-omni-flash,1,S5.2,"Fail — neither guard matches, so the otherwise row decides.",yes
+short,qwen/qwen3.8-omni-flash,1,S5.3,Yes — the score >= 90 => Honors row can never decide; it is shadowed by the earlier score >= 60 row.,yes
+short,qwen/qwen3.8-omni-flash,1,S5.4,It would leave it to the reader; the snippet gives no indication of an automatic unreachable-row report.,no
+short,qwen/qwen3.8-omni-flash,2,S5.1,Pass.,yes
+short,qwen/qwen3.8-omni-flash,2,S5.2,Fail.,yes
+short,qwen/qwen3.8-omni-flash,2,S5.3,"Yes — the score >= 90 => Honors row can never decide, because the earlier score >= 60 row already matches every score ≥ 90.",yes
+short,qwen/qwen3.8-omni-flash,2,S5.4,It would leave it to the reader; nothing shown indicates the language reports unreachable/shadowed rows.,no
+dot,anthropic/claude-haiku-5.5,1,S1.1,"Flat. Day 2 isn't 0, the member-and-first-offense rule fails because member is false, and 2 <= 3.",yes
+dot,anthropic/claude-haiku-5.5,1,S1.2,"PerDay. Day 10 isn't 0, first_offense is false so the second rule fails, and 10 > 3 so it falls through to otherwise.",yes
+dot,anthropic/claude-haiku-5.5,1,S1.3,"It violates the requires days_late >= 0 precondition, so the call is an error rather than a fee. The code doesn't show whether that is caught at compile time or at runtime.",yes
+dot,anthropic/claude-haiku-5.5,1,S1.4,"No. The intent text is documentation only, and nothing in the code checks it.",yes
+dot,anthropic/claude-haiku-5.5,1,S1.5,"No. Every call in the code uses labeled arguments, and the positional form isn't shown as valid, so I'd expect it to be rejected. The code alone doesn't settle this for certain.",yes
+dot,anthropic/claude-haiku-5.5,2,S1.1,"Flat. The first two cases don't match (days_late is not 0, and member is false), and days_late <= 3 matches.",yes
+dot,anthropic/claude-haiku-5.5,2,S1.2,"PerDay. It isn't zero, it isn't a first offense, and 10 is not <= 3, so the otherwise case applies.",yes
+dot,anthropic/claude-haiku-5.5,2,S1.3,"It violates the requires days_late >= 0 precondition, so the call is an error and no Fee is returned.",yes
+dot,anthropic/claude-haiku-5.5,2,S1.4,No. The intent text is documentation only and nothing checks it against the code.,yes
+dot,anthropic/claude-haiku-5.5,2,S1.5,"No. The function's parameters are named, and every call in the code passes them by label, so the positional form is not shown as valid.",yes
+dot,anthropic/claude-haiku-5.5,1,S2.1,"It returns 0, because -3 is less than low (0), so the first branch returns low.",yes
+dot,anthropic/claude-haiku-5.5,1,S2.2,"Yes. Returning low always satisfies result >= low and result <= high (the requires low <= high guarantees low <= high), so the first ensures clause still holds without the second one.",yes
+dot,anthropic/claude-haiku-5.5,2,S2.1,"It returns 0, because -3 is below low, so the first branch returns low.",yes
+dot,anthropic/claude-haiku-5.5,2,S2.2,"Yes. With requires low <= high, a body that always returns low satisfies both remaining ensures clauses (low >= low and low <= high), so nothing forces it to return value when value is already in range.",yes
+dot,anthropic/claude-haiku-5.5,1,S3.1,"No. a + b is 4000000000, which exceeds 2147483647, so the second requires fails.",yes
+dot,anthropic/claude-haiku-5.5,1,S3.2,"Yes. Both operands are non-negative i32 values, so evaluating a + b inside the precondition can overflow before the comparison happens.",no
+dot,anthropic/claude-haiku-5.5,2,S3.1,"No. Since 2000000000 + 2000000000 = 4000000000 exceeds 2147483647, the second requires fails.",yes
+dot,anthropic/claude-haiku-5.5,2,S3.2,"Yes. With a and b as i32 values, the sum a + b can exceed 2147483647 when both are large non-negative values, so evaluating the check itself can overflow.",no
+dot,anthropic/claude-haiku-5.5,1,S4.1,"It returns .Clear. next(.Green) is .Yellow, and alert_for(.Yellow) matches no Red row, so it falls through to otherwise.",yes
+dot,anthropic/claude-haiku-5.5,1,S4.2,"The left Red in light == .Red is a Light variant, since light has type Light. The right Red in => .Red is an Alert variant, since that is the declared return type.",yes
+dot,anthropic/claude-haiku-5.5,1,S4.3,"next(.Yellow) would have no matching row. Because decide has no otherwise, I expect the checker to reject next as non-exhaustive, or else the call would fail at runtime. I'm inferring this from the language's conventions rather than a documented rule.",yes
+dot,anthropic/claude-haiku-5.5,1,S4.4,"The three rows already cover every Light variant (Red, Green, Yellow), so no fallback is needed. alert_for needs otherwise only because it maps two of the outcomes into a single .Clear case.",yes
+dot,anthropic/claude-haiku-5.5,2,S4.1,"It returns .Clear. next(.Green) is .Yellow, and alert_for(.Yellow) matches no .Red row, so it falls to otherwise and gives .Clear.",yes
+dot,anthropic/claude-haiku-5.5,2,S4.2,"The left Red in light == .Red is a Light value, since it is compared with the Light parameter. The right Red after => is an Alert value, since it is the function's return type.",yes
+dot,anthropic/claude-haiku-5.5,2,S4.3,"next(.Yellow) would have no matching row. The three rows are what make next total, so removing one leaves that input undefined. The language would most likely reject the function as non-exhaustive, but the code alone doesn't confirm that.",yes
+dot,anthropic/claude-haiku-5.5,2,S4.4,"The three rows already cover every Light value (Red, Green, Yellow), so an otherwise row would never be reached.",yes
+dot,anthropic/claude-haiku-5.5,1,S5.1,"grade(95) returns .Pass. The first row, score >= 60, matches, and decide rows are tried in order.",yes
+dot,anthropic/claude-haiku-5.5,1,S5.2,"grade(40) returns .Fail. Neither score >= 60 nor score >= 90 holds, so the otherwise row applies.",yes
+dot,anthropic/claude-haiku-5.5,1,S5.3,"Yes, the .Honors row can never decide. Any score that satisfies score >= 90 also satisfies score >= 60, which is matched first, so .Honors is unreachable. The intent says 90 and above earns honors, but the code never returns .Honors.",yes
+dot,anthropic/claude-haiku-5.5,1,S5.4,"Nothing in the code shows the language reporting it, so as far as this snippet reveals, the reader has to notice it. I can't tell from the code alone whether the language has a checker for unreachable rows.",no
+dot,anthropic/claude-haiku-5.5,2,S5.1,"grade(95) returns .Pass. The first row, score >= 60, matches, so it decides before the honors row is reached.",yes
+dot,anthropic/claude-haiku-5.5,2,S5.2,"grade(40) returns .Fail. No earlier row matches, so the otherwise row decides.",yes
+dot,anthropic/claude-haiku-5.5,2,S5.3,"Yes, the .Honors row can never decide. Any score that satisfies score >= 90 also satisfies the earlier score >= 60 row, which is checked first. Honors is unreachable, so scores of 90 and above return .Pass, not .Honors, despite the intent.",yes
+dot,anthropic/claude-haiku-5.5,2,S5.4,"The code shown doesn't say. Nothing here indicates whether the language checks for unreachable rows, so I can't tell whether it would report this or leave it to the reader. The intent string also contradicts the behavior, and nothing in the code flags that either.",no
+qualified,anthropic/claude-haiku-5.5,1,S1.1,"Flat. Day 2 isn't 0, the member-and-first-offense rule fails because the member flag is false, and 2 is at most 3.",yes
+qualified,anthropic/claude-haiku-5.5,1,S1.2,"PerDay. Neither the zero-day rule nor the member rule applies (first_offense is false), and 10 is more than 3 days.",yes
+qualified,anthropic/claude-haiku-5.5,1,S1.3,"It violates the requires days_late >= 0 precondition, so the call is invalid and does not return a Fee.",yes
+qualified,anthropic/claude-haiku-5.5,1,S1.4,No. The intent text is prose that nothing in the code checks.,yes
+qualified,anthropic/claude-haiku-5.5,1,S1.5,"No. The declaration and the example both use labeled arguments, so the unlabeled call doesn't match the function's form.",yes
+qualified,anthropic/claude-haiku-5.5,2,S1.1,"Fee.Flat. The first two rules don't match (2 isn't 0, and first_offense is true but member is false), and 2 <= 3 matches the third rule.",yes
+qualified,anthropic/claude-haiku-5.5,2,S1.2,"Fee.PerDay. None of the first three rules match (10 isn't 0, first_offense is false, and 10 isn't <= 3), so the otherwise branch applies.",yes
+qualified,anthropic/claude-haiku-5.5,2,S1.3,"It violates the requires days_late >= 0 precondition, so the call is rejected as a contract failure and produces no Fee value. The code doesn't state the exact mechanism.",yes
+qualified,anthropic/claude-haiku-5.5,2,S1.4,No. The intent text is documentation only and is not checked.,yes
+qualified,anthropic/claude-haiku-5.5,2,S1.5,"No, as far as I can tell. The function and its examples use labeled arguments at every call site, so the unlabeled form is probably not accepted. The code doesn't state this rule explicitly, so this is an inference.",yes
+qualified,anthropic/claude-haiku-5.5,1,S2.1,"It returns 0, because -3 is below low, so the function returns low.",yes
+qualified,anthropic/claude-haiku-5.5,1,S2.2,"Yes. A body that always returns low satisfies requires low <= high and the first ensures (low lies within [low, high]), and the second ensures is the only one that forces the result to equal value in range, so removing it lets that body pass.",yes
+qualified,anthropic/claude-haiku-5.5,2,S2.1,"It returns 0, because -3 is below low, so the function returns low.",yes
+qualified,anthropic/claude-haiku-5.5,2,S2.2,"Yes. Returning low always satisfies requires low <= high and the first ensures (result is between low and high), so without the second ensures nothing would rule that body out.",yes
+qualified,anthropic/claude-haiku-5.5,1,S3.1,"No. a + b = 4000000000 exceeds 2147483647, so the second requires fails.",yes
+qualified,anthropic/claude-haiku-5.5,1,S3.2,"Yes. a and b are i32, and nothing in the code says contracts use unbounded arithmetic, so a + b can overflow when the clause is evaluated.",no
+qualified,anthropic/claude-haiku-5.5,2,S3.1,"No. Here a + b is 4000000000, which exceeds 2147483647, so the second requires fails.",yes
+qualified,anthropic/claude-haiku-5.5,2,S3.2,"Yes. Both a and b can be as large as 2147483647 under the first requires, so evaluating a + b as i32 could overflow before the check runs.",no
+qualified,anthropic/claude-haiku-5.5,1,S4.1,"next(Light.Green) is Light.Yellow, and alert_for(Light.Yellow) is Alert.Clear.",yes
+qualified,anthropic/claude-haiku-5.5,1,S4.2,"The Red in the condition (light == Light.Red) is a Light value, while the Red in the result (Alert.Red) is an Alert value.",yes
+qualified,anthropic/claude-haiku-5.5,1,S4.3,"next would no longer cover Light.Yellow, so the decide would be non-exhaustive. It would likely be rejected when compiled, and otherwise next(Light.Yellow) would have no result. The second example would fail too.",yes
+qualified,anthropic/claude-haiku-5.5,1,S4.4,"The three rows already cover all three Light variants (Red, Green, Yellow), so an otherwise row would never be reached.",yes
+qualified,anthropic/claude-haiku-5.5,2,S4.1,"alert_for(next(Light.Green)) is alert_for(Light.Yellow), which matches no Red row and returns Alert.Clear.",yes
+qualified,anthropic/claude-haiku-5.5,2,S4.2,"The left Red in light == Light.Red belongs to Light, and the right Red in => Alert.Red belongs to Alert.",yes
+qualified,anthropic/claude-haiku-5.5,2,S4.3,"next(Light.Yellow) would have no matching row. The decide would be non-exhaustive, so it would likely be rejected, or fail at runtime if accepted. The second example would also fail, since it calls next(Light.Yellow).",yes
+qualified,anthropic/claude-haiku-5.5,2,S4.4,"The three rows already cover every Light variant (Red, Green, Yellow), so the match is exhaustive and an otherwise row would be redundant. alert_for needs otherwise because its first row covers only Red.",yes
+qualified,anthropic/claude-haiku-5.5,1,S5.1,"It returns Grade.Pass. The first row, score >= 60, matches 95, and rows are checked in order, so the first match wins.",yes
+qualified,anthropic/claude-haiku-5.5,1,S5.2,"It returns Grade.Fail. Neither score >= 60 nor score >= 90 holds for 40, so the otherwise row applies.",yes
+qualified,anthropic/claude-haiku-5.5,1,S5.3,"Yes, the row score >= 90 => Grade.Honors can never decide. Any score that reaches it is already at least 60, so the first row always catches it first.",yes
+qualified,anthropic/claude-haiku-5.5,1,S5.4,"Nothing in the code shows the language reporting this, so from what is written here it appears to be left to the reader to notice. I can't confirm the language's actual behavior from the code alone.",no
+qualified,anthropic/claude-haiku-5.5,2,S5.1,"grade(95) returns Grade.Pass. The first row score >= 60 matches, so it decides before the honors row is checked.",yes
+qualified,anthropic/claude-haiku-5.5,2,S5.2,"grade(40) returns Grade.Fail. No row before otherwise matches, so the fallback applies.",yes
+qualified,anthropic/claude-haiku-5.5,2,S5.3,"Yes, the score >= 90 => Grade.Honors row can never decide. Any score of 90 or above also satisfies the earlier score >= 60 row, so the honors row is unreachable and the intent's honors rule is not implemented.",yes
+qualified,anthropic/claude-haiku-5.5,2,S5.4,"Nothing in the code shows that the language reports it, so the reader has to notice it. The code gives no sign of a diagnostic, and I can't confirm from the code alone whether the compiler would flag it.",no
+short,anthropic/claude-haiku-5.5,1,S1.1,"Flat. The first rule fails (days_late isn't 0), the second fails (not a member), and the third matches because 2 <= 3.",yes
+short,anthropic/claude-haiku-5.5,1,S1.2,"PerDay. Rules one and two don't apply, 10 is greater than 3, so the otherwise branch gives PerDay.",yes
+short,anthropic/claude-haiku-5.5,1,S1.3,"The call violates the requires days_late >= 0 precondition, so it is rejected as an error and does not return a Fee.",yes
+short,anthropic/claude-haiku-5.5,1,S1.4,No. The intent sentence is documentation only and nothing checks it against the code.,yes
+short,anthropic/claude-haiku-5.5,1,S1.5,"No. The parameters are declared with labels and the call omits them, so it isn't accepted as written.",yes
+short,anthropic/claude-haiku-5.5,2,S1.1,"Flat. Days late is not 0, the member-and-first-offense rule fails because member is false, and 2 <= 3 matches the third rule.",yes
+short,anthropic/claude-haiku-5.5,2,S1.2,"PerDay. The member rule fails because first_offense is false, and 10 is not <= 3, so it falls through to otherwise.",yes
+short,anthropic/claude-haiku-5.5,2,S1.3,"The requires days_late >= 0 precondition is violated, so the call is a contract failure and does not return a Fee.",yes
+short,anthropic/claude-haiku-5.5,2,S1.4,No. The intent sentence is descriptive text that the code does not check.,yes
+short,anthropic/claude-haiku-5.5,2,S1.5,"No. The function is declared and exercised only with labeled arguments, so the unlabeled call is not shown to be accepted, and I'd expect it to be rejected.",yes
+short,anthropic/claude-haiku-5.5,1,S2.1,"It returns 0, because -3 is below low, so the first branch returns low.",yes
+short,anthropic/claude-haiku-5.5,1,S2.2,"Yes. A body that always returns low satisfies requires low <= high and both remaining postconditions, since low lies within [low, high]. Only the deleted ensures line forbids it.",yes
+short,anthropic/claude-haiku-5.5,2,S2.1,"It returns 0, because -3 is below low (0), so the function returns low.",yes
+short,anthropic/claude-haiku-5.5,2,S2.2,"Yes. A body that always returns low satisfies requires low <= high and both remaining postconditions (result >= low and result <= high), so the first ensures alone doesn't rule it out. Only the second ensures forces the in-range value to be returned unchanged.",yes
+short,anthropic/claude-haiku-5.5,1,S3.1,"No. The second precondition requires a + b <= 2147483647, and 4000000000 exceeds that, so the call is not allowed.",yes
+short,anthropic/claude-haiku-5.5,1,S3.2,"Yes. Both operands are i32 and the first requires only checks that they are non-negative, so a + b can exceed the i32 range before the second requires is checked.",no
+short,anthropic/claude-haiku-5.5,2,S3.1,"No. The second precondition requires a + b <= 2147483647, and 2000000000 + 2000000000 = 4000000000 exceeds that, so the call violates the requires clause.",yes
+short,anthropic/claude-haiku-5.5,2,S3.2,"Yes. Both operands are i32, so a + b in that expression can overflow for large inputs, and nothing in the code prevents it.",no
+short,anthropic/claude-haiku-5.5,1,S4.1,"next(Green) is Yellow, and alert_for(Yellow) takes the otherwise row, so it returns Clear.",yes
+short,anthropic/claude-haiku-5.5,1,S4.2,"The left Red in light == Red is Light::Red, since it is compared with a Light parameter. The right Red in => Red is Alert::Red, since the return type is Alert.",yes
+short,anthropic/claude-haiku-5.5,1,S4.3,"The decide block would no longer cover Yellow, so it would be non-exhaustive and should be rejected. Otherwise next(Yellow) would have no defined result.",yes
+short,anthropic/claude-haiku-5.5,1,S4.4,"The three rows already cover every Light variant (Red, Green, Yellow), so an otherwise row would be unreachable and unnecessary.",yes
+short,anthropic/claude-haiku-5.5,2,S4.1,"alert_for(next(Green)) is alert_for(Yellow), which hits the otherwise row and returns Clear.",yes
+short,anthropic/claude-haiku-5.5,2,S4.2,"The first Red in alert_for's first row is Light::Red, since it is compared against the light: Light parameter. The Red on the right of => is Alert::Red, which the return type Alert determines.",yes
+short,anthropic/claude-haiku-5.5,2,S4.3,"next would no longer handle Yellow, so next(Yellow) would have no matching row. The example alert_for(next(Yellow)) == Red would fail, and the checker would likely reject the function as non-exhaustive.",yes
+short,anthropic/claude-haiku-5.5,2,S4.4,"The three rows already cover every Light variant (Red, Green, Yellow), so an otherwise row would be redundant and unreachable.",yes
+short,anthropic/claude-haiku-5.5,1,S5.1,"Pass. The first arm, score >= 60, matches 95, so it decides before the honors arm is reached.",yes
+short,anthropic/claude-haiku-5.5,1,S5.2,"Fail. 40 fails score >= 60 and score >= 90, so the otherwise arm decides.",yes
+short,anthropic/claude-haiku-5.5,1,S5.3,"Yes, the | score >= 90 => Honors row can never decide. Any score that satisfies score >= 90 also satisfies score >= 60, which comes first and wins, so Honors is never returned.",yes
+short,anthropic/claude-haiku-5.5,1,S5.4,"I can't tell from the code alone. The snippet shows no warning or diagnostic, so nothing visible indicates the language reports it, but I can't confirm its behavior without its documentation or tooling.",no
+short,anthropic/claude-haiku-5.5,2,S5.1,"Pass. The first row, score >= 60, matches 95 before the Honors row is reached.",yes
+short,anthropic/claude-haiku-5.5,2,S5.2,"Fail. 40 fails score >= 60 and score >= 90, so the otherwise row applies.",yes
+short,anthropic/claude-haiku-5.5,2,S5.3,"Yes, the score >= 90 => Honors row can never decide. Every score that satisfies >= 90 also satisfies the earlier >= 60 row, so Honors is unreachable.",yes
+short,anthropic/claude-haiku-5.5,2,S5.4,"The snippet doesn't show whether the language reports it. Nothing in the code is a diagnostic or configuration, so I can't tell from reading it alone. The shadowed row is only visible to a reader who notices it.",no
+dot,openai/gpt-6-luna,1,S1.1,.Flat,yes
+dot,openai/gpt-6-luna,1,S1.2,.PerDay,yes
+dot,openai/gpt-6-luna,1,S1.3,It violates the days_late >= 0 requirement.,yes
+dot,openai/gpt-6-luna,1,S1.4,No.,yes
+dot,openai/gpt-6-luna,1,S1.5,No.,yes
+dot,openai/gpt-6-luna,2,S1.1,.Flat,yes
+dot,openai/gpt-6-luna,2,S1.2,.PerDay,yes
+dot,openai/gpt-6-luna,2,S1.3,It violates the days_late >= 0 precondition.,yes
+dot,openai/gpt-6-luna,2,S1.4,No.,yes
+dot,openai/gpt-6-luna,2,S1.5,No.,yes
+dot,openai/gpt-6-luna,1,S2.1,0,yes
+dot,openai/gpt-6-luna,1,S2.2,"No; it would fail the example, which expects 10.",no
+dot,openai/gpt-6-luna,2,S2.1,0,yes
+dot,openai/gpt-6-luna,2,S2.2,Yes,yes
+dot,openai/gpt-6-luna,1,S3.1,No.,yes
+dot,openai/gpt-6-luna,1,S3.2,Yes.,no
+dot,openai/gpt-6-luna,2,S3.1,No.,yes
+dot,openai/gpt-6-luna,2,S3.2,Yes.,no
+dot,openai/gpt-6-luna,1,S4.1,.Clear,yes
+dot,openai/gpt-6-luna,1,S4.2,The row’s light == .Red uses Light.Red; its result .Red is Alert.Red.,yes
+dot,openai/gpt-6-luna,1,S4.3,"next would be non-exhaustive, likely causing a compile-time error.",yes
+dot,openai/gpt-6-luna,1,S4.4,"Its three rows cover every Light variant, so no otherwise row is needed.",yes
+dot,openai/gpt-6-luna,2,S4.1,.Clear,yes
+dot,openai/gpt-6-luna,2,S4.2,The Red on the left is Light.Red; the Red on the right is Alert.Red.,yes
+dot,openai/gpt-6-luna,2,S4.3,"next would be incomplete for Light.Yellow, so it would fail to compile.",yes
+dot,openai/gpt-6-luna,2,S4.4,"Its rows cover every Light variant, so no otherwise row is needed.",yes
+dot,openai/gpt-6-luna,1,S5.1,Grade::Pass,yes
+dot,openai/gpt-6-luna,1,S5.2,Grade::Fail,yes
+dot,openai/gpt-6-luna,1,S5.3,"Yes—the score >= 90 row can never decide, because scores at least 90 already match score >= 60.",yes
+dot,openai/gpt-6-luna,1,S5.4,"The code gives no indication that the language reports unreachable rows, so the reader must notice.",no
+dot,openai/gpt-6-luna,2,S5.1,Grade.Pass,yes
+dot,openai/gpt-6-luna,2,S5.2,Grade.Fail,yes
+dot,openai/gpt-6-luna,2,S5.3,Yes—the score >= 90 => .Honors row; the earlier score >= 60 row already matches those scores.,yes
+dot,openai/gpt-6-luna,2,S5.4,"The code doesn’t specify any such report, so the reader must notice it.",no
+qualified,openai/gpt-6-luna,1,S1.1,Fee.Flat,yes
+qualified,openai/gpt-6-luna,1,S1.2,Fee.PerDay,yes
+qualified,openai/gpt-6-luna,1,S1.3,It violates the precondition days_late >= 0.,yes
+qualified,openai/gpt-6-luna,1,S1.4,No,yes
+qualified,openai/gpt-6-luna,1,S1.5,No,yes
+qualified,openai/gpt-6-luna,2,S1.1,Fee.Flat,yes
+qualified,openai/gpt-6-luna,2,S1.2,Fee.PerDay,yes
+qualified,openai/gpt-6-luna,2,S1.3,The call violates the days_late >= 0 requirement.,yes
+qualified,openai/gpt-6-luna,2,S1.4,No.,yes
+qualified,openai/gpt-6-luna,2,S1.5,No.,yes
+qualified,openai/gpt-6-luna,1,S2.1,0,yes
+qualified,openai/gpt-6-luna,1,S2.2,Yes.,yes
+qualified,openai/gpt-6-luna,2,S2.1,0,yes
+qualified,openai/gpt-6-luna,2,S2.2,Yes.,yes
+qualified,openai/gpt-6-luna,1,S3.1,No,yes
+qualified,openai/gpt-6-luna,1,S3.2,Yes,no
+qualified,openai/gpt-6-luna,2,S3.1,no,yes
+qualified,openai/gpt-6-luna,2,S3.2,yes,no
+qualified,openai/gpt-6-luna,1,S4.1,Alert.Clear,yes
+qualified,openai/gpt-6-luna,1,S4.2,The row’s condition uses Light.Red; its result uses Alert.Red.,yes
+qualified,openai/gpt-6-luna,1,S4.3,"next would have no case for Light.Yellow, so the definition would be incomplete.",yes
+qualified,openai/gpt-6-luna,1,S4.4,Its rows cover all three Light variants.,yes
+qualified,openai/gpt-6-luna,2,S4.1,Alert.Clear,yes
+qualified,openai/gpt-6-luna,2,S4.2,The Red on the left is Light.Red; the one on the right is Alert.Red.,yes
+qualified,openai/gpt-6-luna,2,S4.3,next would be non-exhaustive and likely fail to compile.,yes
+qualified,openai/gpt-6-luna,2,S4.4,Its three rows cover every Light variant.,yes
+qualified,openai/gpt-6-luna,1,S5.1,Grade.Pass,yes
+qualified,openai/gpt-6-luna,1,S5.2,Grade.Fail,yes
+qualified,openai/gpt-6-luna,1,S5.3,"Yes—the score >= 90 row can never decide, because score >= 90 also matches the earlier score >= 60 row.",yes
+qualified,openai/gpt-6-luna,1,S5.4,The code doesn’t specify whether the language reports unreachable rows.,no
+qualified,openai/gpt-6-luna,2,S5.1,Grade.Pass,yes
+qualified,openai/gpt-6-luna,2,S5.2,Grade.Fail,yes
+qualified,openai/gpt-6-luna,2,S5.3,"Yes. The score >= 90 row can never decide, because score >= 60 matches first.",yes
+qualified,openai/gpt-6-luna,2,S5.4,It leaves it to the reader to notice.,no
+short,openai/gpt-6-luna,1,S1.1,Flat,yes
+short,openai/gpt-6-luna,1,S1.2,PerDay,yes
+short,openai/gpt-6-luna,1,S1.3,It violates the requirement that days_late >= 0.,yes
+short,openai/gpt-6-luna,1,S1.4,No.,yes
+short,openai/gpt-6-luna,1,S1.5,No.,yes
+short,openai/gpt-6-luna,2,S1.1,Flat,yes
+short,openai/gpt-6-luna,2,S1.2,PerDay,yes
+short,openai/gpt-6-luna,2,S1.3,It violates the requirement that days_late >= 0.,yes
+short,openai/gpt-6-luna,2,S1.4,No,yes
+short,openai/gpt-6-luna,2,S1.5,No,yes
+short,openai/gpt-6-luna,1,S2.1,0,yes
+short,openai/gpt-6-luna,1,S2.2,Yes.,yes
+short,openai/gpt-6-luna,2,S2.1,0,yes
+short,openai/gpt-6-luna,2,S2.2,Yes.,yes
+short,openai/gpt-6-luna,1,S3.1,No.,yes
+short,openai/gpt-6-luna,1,S3.2,Yes.,no
+short,openai/gpt-6-luna,2,S3.1,No.,yes
+short,openai/gpt-6-luna,2,S3.2,Yes.,no
+short,openai/gpt-6-luna,1,S4.1,Clear,yes
+short,openai/gpt-6-luna,1,S4.2,The Red in the condition is Light::Red; the Red result is Alert::Red.,yes
+short,openai/gpt-6-luna,1,S4.3,"next would be incomplete for Yellow, so it would fail to compile or have no defined result for that input.",yes
+short,openai/gpt-6-luna,1,S4.4,"Its rows cover all three Light variants, so no otherwise row is needed.",yes
+short,openai/gpt-6-luna,2,S4.1,Clear.,yes
+short,openai/gpt-6-luna,2,S4.2,The Red in the condition is Light::Red; the Red after => is Alert::Red.,yes
+short,openai/gpt-6-luna,2,S4.3,next would be incomplete: it would have no result for Yellow.,yes
+short,openai/gpt-6-luna,2,S4.4,"Its rows cover all three Light variants, so no otherwise row is needed.",yes
+short,openai/gpt-6-luna,1,S5.1,Pass,yes
+short,openai/gpt-6-luna,1,S5.2,Fail,yes
+short,openai/gpt-6-luna,1,S5.3,"Yes—the score >= 90 row can never decide, because the earlier score >= 60 row matches first.",yes
+short,openai/gpt-6-luna,1,S5.4,The code doesn’t say whether the language reports unreachable rows.,no
+short,openai/gpt-6-luna,2,S5.1,Pass,yes
+short,openai/gpt-6-luna,2,S5.2,Fail,yes
+short,openai/gpt-6-luna,2,S5.3,Yes—the score >= 90 => Honors row can never decide.,yes
+short,openai/gpt-6-luna,2,S5.4,"The code shows no mechanism for reporting it, so the reader must notice.",no
+dot,mistralai/mistral-large-4-0,1,S1.1,.Flat,yes
+dot,mistralai/mistral-large-4-0,1,S1.2,.PerDay,yes
+dot,mistralai/mistral-large-4-0,1,S1.3,It violates the requires precondition (the call is invalid).,yes
+dot,mistralai/mistral-large-4-0,1,S1.4,no,yes
+dot,mistralai/mistral-large-4-0,1,S1.5,no,yes
+dot,mistralai/mistral-large-4-0,2,S1.1,.Flat,yes
+dot,mistralai/mistral-large-4-0,2,S1.2,.PerDay,yes
+dot,mistralai/mistral-large-4-0,2,S1.3,"It violates the requires days_late >= 0 precondition, so the call is invalid/rejected.",yes
+dot,mistralai/mistral-large-4-0,2,S1.4,no,yes
+dot,mistralai/mistral-large-4-0,2,S1.5,no,yes
+dot,mistralai/mistral-large-4-0,1,S2.1,0,yes
+dot,mistralai/mistral-large-4-0,1,S2.2,yes,yes
+dot,mistralai/mistral-large-4-0,2,S2.1,0,yes
+dot,mistralai/mistral-large-4-0,2,S2.2,"Yes — the remaining ensures only requires the result to be within [low, high], and low satisfies that.",yes
+dot,mistralai/mistral-large-4-0,1,S3.1,no,yes
+dot,mistralai/mistral-large-4-0,1,S3.2,no,yes
+dot,mistralai/mistral-large-4-0,2,S3.1,no,yes
+dot,mistralai/mistral-large-4-0,2,S3.2,yes,no
+dot,mistralai/mistral-large-4-0,1,S4.1,.Clear (the Alert::Clear value).,yes
+dot,mistralai/mistral-large-4-0,1,S4.2,The left .Red is Light::Red; the right .Red is Alert::Red.,yes
+dot,mistralai/mistral-large-4-0,1,S4.3,"next(.Yellow) would have no matching row and there is no otherwise, so it would be an unhandled/error case.",yes
+dot,mistralai/mistral-large-4-0,1,S4.4,"All three Light variants are already explicitly covered, so an otherwise row would be redundant/unreachable.",yes
+dot,mistralai/mistral-large-4-0,2,S4.1,.Clear (Alert.Clear),yes
+dot,mistralai/mistral-large-4-0,2,S4.2,The condition .Red is Light.Red; the result .Red is Alert.Red.,yes
+dot,mistralai/mistral-large-4-0,2,S4.3,"next(.Yellow) would match no row, and with no otherwise it would be unhandled/fail.",yes
+dot,mistralai/mistral-large-4-0,2,S4.4,"Because the three rows already cover every Light variant, so otherwise would be unreachable.",yes
+dot,mistralai/mistral-large-4-0,1,S5.1,.Pass,yes
+dot,mistralai/mistral-large-4-0,1,S5.2,.Fail,yes
+dot,mistralai/mistral-large-4-0,1,S5.3,"Yes, the second row (score >= 90 => .Honors) — any score that satisfies it also satisfies the first row, which is checked first.",yes
+dot,mistralai/mistral-large-4-0,1,S5.4,It would leave it to the reader to notice; the language does not automatically report the unreachable row.,no
+dot,mistralai/mistral-large-4-0,2,S5.1,.Pass,yes
+dot,mistralai/mistral-large-4-0,2,S5.2,.Fail,yes
+dot,mistralai/mistral-large-4-0,2,S5.3,"Yes — the second row (score >= 90 => .Honors) can never decide, because any score ≥ 90 also matches the first row (score >= 60).",yes
+dot,mistralai/mistral-large-4-0,2,S5.4,Leave it to the reader; the code shows no mechanism that would report the unreachable row.,no
+qualified,mistralai/mistral-large-4-0,1,S1.1,Fee.Flat,yes
+qualified,mistralai/mistral-large-4-0,1,S1.2,Fee.PerDay,yes
+qualified,mistralai/mistral-large-4-0,1,S1.3,"It violates the requires days_late >= 0 precondition, so the call is rejected/fails.",yes
+qualified,mistralai/mistral-large-4-0,1,S1.4,no,yes
+qualified,mistralai/mistral-large-4-0,1,S1.5,no,yes
+qualified,mistralai/mistral-large-4-0,2,S1.1,Fee.Flat,yes
+qualified,mistralai/mistral-large-4-0,2,S1.2,Fee.PerDay,yes
+qualified,mistralai/mistral-large-4-0,2,S1.3,The call is rejected/invalid because it violates requires days_late >= 0.,yes
+qualified,mistralai/mistral-large-4-0,2,S1.4,No,yes
+qualified,mistralai/mistral-large-4-0,2,S1.5,No,yes
+qualified,mistralai/mistral-large-4-0,1,S2.1,0,yes
+qualified,mistralai/mistral-large-4-0,1,S2.2,yes,yes
+qualified,mistralai/mistral-large-4-0,2,S2.1,0,yes
+qualified,mistralai/mistral-large-4-0,2,S2.2,yes,yes
+qualified,mistralai/mistral-large-4-0,1,S3.1,no,yes
+qualified,mistralai/mistral-large-4-0,1,S3.2,yes,no
+qualified,mistralai/mistral-large-4-0,2,S3.1,no,yes
+qualified,mistralai/mistral-large-4-0,2,S3.2,yes,no
+qualified,mistralai/mistral-large-4-0,1,S4.1,Alert.Clear,yes
+qualified,mistralai/mistral-large-4-0,1,S4.2,The left Red is Light.Red (enum Light); the right Red is Alert.Red (enum Alert).,yes
+qualified,mistralai/mistral-large-4-0,1,S4.3,"next(Light.Yellow) would match no row, so the call would fail/error (the match would be non-exhaustive).",yes
+qualified,mistralai/mistral-large-4-0,1,S4.4,"Because the three rows already cover every variant of Light (Red, Green, Yellow), making the match exhaustive; an otherwise row would be unreachable.",yes
+qualified,mistralai/mistral-large-4-0,2,S4.1,Alert.Clear,yes
+qualified,mistralai/mistral-large-4-0,2,S4.2,The condition Red is Light.Red (enum Light); the result Red is Alert.Red (enum Alert).,yes
+qualified,mistralai/mistral-large-4-0,2,S4.3,"next would become non-exhaustive: next(Light.Yellow) would have no matching row and no otherwise, so that case would be unhandled (likely a compile-time exhaustiveness error).",yes
+qualified,mistralai/mistral-large-4-0,2,S4.4,"Because the three explicit rows already cover every Light variant (Red, Green, Yellow), so no fallback row is needed.",yes
+qualified,mistralai/mistral-large-4-0,1,S5.1,Grade.Pass,yes
+qualified,mistralai/mistral-large-4-0,1,S5.2,Grade.Fail,yes
+qualified,mistralai/mistral-large-4-0,1,S5.3,Yes; the second row (| score >= 90 => Grade.Honors).,yes
+qualified,mistralai/mistral-large-4-0,1,S5.4,It would leave it to the reader.,no
+qualified,mistralai/mistral-large-4-0,2,S5.1,Grade.Pass,yes
+qualified,mistralai/mistral-large-4-0,2,S5.2,Grade.Fail,yes
+qualified,mistralai/mistral-large-4-0,2,S5.3,"Yes, the second row (| score >= 90 => Grade.Honors).",yes
+qualified,mistralai/mistral-large-4-0,2,S5.4,The language would report it (as unreachable/shadowed).,yes
+short,mistralai/mistral-large-4-0,1,S1.1,Flat,yes
+short,mistralai/mistral-large-4-0,1,S1.2,PerDay,yes
+short,mistralai/mistral-large-4-0,1,S1.3,It violates the requires days_late >= 0 precondition (error/assertion failure).,yes
+short,mistralai/mistral-large-4-0,1,S1.4,No,yes
+short,mistralai/mistral-large-4-0,1,S1.5,Yes,no
+short,mistralai/mistral-large-4-0,2,S1.1,Flat,yes
+short,mistralai/mistral-large-4-0,2,S1.2,PerDay,yes
+short,mistralai/mistral-large-4-0,2,S1.3,"It violates the requires days_late >= 0 precondition, so the call is rejected/errors.",yes
+short,mistralai/mistral-large-4-0,2,S1.4,No,yes
+short,mistralai/mistral-large-4-0,2,S1.5,No,yes
+short,mistralai/mistral-large-4-0,1,S2.1,0,yes
+short,mistralai/mistral-large-4-0,1,S2.2,Yes,yes
+short,mistralai/mistral-large-4-0,2,S2.1,0,yes
+short,mistralai/mistral-large-4-0,2,S2.2,yes,yes
+short,mistralai/mistral-large-4-0,1,S3.1,no,yes
+short,mistralai/mistral-large-4-0,1,S3.2,yes,no
+short,mistralai/mistral-large-4-0,1,S4.1,Clear,yes
+short,mistralai/mistral-large-4-0,1,S4.2,The first Red is Light::Red; the second Red is Alert::Red.,yes
+short,mistralai/mistral-large-4-0,1,S4.3,"next(Yellow) would have no matching row, so it would fail/be undefined unless an otherwise were added.",yes
+short,mistralai/mistral-large-4-0,1,S4.4,"Because the three rows already cover every Light value, so otherwise would be unreachable.",yes
+short,mistralai/mistral-large-4-0,2,S4.1,Clear (Alert::Clear).,yes
+short,mistralai/mistral-large-4-0,2,S4.2,The Red in light == Red is Light::Red; the Red after => is Alert::Red.,yes
+short,mistralai/mistral-large-4-0,2,S4.3,"next(Yellow) would have no matching row, so with no otherwise it would fail/error or be non-exhaustive.",yes
+short,mistralai/mistral-large-4-0,2,S4.4,"Because the three explicit rows already cover every Light variant, making an otherwise row unreachable.",yes
+short,mistralai/mistral-large-4-0,1,S5.1,Pass,yes
+short,mistralai/mistral-large-4-0,1,S5.2,Fail,yes
+short,mistralai/mistral-large-4-0,1,S5.3,"Yes, the second row (| score >= 90 => Honors).",yes
+short,mistralai/mistral-large-4-0,1,S5.4,It would leave it to the reader to notice.,no
+short,mistralai/mistral-large-4-0,2,S5.1,Pass — the first matching row score >= 60 => Pass catches 95.,yes
+short,mistralai/mistral-large-4-0,2,S5.2,"Fail — no earlier row matches, so otherwise applies.",yes
+short,mistralai/mistral-large-4-0,2,S5.3,"Yes: the score >= 90 => Honors row, because any score ≥ 90 also satisfies the earlier score >= 60 row.",yes
+short,mistralai/mistral-large-4-0,2,S5.4,Leave it to the reader to notice — the code shows no warning/report mechanism for unreachable rows.,no
+dot,z-ai/glm-5.3-flashx,1,S1.1,".Flat — it skips day 0 and the member-first-offense waivers, and 2 ≤ 3.",yes
+dot,z-ai/glm-5.3-flashx,1,S1.2,".PerDay — not 0 days, not (member and first_offense), and 10 > 3.",yes
+dot,z-ai/glm-5.3-flashx,1,S1.3,"It's rejected — days_late = -1 violates the requires days_late >= 0 precondition, so the call fails the check.",yes
+dot,z-ai/glm-5.3-flashx,1,S1.4,No — intent is a natural-language sentence for readers; only requires and the example are mechanically checked.,yes
+dot,z-ai/glm-5.3-flashx,1,S1.5,"No — the only call syntax shown (the example) requires parameter labels, so a positional call like late_fee(5, true, true) would not match the required form.",yes
+dot,z-ai/glm-5.3-flashx,2,S1.1,".Flat — day 2 is not 0, member is false so the second guard fails, and 2 ≤ 3.",yes
+dot,z-ai/glm-5.3-flashx,2,S1.2,".PerDay — 10 days, and first_offense is false so the waiver guard fails, and 10 > 3.",yes
+dot,z-ai/glm-5.3-flashx,2,S1.3,"It violates the requires days_late >= 0 precondition, so the program is rejected / the call fails as a contract violation.",yes
+dot,z-ai/glm-5.3-flashx,2,S1.4,"No — intent is free-text documentation, not a checkable condition.",yes
+dot,z-ai/glm-5.3-flashx,2,S1.5,"No — every call shown in the code uses labeled arguments, so nothing indicates positional calls are accepted.",yes
+dot,z-ai/glm-5.3-flashx,1,S2.1,"0 (since -3 < low, it returns low).",yes
+dot,z-ai/glm-5.3-flashx,1,S2.2,"Yes — the remaining ensures only requires the result to lie within [low, high], which always returning low satisfies given the precondition low <= high. (The example would fail, but that's a separate test, not a promise of the function's contract.)",yes
+dot,z-ai/glm-5.3-flashx,2,S2.1,"0 (since -3 < low, the function returns low).",yes
+dot,z-ai/glm-5.3-flashx,2,S2.2,"Yes — with only the first ensures remaining, returning low always satisfies result >= low and result <= high (given requires low <= high), since the second ensures is what forced result == value when value is already in range.",yes
+dot,z-ai/glm-5.3-flashx,1,S3.1,"No. The sum 4,000,000,000 exceeds the required bound of 2,147,483,647, violating the second requires clause.",yes
+dot,z-ai/glm-5.3-flashx,1,S3.2,"Yes. The requires protects the function body, but not itself: when evaluating the guard, a + b is computed first (e.g., with values like 2000000000 and 2000000000 it overflows i32 before the <= check can reject the call).",no
+dot,z-ai/glm-5.3-flashx,2,S3.1,"No — a + b = 4000000000 exceeds 2147483647, violating the second requires, so the call would not be allowed.",yes
+dot,z-ai/glm-5.3-flashx,2,S3.2,"Yes — at that point only a >= 0 and b >= 0 constrains the inputs (e.g., a = b = 2000000000 satisfies it), so the sum in the precondition expression can itself exceed the i32 range.",no
+dot,z-ai/glm-5.3-flashx,1,S4.1,".Clear — next(.Green) gives Light.Yellow, and since Yellow is not Red, alert_for falls to the otherwise row.",yes
+dot,z-ai/glm-5.3-flashx,1,S4.2,"The first .Red (in light == .Red) is Light.Red, inferred from the parameter's type Light; the second .Red (after =>) is Alert.Red, inferred from the return type Alert.",yes
+dot,z-ai/glm-5.3-flashx,1,S4.3,"The decide block would no longer cover Light.Yellow, so next(.Yellow) would have no matching row — a non-exhaustive decision, i.e., a compile-time (or runtime) failure — and the example alert_for(next(.Yellow)) == .Red would break.",yes
+dot,z-ai/glm-5.3-flashx,1,S4.4,"Its rows already enumerate every variant of Light (Red, Green, Yellow), so the decision is exhaustive; an otherwise row would be unreachable and unnecessary.",yes
+dot,z-ai/glm-5.3-flashx,2,S4.1,".Clear (next(.Green) is .Yellow, and alert_for maps any non-Red light to .Clear).",yes
+dot,z-ai/glm-5.3-flashx,2,S4.2,The .Red in the condition (light == .Red) belongs to Light; the .Red on the right of => belongs to Alert.,yes
+dot,z-ai/glm-5.3-flashx,2,S4.3,"The decide block would no longer cover .Yellow, so next(.Yellow) would be an unhandled case — presumably a compile-time error (non-exhaustive decide) or a runtime failure — and the second example would become invalid.",yes
+dot,z-ai/glm-5.3-flashx,2,S4.4,"Because its three rows already cover every variant of Light exhaustively; there are no leftover cases for an otherwise to catch, and a default row would be dead code.",yes
+dot,z-ai/glm-5.3-flashx,1,S5.1,".Pass — rows are evidently tried in order, and score >= 60 matches before the Honors row is ever reached.",yes
+dot,z-ai/glm-5.3-flashx,1,S5.2,".Fail — 40 matches no condition, so the otherwise row applies.",yes
+dot,z-ai/glm-5.3-flashx,1,S5.3,"Yes — the | score >= 90 => .Honors row is unreachable, since anything ≥ 90 also satisfies score >= 60 and matches the first row.",yes
+dot,z-ai/glm-5.3-flashx,1,S5.4,"Can't be proven from the snippet alone — nothing in the code shows diagnostics being emitted, so as far as the code reveals it's left to the reader. Notably, though, the intent line (""90 and above earn honors"") contradicts the actual behavior, which would give any intent-checking tool something concrete to flag.",no
+dot,z-ai/glm-5.3-flashx,2,S5.1,".Pass — rows appear to be tried top-down, and 95 satisfies the first row (score >= 60), so it never reaches the Honors row (contradicting the stated intent).",yes
+dot,z-ai/glm-5.3-flashx,2,S5.2,".Fail — 40 fails both guards, so the otherwise row applies.",yes
+dot,z-ai/glm-5.3-flashx,2,S5.3,"Yes — the score >= 90 => .Honors row is unreachable, because any score ≥ 90 also satisfies the earlier score >= 60 row.",yes
+dot,z-ai/glm-5.3-flashx,2,S5.4,"Can't be determined from the snippet alone — the code shows no dead-row check or annotation, so based only on this listing it would be left to the reader, though the intent/requires machinery hints a verifying compiler might catch the intent-vs-behavior mismatch.",no
+qualified,z-ai/glm-5.3-flashx,1,S1.1,"Fee.Flat — days_late ≠ 0, member is false so the second arm fails, and 2 ≤ 3.",yes
+qualified,z-ai/glm-5.3-flashx,1,S1.2,"Fee.PerDay — none of the first three guards hold (first_offense is false), so otherwise applies.",yes
+qualified,z-ai/glm-5.3-flashx,1,S1.3,"It violates the requires days_late >= 0 precondition, so the call fails/is rejected (an error) rather than returning a Fee.",yes
+qualified,z-ai/glm-5.3-flashx,1,S1.4,"No — intent is a natural-language annotation (documentation); nothing in the code checks it (the example, by contrast, is a concrete testable case).",yes
+qualified,z-ai/glm-5.3-flashx,1,S1.5,"Yes — nothing in the code indicates labels are mandatory; the labeled form in the example looks like an optional named-argument style, so a positional call should be accepted.",no
+qualified,z-ai/glm-5.3-flashx,2,S1.1,"Fee.Flat (day-0 and member+first-offense guards don't apply, and 2 ≤ 3).",yes
+qualified,z-ai/glm-5.3-flashx,2,S1.2,Fee.PerDay (second offense by a member falls through to the default).,yes
+qualified,z-ai/glm-5.3-flashx,2,S1.3,"Nothing meaningful/defined — the call violates the requires days_late >= 0 precondition, so it's rejected (or the behavior is unspecified).",yes
+qualified,z-ai/glm-5.3-flashx,2,S1.4,"No — intent is a free-text documentation string, not a machine-checked specification.",yes
+qualified,z-ai/glm-5.3-flashx,2,S1.5,Yes — nothing in the code indicates labels are mandatory; the call is well-typed and satisfies the precondition.,no
+qualified,z-ai/glm-5.3-flashx,1,S2.1,"0 (since -3 < low = 0, the body returns low).",yes
+qualified,z-ai/glm-5.3-flashx,1,S2.2,"No. The remaining ensures (result within [low, high]) would be satisfied by always returning low, but the example line still pins down clamp(value: 12, low: 0, high: 10) == 10, which an always-low body would violate (it would return 0).",no
+qualified,z-ai/glm-5.3-flashx,2,S2.1,"0 (since -3 < low=0, the body returns low)",yes
+qualified,z-ai/glm-5.3-flashx,2,S2.2,"Yes — the remaining ensures only demands low <= result <= high, and always returning low satisfies that (given low <= high); only the deleted second ensures forces an in-range value to be returned unchanged.",yes
+qualified,z-ai/glm-5.3-flashx,1,S3.1,"No — the precondition a + b <= 2147483647 is violated (2,000,000,000 + 2,000,000,000 = 4,000,000,000 > 2,147,483,647).",yes
+qualified,z-ai/glm-5.3-flashx,1,S3.2,"Yes — evaluating a + b when both are large (e.g., both near 2,147,483,647) would exceed the i32 maximum, so the overflow can occur in the precondition itself before any check could rule it out.",no
+qualified,z-ai/glm-5.3-flashx,2,S3.1,"No. The second precondition requires a + b <= 2147483647, but 2000000000 + 2000000000 = 4000000000, which violates it.",yes
+qualified,z-ai/glm-5.3-flashx,2,S3.2,"Yes. The precondition itself must be evaluated for arbitrary i32 inputs (e.g., a = b = 2147483647), and a + b would exceed the i32 range before the check could pass or fail, so the expression can overflow.",no
+qualified,z-ai/glm-5.3-flashx,1,S4.1,"Alert.Clear — next(Light.Green) is Light.Yellow, and Yellow doesn't match the Light.Red row, so the otherwise row gives Alert.Clear.",yes
+qualified,z-ai/glm-5.3-flashx,1,S4.2,The Red in the condition light == Light.Red belongs to enum Light; the Red in the result Alert.Red belongs to enum Alert.,yes
+qualified,z-ai/glm-5.3-flashx,1,S4.3,"The decide block would no longer be exhaustive — next(Light.Yellow) would have no matching row, causing an error (likely caught at compile time as a non-exhaustive decision, or a failure if called with Yellow).",yes
+qualified,z-ai/glm-5.3-flashx,1,S4.4,"Because its rows already cover every variant of Light (Red, Green, Yellow), so the decision is exhaustive and no default row is needed.",yes
+qualified,z-ai/glm-5.3-flashx,2,S4.1,"Alert.Clear — next(Light.Green) is Light.Yellow, and alert_for's otherwise row maps any non-Red light to Alert.Clear.",yes
+qualified,z-ai/glm-5.3-flashx,2,S4.2,"The left Light.Red is the Light enum's Red; the right Alert.Red is the Alert enum's Red. Same name, two different types.",yes
+qualified,z-ai/glm-5.3-flashx,2,S4.3,"next(Light.Yellow) would match no row, so it would fail at runtime (an unmatched decision), and the example alert_for(next(Light.Yellow)) == Alert.Red would fail as a result.",yes
+qualified,z-ai/glm-5.3-flashx,2,S4.4,"Because its three rows already cover every variant of Light (Red, Green, Yellow), so every possible input matches exactly one row and no default is needed.",yes
+qualified,z-ai/glm-5.3-flashx,1,S5.1,"Grade.Pass — rows appear to match top-down, so 95 satisfies score >= 60 first, contradicting the stated intent.",yes
+qualified,z-ai/glm-5.3-flashx,1,S5.2,"Grade.Fail — neither guard matches, so the otherwise row applies.",yes
+qualified,z-ai/glm-5.3-flashx,1,S5.3,"Yes — the score >= 90 => Grade.Honors row is unreachable, since any score ≥ 90 also matches the earlier score >= 60 row.",yes
+qualified,z-ai/glm-5.3-flashx,1,S5.4,"Can't be determined from the snippet alone — nothing shown (no warning, annotation, or checker) would flag it, so as far as the code reveals, it's left to the reader to notice.",no
+qualified,z-ai/glm-5.3-flashx,2,S5.1,"Grade.Pass — rows are matched top to bottom, and 95 satisfies the first condition (score >= 60), so that row decides.",yes
+qualified,z-ai/glm-5.3-flashx,2,S5.2,"Grade.Fail — 40 matches neither >= 60 nor >= 90, so the otherwise row decides.",yes
+qualified,z-ai/glm-5.3-flashx,2,S5.3,"Yes — the score >= 90 => Grade.Honors row. Any score that satisfies it also satisfies score >= 60, which is matched first, so the Honors row can never decide.",yes
+qualified,z-ai/glm-5.3-flashx,2,S5.4,"The code alone doesn't say. Nothing in the snippet indicates the language performs dead-row/overlap analysis, so from what's shown it's left to the reader to notice.",no
+short,z-ai/glm-5.3-flashx,1,S1.1,Flat (first two branches fail; 2 ≤ 3),yes
+short,z-ai/glm-5.3-flashx,1,S1.2,"PerDay (member is true but first_offense is false, so the waiver branch fails; 10 > 3, so ""otherwise"" applies)",yes
+short,z-ai/glm-5.3-flashx,1,S1.3,"The requires days_late >= 0 precondition is violated, so the call is rejected/fails (contract violation).",yes
+short,z-ai/glm-5.3-flashx,1,S1.4,No — the intent string is free-text documentation; nothing in the code verifies it (only requires and example are machine-checked).,yes
+short,z-ai/glm-5.3-flashx,1,S1.5,"No — every call shown uses parameter labels, and nothing in the code indicates positional arguments are allowed.",yes
+short,z-ai/glm-5.3-flashx,2,S1.1,Flat (first two branches don't apply; 2 ≤ 3).,yes
+short,z-ai/glm-5.3-flashx,2,S1.2,"PerDay (member but not first_offense, so the waiver branch fails; 10 > 3).",yes
+short,z-ai/glm-5.3-flashx,2,S1.3,It's rejected/errors — days_late = -1 violates the requires days_late >= 0 precondition.,yes
+short,z-ai/glm-5.3-flashx,2,S1.4,"No — the intent sentence is documentation only, not enforced (the example line is what's checkable).",yes
+short,z-ai/glm-5.3-flashx,2,S1.5,"No — every call shown uses parameter labels, suggesting they're required (inferred, since no positional call appears in the code).",yes
+short,z-ai/glm-5.3-flashx,1,S2.1,"0 (since -3 < low=0, the body returns low).",yes
+short,z-ai/glm-5.3-flashx,1,S2.2,"Yes — with only the first ensures, any result in [low, high] is acceptable, and always returning low satisfies it (given low <= high). (The separate example would still fail, but that's a test, not a contract promise.)",yes
+short,z-ai/glm-5.3-flashx,2,S2.1,"0 (since -3 < low = 0, the function returns low).",yes
+short,z-ai/glm-5.3-flashx,2,S2.2,"No — the remaining ensures (result >= low and result <= high) would be satisfied by always returning low, but the example still demands clamp(value: 12, low: 0, high: 10) == 10, which always-low fails (it would return 0).",no
+short,z-ai/glm-5.3-flashx,1,S3.1,"No — 2,000,000,000 + 2,000,000,000 = 4,000,000,000, which violates the precondition a + b <= 2147483647.",yes
+short,z-ai/glm-5.3-flashx,1,S3.2,"No — the contract only makes sense if specification expressions like a + b are evaluated as exact mathematical sums (arbitrary precision). If spec arithmetic wrapped like machine i32 addition, the guard a + b <= 2147483647 could be satisfied by an overflowing wrapped value (e.g., a = 2147483647, b = 1), defeating its purpose of preventing overflow, so a + b in the requires cannot itself overflow.",yes
+short,z-ai/glm-5.3-flashx,2,S3.1,"No — 2000000000 + 2000000000 = 4000000000, which exceeds the required bound of 2147483647, so the second precondition is violated.",yes
+short,z-ai/glm-5.3-flashx,2,S3.2,"No — precondition expressions are spec expressions evaluated with exact (mathematical, unbounded) arithmetic, so a + b there can't overflow; that exact evaluation is exactly what lets this requires guard against overflow in the body.",yes
+short,z-ai/glm-5.3-flashx,1,S4.1,"Clear — next(Green) gives Yellow, and alert_for(Yellow) falls to the otherwise row, yielding Alert::Clear.",yes
+short,z-ai/glm-5.3-flashx,1,S4.2,"The Red on the left (in light == Red) belongs to Light, since it's compared against the parameter of type Light; the Red on the right of the arrow is the return value, so it belongs to Alert.",yes
+short,z-ai/glm-5.3-flashx,1,S4.3,"next would be undefined for the input Yellow — the decide block would no longer cover all Light values (likely rejected at compile time as non-exhaustive, or a runtime failure). The example alert_for(next(Yellow)) == Red would also break, since it depends on next(Yellow) == Red.",yes
+short,z-ai/glm-5.3-flashx,1,S4.4,"Because Light has exactly three variants (Red, Green, Yellow) and all three are explicitly covered by its rows, so the match is already exhaustive; an otherwise row would be unnecessary.",yes
+short,z-ai/glm-5.3-flashx,2,S4.1,"Clear — next(Green) is Yellow, and Yellow isn't Red, so the otherwise row gives Clear.",yes
+short,z-ai/glm-5.3-flashx,2,S4.2,"The Red in the condition (left of the arrow, compared to light) belongs to Light; the Red produced as the result belongs to Alert.",yes
+short,z-ai/glm-5.3-flashx,2,S4.3,"next(Yellow) would have no matching row and no otherwise fallback, so it would fail (a runtime error / unhandled case), and the example alert_for(next(Yellow)) == Red would fail.",yes
+short,z-ai/glm-5.3-flashx,2,S4.4,"Light has exactly three values — Red, Green, Yellow — and all three are explicitly covered, so the decide block is already exhaustive; an otherwise row would be unreachable.",yes
+short,z-ai/glm-5.3-flashx,1,S5.1,"Pass — the arms match top-to-bottom, so 95 satisfies the first row (score >= 60) before the Honors row is ever reached. (This contradicts the stated intent, so it's a bug.)",yes
+short,z-ai/glm-5.3-flashx,1,S5.2,"Fail — 40 satisfies neither score >= 60 nor score >= 90, so the otherwise row applies.",yes
+short,z-ai/glm-5.3-flashx,1,S5.3,"Yes — the score >= 90 => Honors row can never decide: any score satisfying it (e.g., 95) also satisfies the earlier score >= 60 row, which wins. It's dead code as ordered.",yes
+short,z-ai/glm-5.3-flashx,1,S5.4,"Can't be determined from the code alone — nothing in the snippet indicates the language performs overlap/reachability checks on decide rows, and the ""intent"" is prose, not something a checker could compare against. As far as the code shows, the reader would have to notice.",no
+short,z-ai/glm-5.3-flashx,2,S5.1,"Pass — the first row (score >= 60) matches, so it decides before the Honors row is ever consulted.",yes
+short,z-ai/glm-5.3-flashx,2,S5.2,"Fail — no condition row matches, so the otherwise row decides.",yes
+short,z-ai/glm-5.3-flashx,2,S5.3,"Yes — the score >= 90 => Honors row. Anything with score >= 90 also satisfies score >= 60, and rows are tried in order, so Honors can never be the deciding row.",yes
+short,z-ai/glm-5.3-flashx,2,S5.4,"It would report it. The decide construct is an explicit, statically analyzable decision table (reinforced by the intent/requires annotations), so a shadowed/unreachable row is exactly the kind of thing such a checker flags at compile time rather than silently leaving dead code for the reader to spot.",yes
+dot,x-ai/grok-4.7,1,S1.1,.Flat,yes
+dot,x-ai/grok-4.7,1,S1.2,.PerDay,yes
+dot,x-ai/grok-4.7,1,S1.3,"The call violates requires days_late >= 0, so the program is rejected.",yes
+dot,x-ai/grok-4.7,1,S1.4,no,yes
+dot,x-ai/grok-4.7,1,S1.5,no,yes
+dot,x-ai/grok-4.7,2,S1.1,.Flat,yes
+dot,x-ai/grok-4.7,2,S1.2,.PerDay,yes
+dot,x-ai/grok-4.7,2,S1.3,"It violates the precondition requires days_late >= 0, so the call is rejected.",yes
+dot,x-ai/grok-4.7,2,S1.4,no,yes
+dot,x-ai/grok-4.7,2,S1.5,no,yes
+dot,x-ai/grok-4.7,1,S2.1,0,yes
+dot,x-ai/grok-4.7,1,S2.2,yes,yes
+dot,x-ai/grok-4.7,2,S2.1,0,yes
+dot,x-ai/grok-4.7,2,S2.2,yes,yes
+dot,x-ai/grok-4.7,1,S3.1,no,yes
+dot,x-ai/grok-4.7,1,S3.2,yes,no
+dot,x-ai/grok-4.7,2,S3.1,no,yes
+dot,x-ai/grok-4.7,2,S3.2,yes,no
+dot,x-ai/grok-4.7,1,S4.1,.Clear (Alert.Clear),yes
+dot,x-ai/grok-4.7,1,S4.2,The left .Red is Light.Red; the right .Red is Alert.Red.,yes
+dot,x-ai/grok-4.7,1,S4.3,"Yellow would match no row, so next(.Yellow) would be undefined and the example expecting .Red would fail.",yes
+dot,x-ai/grok-4.7,1,S4.4,"Every Light variant is already listed, so a catch-all is unnecessary.",yes
+dot,x-ai/grok-4.7,2,S4.1,.Clear,yes
+dot,x-ai/grok-4.7,2,S4.2,The left Red is Light; the right Red is Alert.,yes
+dot,x-ai/grok-4.7,2,S4.3,"Yellow would match no row, so next would not define a result for it.",yes
+dot,x-ai/grok-4.7,2,S4.4,"Every Light variant is already covered, so otherwise is unnecessary.",yes
+dot,x-ai/grok-4.7,1,S5.1,Pass,yes
+dot,x-ai/grok-4.7,1,S5.2,Fail,yes
+dot,x-ai/grok-4.7,1,S5.3,Yes — the score >= 90 => .Honors row (any such score already matched >= 60).,yes
+dot,x-ai/grok-4.7,1,S5.4,Leave it to the reader; nothing shown reports unreachable rows (intent is only a string).,no
+dot,x-ai/grok-4.7,2,S5.1,Pass,yes
+dot,x-ai/grok-4.7,2,S5.2,Fail,yes
+dot,x-ai/grok-4.7,2,S5.3,Yes — the score >= 90 => .Honors row.,yes
+dot,x-ai/grok-4.7,2,S5.4,Leave it to the reader; nothing in the code reports it.,no
+qualified,x-ai/grok-4.7,1,S1.1,Fee.Flat,yes
+qualified,x-ai/grok-4.7,1,S1.2,Fee.PerDay,yes
+qualified,x-ai/grok-4.7,1,S1.3,"The call violates requires days_late >= 0, so it is not allowed.",yes
+qualified,x-ai/grok-4.7,1,S1.4,no,yes
+qualified,x-ai/grok-4.7,1,S1.5,no,yes
+qualified,x-ai/grok-4.7,2,S1.1,Fee.Flat,yes
+qualified,x-ai/grok-4.7,2,S1.2,Fee.PerDay,yes
+qualified,x-ai/grok-4.7,2,S1.3,Rejected (violates requires days_late >= 0),yes
+qualified,x-ai/grok-4.7,2,S1.4,no,yes
+qualified,x-ai/grok-4.7,2,S1.5,no,yes
+qualified,x-ai/grok-4.7,1,S2.1,0,yes
+qualified,x-ai/grok-4.7,1,S2.2,yes,yes
+qualified,x-ai/grok-4.7,2,S2.1,0,yes
+qualified,x-ai/grok-4.7,2,S2.2,yes,yes
+qualified,x-ai/grok-4.7,1,S3.1,no,yes
+qualified,x-ai/grok-4.7,1,S3.2,yes,no
+qualified,x-ai/grok-4.7,2,S3.1,no,yes
+qualified,x-ai/grok-4.7,2,S3.2,yes,no
+qualified,x-ai/grok-4.7,1,S4.1,Alert.Clear,yes
+qualified,x-ai/grok-4.7,1,S4.2,Light.Red is Light; Alert.Red is Alert.,yes
+qualified,x-ai/grok-4.7,1,S4.3,"Light.Yellow would match no row (no otherwise), so next would be incomplete for that input.",yes
+qualified,x-ai/grok-4.7,1,S4.4,"Red, Green, and Yellow already cover every Light, so an otherwise row is unnecessary.",yes
+qualified,x-ai/grok-4.7,2,S4.1,Alert.Clear,yes
+qualified,x-ai/grok-4.7,2,S4.2,Light.Red is Light; Alert.Red is Alert.,yes
+qualified,x-ai/grok-4.7,2,S4.3,Light.Yellow would match no row and next would be incomplete for it.,yes
+qualified,x-ai/grok-4.7,2,S4.4,"Every Light variant already has its own row, so nothing remains for otherwise.",yes
+qualified,x-ai/grok-4.7,1,S5.1,Grade.Pass,yes
+qualified,x-ai/grok-4.7,1,S5.2,Grade.Fail,yes
+qualified,x-ai/grok-4.7,1,S5.3,"Yes, the second row (score >= 90 => Grade.Honors)",yes
+qualified,x-ai/grok-4.7,1,S5.4,Leave it to the reader to notice,no
+qualified,x-ai/grok-4.7,2,S5.1,Grade.Pass,yes
+qualified,x-ai/grok-4.7,2,S5.2,Grade.Fail,yes
+qualified,x-ai/grok-4.7,2,S5.3,Yes — the score >= 90 => Grade.Honors row (any such score already matched score >= 60).,yes
+qualified,x-ai/grok-4.7,2,S5.4,"Leave it to the reader; the snippet shows no diagnostic, and intent is only an unchecked string.",no
+short,x-ai/grok-4.7,1,S1.1,Flat,yes
+short,x-ai/grok-4.7,1,S1.2,PerDay,yes
+short,x-ai/grok-4.7,1,S1.3,"It violates requires days_late >= 0, so the call is not allowed.",yes
+short,x-ai/grok-4.7,1,S1.4,no,yes
+short,x-ai/grok-4.7,1,S1.5,no,yes
+short,x-ai/grok-4.7,2,S1.1,Flat,yes
+short,x-ai/grok-4.7,2,S1.2,PerDay,yes
+short,x-ai/grok-4.7,2,S1.3,Rejected (violates requires),yes
+short,x-ai/grok-4.7,2,S1.4,no,yes
+short,x-ai/grok-4.7,2,S1.5,no,yes
+short,x-ai/grok-4.7,1,S2.1,0,yes
+short,x-ai/grok-4.7,1,S2.2,yes,yes
+short,x-ai/grok-4.7,2,S2.1,0,yes
+short,x-ai/grok-4.7,2,S2.2,yes,yes
+short,x-ai/grok-4.7,1,S3.1,no,yes
+short,x-ai/grok-4.7,1,S3.2,yes,no
+short,x-ai/grok-4.7,2,S3.1,no,yes
+short,x-ai/grok-4.7,2,S3.2,yes,no
+short,x-ai/grok-4.7,1,S4.1,Clear,yes
+short,x-ai/grok-4.7,1,S4.2,The compared Red is Light; the returned Red is Alert.,yes
+short,x-ai/grok-4.7,1,S4.3,Yellow would be unmatched and next would be non-exhaustive (invalid without otherwise).,yes
+short,x-ai/grok-4.7,1,S4.4,Every Light variant is already handled explicitly.,yes
+short,x-ai/grok-4.7,2,S4.1,Clear,yes
+short,x-ai/grok-4.7,2,S4.2,"Light, then Alert",yes
+short,x-ai/grok-4.7,2,S4.3,Yellow would be unhandled (incomplete decide),yes
+short,x-ai/grok-4.7,2,S4.4,Every Light value is already matched,yes
+short,x-ai/grok-4.7,1,S5.1,Pass,yes
+short,x-ai/grok-4.7,1,S5.2,Fail,yes
+short,x-ai/grok-4.7,1,S5.3,Yes — the score >= 90 => Honors row (any such score already matched score >= 60).,yes
+short,x-ai/grok-4.7,1,S5.4,Leave it to the reader; nothing in the code shows the language reporting that row.,no
+short,x-ai/grok-4.7,2,S5.1,Pass,yes
+short,x-ai/grok-4.7,2,S5.2,Fail,yes
+short,x-ai/grok-4.7,2,S5.3,Yes — the score >= 90 => Honors row (any such score already matched score >= 60).,yes
+short,x-ai/grok-4.7,2,S5.4,Leave it to the reader; nothing in the code checks row reachability (intent is only a string).,no
+qualified,deepseek/deepseek-v4.1-flash,2,S3.1,"No, because 2000000000 + 2000000000 > 2147483647, violating the second precondition.",yes
+qualified,deepseek/deepseek-v4.1-flash,2,S3.2,"No, the a + b in the precondition is a specification expression and does not itself overflow.",yes
+short,mistralai/mistral-large-4-0,2,S3.1,no,yes
+short,mistralai/mistral-large-4-0,2,S3.2,no,yes

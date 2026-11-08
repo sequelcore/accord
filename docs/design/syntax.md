@@ -113,7 +113,10 @@ condition can never be the first to hold.
   overflows, so a specification can state `a + b > a` without caring about
   width.
 - Enum variants are written bare (`Passed`) where the type is known, and
-  qualified (`ProofOutcome.Passed`) where it isn't.
+  qualified (`ProofOutcome.Passed`) where it isn't. This rule is under test:
+  [version 2](comprehension-check/v2/README.md) of the comprehension check
+  compares it with always-qualified variants and with a leading dot
+  (`.Passed`).
 
 ## Expressions
 
