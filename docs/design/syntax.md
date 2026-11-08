@@ -3,7 +3,7 @@
 **Status:** draft for stage 1 ([#2](https://github.com/sequelcore/accord/issues/2)).
 It covers what stage 2 compiles: enums, pure functions, `intent`,
 `requires`, `ensures`, decision tables and examples, over `Bool` and
-fixed-width integers. Questions still open are listed at the end. The
+fixed-width integers. The owner's decisions on it are listed at the end. The
 [concepts](../concepts.md) define the terms and the
 [influences](influences.md) state the design goals each choice serves.
 
@@ -119,11 +119,11 @@ condition can never be the first to hold.
 
 | Kind | Forms |
 | --- | --- |
-| Logic | `and`, `or`, `not` |
+| Logic | `and`, `or`, `not`; in `requires` and `ensures`, also `implies` |
 | Comparison | `==`, `!=`, `<`, `<=`, `>`, `>=` |
 | Arithmetic | `+`, `-`, `*`, `/`, `%`, with `/` and `%` on a zero divisor an obligation |
 | Choice | `if condition { a } else { b }`, always with `else` |
-| Call | `name(label: value, …)` |
+| Call | `name(label: value, …)`; labels are required when the function has more than one parameter |
 
 Blocks are expressions: the last expression is the block's value. There is no
 `return`: an early exit is a decision table.
@@ -136,20 +136,18 @@ Blocks are expressions: the last expression is the block's value. There is no
   indentation, a parameter per line when they don't fit on one, aligned
   arrows in decision tables, trailing commas in multi-line lists.
 
-## Open questions
+## Decisions
 
-1. **Implication and equivalence in specifications.** Options: `implies` and
-   no equivalence operator (write two `ensures`); `implies` and `iff`; Dafny's
-   `==>` and `<==>`. Recommendation: `implies` only. Equivalences are what
-   decision tables replace, and `<==>` was the symbol every model in the
-   probe found hardest.
-2. **Labels at call sites.** Required always, required only for `Bool`
-   arguments, or optional. Recommendation: required whenever a function has
-   more than one parameter, as in the examples above, so `proof_outcome(false,
-   true, true, true, 0, 3)` can't be written.
-3. **Where `intent` goes.** Inside the clauses, as here, or as its own line
-   before the declaration, as in the probe. Recommendation: inside, so it
-   can't drift away from the function it describes.
-4. **`result`.** A fixed name, as here, or named by the signature
-   (`-> outcome: ProofOutcome`). Recommendation: the fixed name; every model
+Accepted by the owner on 2026-11-07:
+
+1. **Specifications use `implies` and no equivalence operator.** An
+   equivalence is written as two `implies`, or as a decision table. Every
+   model in the probe found `<==>` the hardest symbol, and equivalences are
+   what decision tables replace.
+2. **Labels are required at call sites when a function has more than one
+   parameter**, so `proof_outcome(false, true, true, true, 0, 3)` can't be
+   written.
+3. **`intent` is a clause inside the function**, so it can't drift away from
+   the function it describes.
+4. **`result` is a fixed name** for the value a function returns. Every model
    in both probes understood it.
