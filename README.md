@@ -12,9 +12,11 @@ and in what order.
 Accord bets that the human, the agent and the language work best as one
 system, when both sides understand the same intent, specifications and
 evidence. The compiler is the verifier: it turns each specification into
-proof obligations, discharges them with SMT solvers, and reports each result
-as proved, refuted with a counterexample, undecided or stale. Nothing
-undecided is reported as proved.
+proof obligations, discharges them with SMT solvers, and reports each one as
+proved, refuted with a counterexample, undecided or unsupported. Evidence is
+bound to the exact content it checked and goes stale when that changes.
+Nothing undecided is reported as proved. The [concepts](docs/concepts.md)
+define each term.
 
 ## License
 
