@@ -119,7 +119,7 @@ that has none.
 
 ## When stage 1 is done
 
-**Accepted by the owner, 2026-11-07.** The models arm passing lets stage 2
+**Accepted on 2026-11-07.** The models arm passing lets stage 2
 start. The people arm runs when people are available, or with the feedback
 of readers once the repository is public, and it can reopen any construct
 it shows to be misread.

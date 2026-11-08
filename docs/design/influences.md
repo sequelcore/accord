@@ -24,7 +24,7 @@ feature that is merely good elsewhere doesn't qualify.
 | From | What | Goal it serves |
 | --- | --- | --- |
 | Dafny | The verification keywords: `requires`, `ensures`, `invariant`, `decreases`, `old(...)`, `==>`, `<==>` | 2, 3: the best-known verification vocabulary, and Dafny's is the one agents verify best with |
-| Verus | Fixed-width integers in code that runs, mathematical integers in specifications | 5: the owner's integer decision, already proven workable |
+| Verus | Fixed-width integers in code that runs, mathematical integers in specifications | 5: the integer rule in the [roadmap](../../ROADMAP.md#decisions), already proven workable |
 | Rust | Expression-oriented blocks, exhaustive `match`, enums that carry data, explicit integer widths, errors as values | 5: every case handled, nothing thrown |
 | TypeScript | `name: Type` annotations, braces, string-like enum names, `const` | 1, 3: the most widely read surface for both people and agents |
 | Gleam | A small language with one way to do things, labelled arguments, `pub` for exports | 1, 4: labelled arguments make calls with several booleans readable |

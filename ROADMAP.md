@@ -8,7 +8,7 @@ change as the earlier ones teach us.
 
 ## Decisions
 
-Taken by the owner on 2026-11-07:
+Taken on 2026-11-07:
 
 - **Solvers through SMT-LIB 2.** The compiler writes each obligation as an
   SMT-LIB file and runs the solver as a separate program. Z3 and cvc5 must

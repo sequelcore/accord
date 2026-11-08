@@ -26,7 +26,7 @@ INTENT = "S1.4"
 def extract() -> None:
     records = [json.loads(line) for line in open(HERE / "replies.jsonl", encoding="utf-8")]
     with open(HERE / "answers.csv", "w", encoding="utf-8", newline="") as out:
-        sheet = csv.writer(out)
+        sheet = csv.writer(out, lineterminator="\n")
         sheet.writerow(["model", "repetition", "question", "answer", "correct"])
         for record in records:
             text = re.sub(r"[*`#]", "", record["reply"])

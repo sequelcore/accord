@@ -3,8 +3,8 @@
 A programming language and a proof-oriented compiler for humans and coding
 agents working together.
 
-**Status:** experimental and internal. Nothing here is released, and the
-language doesn't exist yet: the [roadmap](ROADMAP.md) says what's being built
+**Status:** experimental. Nothing is released, and the language doesn't
+compile anything yet: the [roadmap](ROADMAP.md) says what's being built
 and in what order.
 
 ## The idea
