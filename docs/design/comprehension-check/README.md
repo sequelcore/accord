@@ -87,6 +87,36 @@ For each arm, over every scored question:
 A question below 70% names a construct to redesign or document before stage 2
 builds it. The pass mark doesn't change after a run.
 
+## Result of the models arm (2026-11-07)
+
+**Fail.** 70 conversations, all with a reply (one came back empty and was
+run once more, as registered), cost $0.38. The hand judgments are in
+[`answers.csv`](answers.csv) and the replies in [`replies.jsonl`](replies.jsonl).
+
+| Measure | Result | Needed |
+| --- | --- | --- |
+| All scored answers | 92% | 90% |
+| Weakest question | S4.4, 29% | 70% |
+| S1.4, `intent` unchecked | 100% | 90% |
+
+Every question scored 100% except these:
+
+- **S4.3, 43%.** Eight of 14 replies said `Light.Red` is required in the
+  example because there is no type there. In the accepted syntax the type is
+  known there too, so this is a misreading the example invited: the reader
+  can't see the rule for bare and qualified variants.
+- **S4.4, 29%.** Most replies said calls in Accord are positional. S4 has no
+  call with more than one parameter, so nothing in it shows that labels exist
+  at all: the question can't be answered from its snippet. That is a defect
+  of this registration. It is reported here, and the verdict stands.
+- **S3.2, 71% (diagnostic).** Four replies assumed that `a + b` in a
+  specification can overflow. The reference and the receipt have to state
+  that specification arithmetic is mathematical.
+
+By the pass mark, S4.3 and S4.4 name the constructs to redesign or document
+before stage 2: how variants are qualified, and how labels show up in code
+that has none.
+
 ## When stage 1 is done
 
 **Accepted by the owner, 2026-11-07.** The models arm passing lets stage 2
