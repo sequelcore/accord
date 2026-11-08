@@ -16,7 +16,8 @@ proof obligations, discharges them with SMT solvers, and reports each one as
 proved, refuted with a counterexample, undecided or unsupported. Evidence is
 bound to the exact content it checked and goes stale when that changes.
 Nothing undecided is reported as proved. The [concepts](docs/concepts.md)
-define each term.
+define each term, and the [background](docs/design/background.md) says where
+the design comes from.
 
 ## License
 
