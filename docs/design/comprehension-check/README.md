@@ -96,7 +96,7 @@ run once more, as registered), cost $0.38. The hand judgments are in
 | Measure | Result | Needed |
 | --- | --- | --- |
 | All scored answers | 92% | 90% |
-| Weakest question | S4.4, 29% | 70% |
+| Weakest question | S4.4, 21% | 70% |
 | S1.4, `intent` unchecked | 100% | 90% |
 
 Every question scored 100% except these:
@@ -105,13 +105,22 @@ Every question scored 100% except these:
   example because there is no type there. In the accepted syntax the type is
   known there too, so this is a misreading the example invited: the reader
   can't see the rule for bare and qualified variants.
-- **S4.4, 29%.** Most replies said calls in Accord are positional. S4 has no
+- **S4.4, 21%.** Most replies said calls in Accord are positional. S4 has no
   call with more than one parameter, so nothing in it shows that labels exist
   at all: the question can't be answered from its snippet. That is a defect
   of this registration. It is reported here, and the verdict stands.
 - **S3.2, 71% (diagnostic).** Four replies assumed that `a + b` in a
   specification can overflow. The reference and the receipt have to state
   that specification arithmetic is mathematical.
+
+**Correction.** One S4.4 answer (GLM 5.3 FlashX, repetition 2) was first
+marked correct although it says labels are optional; a review found it, and
+it is marked incorrect. The verdict doesn't change.
+
+An independent review also found that S4.3 asked *why* the two spellings
+differ, which presumes a reason behind what is an editorial choice, and that
+S5 left unscored whether readers expect the compiler to report an
+unreachable row. [Version 2](v2/README.md) addresses both.
 
 By the pass mark, S4.3 and S4.4 name the constructs to redesign or document
 before stage 2: how variants are qualified, and how labels show up in code
