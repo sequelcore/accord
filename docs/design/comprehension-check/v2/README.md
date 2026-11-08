@@ -77,6 +77,36 @@ answers. If two or more are within two answers of the best, the maintainers
 choose among them. If no form passes, none is chosen, and the failing
 questions name what to redesign. These rules don't change after a run.
 
+## Result (2026-11-07)
+
+**All three forms pass, and they tie on S4.2, so by the choice rule the
+maintainers choose.** 210 conversations, all with a reply (two came back
+empty and were run once more, as registered), cost $0.99. The judgments are
+in [`answers.csv`](answers.csv) and the replies in
+[`replies.jsonl`](replies.jsonl).
+
+| Form | All scored answers | Weakest question | S1.4 | S4.2 |
+| --- | --- | --- | --- | --- |
+| short (`Red`) | 99% | S2.2, 93% | 100% | 14/14 |
+| qualified (`Light.Red`) | 99% | S2.2, 93% | 100% | 14/14 |
+| dot (`.Red`) | 99% | S2.2, 93% | 100% | 14/14 |
+
+- **Every reader of every form told the two `Red`s apart** (S4.2), the case
+  where the forms were expected to differ. On this evidence the three forms
+  read equally well for these models.
+- **The S2.2 key is wrong.** The three answers marked incorrect (GPT-6 Luna,
+  dot; GLM 5.3 FlashX, qualified and short) say a body that always returns
+  `low` breaks the function's `example`, which is also a promise. They are
+  right; the key considered only the `ensures` lines. Version 1's S2.4 had
+  the same flaw. The verdict stands either way: counted correct, S2.2 is
+  100% in every form.
+- **Diagnostics.** Specification arithmetic (S3.2) was read as mathematical
+  in 4, 4 and 7 of 14 replies (dot, qualified, short); almost no reader
+  expected the compiler to report an unreachable row (S5.4: 0, 1 and 1 of 14);
+  most expected an unlabelled multi-parameter call to be rejected (S1.5: 14,
+  12 and 13 of 14). The first two are rules the reference and the receipt
+  have to state; the compiler has to show the second.
+
 ## Run
 
 `OPENROUTER_API_KEY=... python run.py <models> 2`, then
