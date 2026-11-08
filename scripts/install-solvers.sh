@@ -27,7 +27,9 @@ case "$(uname -s)-$(uname -m)" in
   *) echo "no pinned solvers for $(uname -s)-$(uname -m)" >&2; exit 1 ;;
 esac
 
-sha256() { if command -v sha256sum >/dev/null; then sha256sum "$1"; else shasum -a 256 "$1"; fi | cut -d' ' -f1; }
+# Hashes from stdin: with a file name, sha256sum on Windows escapes the name
+# and prefixes the hash with a backslash.
+sha256() { if command -v sha256sum >/dev/null; then sha256sum < "$1"; else shasum -a 256 < "$1"; fi | cut -d' ' -f1; }
 
 fetch() { # repo tag asset sum target
   mkdir -p "$5"
