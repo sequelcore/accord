@@ -1,0 +1,15 @@
+/// A grade for an exam score.
+pub enum Grade { Fail, Pass, Honors }
+
+pub fn grade(score: i32) -> Grade
+    intent "Scores of 90 and above earn honors; 60 and above pass."
+    requires score >= 0 and score <= 100
+decide {
+    | score >= 60 => Pass
+    | score >= 90 => Honors
+    | otherwise   => Fail
+}
+---
+S5.1 What does grade(score: 95) return?
+S5.2 What does grade(score: 40) return?
+S5.3 Is anything wrong with this function? If so, what, and would the language notice?

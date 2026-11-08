@@ -1,0 +1,15 @@
+/// Adds two non-negative counts.
+pub fn total(a: i32, b: i32) -> i32
+    intent "Adds two counts."
+    requires a >= 0 and b >= 0
+    requires a + b <= 2147483647
+    ensures result == a + b
+{
+    a + b
+}
+
+example total(a: 2, b: 3) == 5
+---
+S3.1 Why is the second `requires` line there?
+S3.2 Inside that `requires` line, can the expression `a + b` itself overflow? Answer yes or no, and say why.
+S3.3 Is total(a: 2000000000, b: 2000000000) an allowed call? Answer yes or no, and say why.

@@ -1,0 +1,21 @@
+/// The colors of a traffic light.
+pub enum Light { Red, Yellow, Green }
+
+pub fn next(light: Light) -> Light
+    intent "Cycles a traffic light."
+decide {
+    | light == Red    => Green
+    | light == Green  => Yellow
+    | light == Yellow => Red
+}
+
+pub fn after_two(light: Light) -> Light {
+    next(next(light))
+}
+
+example after_two(Light.Red) == Yellow
+---
+S4.1 Why does `next` need no `otherwise` row?
+S4.2 What would happen if the `light == Yellow` row were removed?
+S4.3 Why is the value written `Light.Red` in the example but `Red` inside `next`?
+S4.4 Why is `after_two(Light.Red)` written without a label such as `light:`?
