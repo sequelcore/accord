@@ -8,6 +8,14 @@ change as the earlier ones teach us.
 
 ## Decisions
 
+Taken on 2026-11-08:
+
+- **General purpose, grown from the inside out.** Accord aims to be a
+  general-purpose language. It starts with verified rules that run inside
+  other programs and grows towards whole programs. Effects, a standard
+  library and a native backend become stages of their own once a target
+  needs them.
+
 Taken on 2026-11-07:
 
 - **Solvers through SMT-LIB 2.** The compiler writes each obligation as an
