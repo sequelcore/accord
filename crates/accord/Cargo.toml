@@ -1,0 +1,13 @@
+[package]
+name = "accord"
+description = "The Accord compiler and its command line"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "accord"
+path = "src/main.rs"

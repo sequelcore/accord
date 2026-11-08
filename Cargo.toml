@@ -1,0 +1,11 @@
+[workspace]
+resolver = "3"
+members = ["crates/accord"]
+
+[workspace.package]
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.93"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/sequelcore/accord"
+publish = false
