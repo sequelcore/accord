@@ -104,8 +104,9 @@ in [`answers.csv`](answers.csv) and the replies in
   in 4, 4 and 7 of 14 replies (dot, qualified, short); almost no reader
   expected the compiler to report an unreachable row (S5.4: 0, 1 and 1 of 14);
   most expected an unlabelled multi-parameter call to be rejected (S1.5: 14,
-  12 and 13 of 14). The first two are rules the reference and the receipt
-  have to state; the compiler has to show the second.
+  12 and 13 of 14). Specification arithmetic has to be stated in the
+  reference and the receipt, and an unreachable row has to be reported
+  where the person reads the code, since readers don't expect it.
 
 ## Run
 
