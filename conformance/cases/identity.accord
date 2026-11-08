@@ -1,0 +1,6 @@
+// expect: proved
+fn same(a: Bool) -> Bool
+    ensures result == a
+{
+    a
+}

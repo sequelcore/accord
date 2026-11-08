@@ -1,0 +1,6 @@
+// expect: refuted
+fn both(a: Bool, b: Bool) -> Bool
+    ensures result == b
+{
+    a and b
+}

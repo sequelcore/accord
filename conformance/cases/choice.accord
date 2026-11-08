@@ -1,0 +1,7 @@
+// expect: proved, proved
+fn choose(c: Bool, x: Bool, y: Bool) -> Bool
+    ensures c implies result == x
+    ensures not c implies result == y
+{
+    if c { x } else { y }
+}
