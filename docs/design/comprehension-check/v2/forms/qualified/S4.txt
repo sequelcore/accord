@@ -1,0 +1,28 @@
+/// The colors of a traffic light.
+pub enum Light { Red, Yellow, Green }
+
+/// The alert a crossing shows.
+pub enum Alert { Red, Clear }
+
+pub fn next(light: Light) -> Light
+    intent "Cycles a traffic light."
+decide {
+    | light == Light.Red    => Light.Green
+    | light == Light.Green  => Light.Yellow
+    | light == Light.Yellow => Light.Red
+}
+
+pub fn alert_for(light: Light) -> Alert
+    intent "Shows the red alert while the light is red."
+decide {
+    | light == Light.Red => Alert.Red
+    | otherwise          => Alert.Clear
+}
+
+example next(Light.Green) == Light.Yellow
+example alert_for(next(Light.Yellow)) == Alert.Red
+---
+S4.1 What does alert_for(next(Light.Green)) return?
+S4.2 In the first row of alert_for, which enum does each Red belong to?
+S4.3 What would happen if the row for Yellow were removed from next?
+S4.4 Why does next have no otherwise row?

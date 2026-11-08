@@ -1,0 +1,20 @@
+/// What a library charges for a late return.
+pub enum Fee { Waived, Flat, PerDay }
+
+pub fn late_fee(days_late: i32, member: Bool, first_offense: Bool) -> Fee
+    intent "Members never pay for their first late return."
+    requires days_late >= 0
+decide {
+    | days_late == 0           => Waived
+    | member and first_offense => Waived
+    | days_late <= 3           => Flat
+    | otherwise                => PerDay
+}
+
+example late_fee(days_late: 5, member: true, first_offense: true) == Waived
+---
+S1.1 What does late_fee(days_late: 2, member: false, first_offense: true) return?
+S1.2 What does late_fee(days_late: 10, member: true, first_offense: false) return?
+S1.3 What happens to a program that calls late_fee with days_late = -1?
+S1.4 Does anything check the sentence after `intent`? Answer yes or no.
+S1.5 Would the call late_fee(5, true, true), written without labels, be accepted? Answer yes or no.
