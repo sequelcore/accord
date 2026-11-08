@@ -1,9 +1,9 @@
 # Accord
 
 Instructions for agents contributing to Accord, a language and proof-oriented
-compiler. The [roadmap](ROADMAP.md) owns what is built and in what order; the
-[HQ record](https://github.com/sequelcore/sequel-hq/blob/main/docs/strategy/accord.md)
-owns why.
+compiler. The [README](README.md) says why it exists, the [roadmap](ROADMAP.md)
+what is built and in what order, and the [concepts](docs/concepts.md) what
+each term means.
 
 ## Rules
 
@@ -20,8 +20,8 @@ owns why.
 - **Grow by the roadmap's target.** Add only what the current stage's target
   needs; the next Tesota rule to port decides the next construct.
 - **Independent of Tesota.** No Tesota code or vocabulary in Accord's API.
-- **Internal.** No announcements, publishing or outside contact; each is the
-  owner's decision.
+- **No releases yet.** Publishing a package or a release, and announcing
+  one, are the maintainers' decisions.
 
 ## Checks
 

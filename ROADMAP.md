@@ -8,7 +8,7 @@ change as the earlier ones teach us.
 
 ## Decisions
 
-Taken by the owner on 2026-11-07:
+Taken on 2026-11-07:
 
 - **Solvers through SMT-LIB 2.** The compiler writes each obligation as an
   SMT-LIB file and runs the solver as a separate program. Z3 and cvc5 must
@@ -46,7 +46,7 @@ Each is registered, with its measure and success rule, before any run.
 
 | Experiment | Question | Runs at |
 | --- | --- | --- |
-| Comprehension check | Do people and models who have never seen Accord explain its snippets correctly without a reference? | Stage 1 |
+| [Comprehension check](docs/design/comprehension-check/README.md) | Do people and models who have never seen Accord explain its snippets correctly without a reference? | Stage 1 |
 | E1. Mechanical open cases | Does the solver find the ambiguities that asking an agent finds, or more? | Stage 5 |
 | E2. Human review | Do reviewers find more intent errors per minute with the review view than with code or specifications alone? | Stage 7; designed from stage 2 |
 | E3. Agents writing Accord | Is verified success with Accord comparable to TypeScript with LemmaScript on the same rules? | Stage 6 |

@@ -1,0 +1,253 @@
+model,repetition,question,answer,correct
+deepseek/deepseek-v4.1-flash,1,S1.1,Flat,yes
+deepseek/deepseek-v4.1-flash,1,S1.2,PerDay,yes
+deepseek/deepseek-v4.1-flash,1,S1.3,It violates the precondition requires days_late >= 0; the call is illegal and should fail/abort as a precondition violation.,yes
+deepseek/deepseek-v4.1-flash,1,S1.4,"No; intent is documentation only, not a checked assertion or condition.",yes
+deepseek/deepseek-v4.1-flash,2,S1.1,Flat,yes
+deepseek/deepseek-v4.1-flash,2,S1.2,PerDay,yes
+deepseek/deepseek-v4.1-flash,2,S1.3,"It violates the requires days_late >= 0 precondition, so the call is invalid/errors and no Fee is defined.",yes
+deepseek/deepseek-v4.1-flash,2,S1.4,No. intent is just a string annotation; nothing mechanically checks that the sentence is true.,yes
+deepseek/deepseek-v4.1-flash,1,S2.1,It returns 0.,yes
+deepseek/deepseek-v4.1-flash,1,S2.2,"result is the value returned by the function, used in the ensures clauses.",yes
+deepseek/deepseek-v4.1-flash,1,S2.3,"It promises that if the original value is already within low to high inclusive, then the returned result is exactly that original value.",yes
+deepseek/deepseek-v4.1-flash,1,S2.4,"Yes. With only result >= low and result <= high remaining, always returning low satisfies both bounds whenever low <= high, so it still meets the remaining promise.",yes
+deepseek/deepseek-v4.1-flash,2,S2.1,It returns 0.,yes
+deepseek/deepseek-v4.1-flash,2,S2.2,"result is the value returned by the function, used in the ensures clauses.",yes
+deepseek/deepseek-v4.1-flash,2,S2.3,"It promises that if value is already within [low, high], then clamp returns value unchanged.",yes
+deepseek/deepseek-v4.1-flash,2,S2.4,"Yes. Always returning low still satisfies the remaining range guarantee, because low <= high means low is within [low, high].",yes
+deepseek/deepseek-v4.1-flash,1,S3.1,"To ensure a + b does not exceed the maximum i32 value, preventing overflow in the function body.",yes
+deepseek/deepseek-v4.1-flash,1,S3.2,"No, because it is in a specification clause, so a + b is evaluated mathematically as an unbounded integer, not as machine i32 arithmetic.",yes
+deepseek/deepseek-v4.1-flash,1,S3.3,"No, because 2000000000 + 2000000000 = 4000000000, which is greater than 2147483647, so the second requires condition fails.",yes
+deepseek/deepseek-v4.1-flash,2,S3.1,To ensure a + b fits in an i32 and does not overflow in the function body.,yes
+deepseek/deepseek-v4.1-flash,2,S3.2,"No, because requires clauses are logical/specification expressions using mathematical integers, so a + b cannot overflow there.",yes
+deepseek/deepseek-v4.1-flash,2,S3.3,"No, because 2000000000 + 2000000000 = 4000000000, which exceeds 2147483647, so the second requires condition fails.",yes
+deepseek/deepseek-v4.1-flash,1,S4.1,"The three rows cover every variant of Light, so the decision is exhaustive and needs no fallback otherwise row.",yes
+deepseek/deepseek-v4.1-flash,1,S4.2,"It would become non-exhaustive: Light.Yellow would have no matching row, so the compiler should reject it unless an otherwise/Yellow case is added.",yes
+deepseek/deepseek-v4.1-flash,1,S4.3,"Light.Red is the fully qualified enum constructor; inside next, the expected type is already Light, so the bare variant Red can be resolved unqualified.",yes
+deepseek/deepseek-v4.1-flash,1,S4.4,"Function calls are positional; the parameter name light belongs to the definition/body, not to the call syntax.",no
+deepseek/deepseek-v4.1-flash,1,S5.1,Pass,yes
+deepseek/deepseek-v4.1-flash,1,S5.2,Fail,yes
+deepseek/deepseek-v4.1-flash,1,S5.3,"Yes—the branches are ordered wrong: score >= 60 => Pass comes before score >= 90 => Honors, so scores 90–100 return Pass instead of Honors. The language likely would not notice the semantic mismatch because intent is just a string/comment; it might only warn if it checks for unreachable branches.",yes
+deepseek/deepseek-v4.1-flash,2,S5.1,Pass,yes
+deepseek/deepseek-v4.1-flash,2,S5.2,Fail,yes
+deepseek/deepseek-v4.1-flash,2,S5.3,"Yes—the guards are out of order. Since score >= 60 is checked first, scores 90–100 return Pass, so the score >= 90 => Honors case is unreachable. The language likely would not notice: intent is only a string, and there is no formal ensures clause; the code is syntactically and type-correct, so unless the language specifically checks for unreachable guards, it won’t flag it.",yes
+qwen/qwen3.8-omni-flash,1,S1.1,Flat,yes
+qwen/qwen3.8-omni-flash,1,S1.2,PerDay,yes
+qwen/qwen3.8-omni-flash,1,S1.3,"It violates the requires days_late >= 0 precondition, so the call’s behavior is unspecified/contract-invalid (possibly a runtime check failure if enforced).",yes
+qwen/qwen3.8-omni-flash,1,S1.4,"No; the intent sentence is just prose documentation, not an executable or formally checked condition.",yes
+qwen/qwen3.8-omni-flash,2,S1.1,Flat,yes
+qwen/qwen3.8-omni-flash,2,S1.2,PerDay,yes
+qwen/qwen3.8-omni-flash,2,S1.3,"It violates the requires days_late >= 0 precondition, so the call is contractually invalid and its behavior is not guaranteed (typically an error/undefined behavior).",yes
+qwen/qwen3.8-omni-flash,2,S1.4,"No; the intent sentence is just documentation, not an executable or checked condition.",yes
+qwen/qwen3.8-omni-flash,1,S2.1,0,yes
+qwen/qwen3.8-omni-flash,1,S2.2,The function’s return value.,yes
+qwen/qwen3.8-omni-flash,1,S2.3,"If value is already within the inclusive range low..=high, the function must return that same value unchanged.",yes
+qwen/qwen3.8-omni-flash,1,S2.4,"Yes—if only the remaining formal promises are considered, returning low always satisfies result >= low and result <= high given low <= high; it would only violate the deleted preservation promise (and the example, if that is treated as a required check).",yes
+qwen/qwen3.8-omni-flash,2,S2.1,0,yes
+qwen/qwen3.8-omni-flash,2,S2.2,result is the value returned by clamp.,yes
+qwen/qwen3.8-omni-flash,2,S2.3,"It promises that if value is already within the inclusive range low..high, the function returns it unchanged.",yes
+qwen/qwen3.8-omni-flash,2,S2.4,"Yes—under the remaining formal ensures, always returning low still satisfies result >= low and result <= high because requires low <= high; it would only violate the informal intent.",yes
+qwen/qwen3.8-omni-flash,1,S3.1,"It ensures the mathematical sum fits in an i32, so the body’s a + b and the postcondition result == a + b cannot be invalidated by overflow.",yes
+qwen/qwen3.8-omni-flash,1,S3.2,"No. The requires expression is interpreted using exact/mathematical integer arithmetic, not wrapping or overflowing i32 arithmetic; otherwise the precondition could not reliably prevent overflow.",yes
+qwen/qwen3.8-omni-flash,1,S3.3,"No. Both arguments are non-negative, but their sum is 4000000000, which exceeds 2147483647, violating the second requires.",yes
+qwen/qwen3.8-omni-flash,2,S3.1,"To prevent the sum from exceeding the maximum value representable by i32, so the body’s a + b and the postcondition can hold without overflow.",yes
+qwen/qwen3.8-omni-flash,2,S3.2,"No—the requires clause is a mathematical specification condition on the inputs, not an executed i32 addition, so a + b there does not wrap/overflow.",yes
+qwen/qwen3.8-omni-flash,2,S3.3,"No—although both arguments are non-negative and fit in i32, their mathematical sum is 4000000000, which violates a + b <= 2147483647.",yes
+qwen/qwen3.8-omni-flash,1,S4.1,"The rows cover all three Light constructors, so the decide is exhaustive and needs no default/otherwise.",yes
+qwen/qwen3.8-omni-flash,1,S4.2,"It would become non-exhaustive: the compiler would flag a missing case, and a Yellow input would have no defined result.",yes
+qwen/qwen3.8-omni-flash,1,S4.3,"Light.Red is the qualified enum value at the top level; inside next, the type is already Light, so bare Red resolves unambiguously.",yes
+qwen/qwen3.8-omni-flash,1,S4.4,"The argument is passed positionally; light: in the signature is the parameter name/type annotation, not a required call-site label.",no
+qwen/qwen3.8-omni-flash,2,S4.1,"Because Light is a finite enum with exactly Red, Green, and Yellow, and next covers all three cases, so the decide is exhaustive without otherwise.",yes
+qwen/qwen3.8-omni-flash,2,S4.2,"Removing the Yellow row would make next non-exhaustive; the compiler would likely reject it unless an otherwise row were added, and calling it with Yellow would have no matching result.",yes
+qwen/qwen3.8-omni-flash,2,S4.3,"Light.Red is the fully qualified enum value used in an ordinary expression, while inside next the bare names like Red are resolved as members of the known Light enum/type being matched.",yes
+qwen/qwen3.8-omni-flash,2,S4.4,"The light: in the function definition is just the parameter name and type annotation; calls in this code pass arguments positionally, so no light: label is used at the call site.",no
+qwen/qwen3.8-omni-flash,1,S5.1,"Pass, because the score >= 60 branch is checked first.",yes
+qwen/qwen3.8-omni-flash,1,S5.2,Fail.,yes
+qwen/qwen3.8-omni-flash,1,S5.3,"Yes: the branches are ordered wrongly, so scores ≥ 90 return Pass and the Honors branch is unreachable; the language probably would not notice, since intent appears informal and there is no checked postcondition, though a very smart compiler might warn about the shadowed guard.",yes
+qwen/qwen3.8-omni-flash,2,S5.1,"Pass, because the first matching branch is score >= 60, which is true for 95.",yes
+qwen/qwen3.8-omni-flash,2,S5.2,"Fail, because neither guard matches and otherwise applies.",yes
+qwen/qwen3.8-omni-flash,2,S5.3,"Yes: the branches are ordered incorrectly for the stated intent, making Honors unreachable for scores ≥ 90. The language probably would not notice unless it specifically warns about overlapping/unreachable guards, since intent appears to be documentation rather than a checked postcondition.",yes
+anthropic/claude-haiku-5.5,1,S1.1,"Flat. The first case fails (days_late isn't 0), the second fails (member is false), and the third matches because 2 <= 3.",yes
+anthropic/claude-haiku-5.5,1,S1.2,"PerDay. Neither of the first two cases matches (first_offense is false), 10 is not <= 3, so the otherwise case applies.",yes
+anthropic/claude-haiku-5.5,1,S1.3,"It violates the requires days_late >= 0 precondition, so the call is rejected as a contract violation rather than returning a Fee. The exact mechanism (runtime error or compile-time rejection) isn't specified in the code.",yes
+anthropic/claude-haiku-5.5,1,S1.4,"No. The intent clause is descriptive prose. Nothing in the code evaluates or enforces it. Only the requires clause and the example line are checkable, and the decide table determines the behavior.",yes
+anthropic/claude-haiku-5.5,2,S1.1,"Flat. days_late is 2, so the first rule fails. member is false, so the second rule fails. 2 <= 3, so the third rule gives Flat.",yes
+anthropic/claude-haiku-5.5,2,S1.2,"PerDay. days_late is 10, so the first rule fails. The member and first_offense rule fails because first_offense is false. 10 is not <= 3, so the otherwise rule gives PerDay.",yes
+anthropic/claude-haiku-5.5,2,S1.3,"It violates the requires days_late >= 0 precondition, so the call is invalid. The code doesn't show the exact mechanism, but the function's decide table does not define a result for that input. It is rejected as a contract violation, most likely as a runtime error.",yes
+anthropic/claude-haiku-5.5,2,S1.4,No. The intent line is descriptive text. Nothing in the code shown checks it against the decide rules. Only the requires clause and the example line are stated as checks.,yes
+anthropic/claude-haiku-5.5,1,S2.1,"It returns 0, because -3 is below low (0), so the first branch returns low.",yes
+anthropic/claude-haiku-5.5,1,S2.2,"result is the value the function returns, which the ensures clauses constrain.",yes
+anthropic/claude-haiku-5.5,1,S2.3,"If value already lies between low and high inclusive, the function must return value unchanged.",yes
+anthropic/claude-haiku-5.5,1,S2.4,"Yes. The first ensures only requires result to lie between low and high, and requires low <= high guarantees low is in that range. So always returning low meets the first promise. Only the second ensures rules that out.",yes
+anthropic/claude-haiku-5.5,2,S2.1,"It returns 0. The value -3 is below low, so the first branch returns low.",yes
+anthropic/claude-haiku-5.5,2,S2.2,"result is the value the function returns, named so the ensures clauses can refer to it.",yes
+anthropic/claude-haiku-5.5,2,S2.3,"If value is already within [low, high], the function must return value unchanged.",yes
+anthropic/claude-haiku-5.5,2,S2.4,"Yes. Because requires low <= high, the constant low always lies in [low, high], so it satisfies the first ensures clause. The second clause is the only one that forces returning value when it is in range, so without it a function that always returns low would still meet the remaining promises.",yes
+anthropic/claude-haiku-5.5,1,S3.1,"It is a precondition that keeps a + b within i32 range (at most 2147483647), so the result can't overflow the return type.",yes
+anthropic/claude-haiku-5.5,1,S3.2,"Yes. The check is ordinary i32 addition with no wider type, so with large operands the sum can wrap around before the comparison runs, and the check could pass incorrectly.",no
+anthropic/claude-haiku-5.5,1,S3.3,"No. The true sum 4000000000 exceeds 2147483647, so the second requires is violated. (A wrapping evaluation would give a negative value that seems to pass, which is the pitfall described in S3.2.)",yes
+anthropic/claude-haiku-5.5,2,S3.1,"It is a precondition that rules out inputs whose sum exceeds the i32 maximum (2147483647). With it, a + b in the body fits in i32, so the ensures result is representable.",yes
+anthropic/claude-haiku-5.5,2,S3.2,"Yes. The clause is evaluated with the same i32 arithmetic, and nothing in the code guards that evaluation. For example, with a = b = 2000000000 the sum 4000000000 exceeds the i32 maximum, so the check itself can overflow and give a wrong answer unless the language treats overflow as an error.",no
+anthropic/claude-haiku-5.5,2,S3.3,"No. Both arguments are non-negative, so the first requires holds, but a + b = 4000000000 is greater than 2147483647, so the second requires fails and the call is not allowed.",yes
+anthropic/claude-haiku-5.5,1,S4.1,"The three rows cover every Light variant (Red, Green, Yellow), so the decision is already exhaustive and needs no fallback.",yes
+anthropic/claude-haiku-5.5,1,S4.2,"next would no longer handle Yellow, so the decision would be non-exhaustive. I'd expect the compiler to reject it, though the code doesn't show that check directly.",yes
+anthropic/claude-haiku-5.5,1,S4.3,"The example is written outside any function body, where the variant has to be qualified as Light.Red. Inside decide, the bare names Red, Green, and Yellow appear to resolve from the parameter's type Light. The code doesn't spell out this rule, so this is an inference.",no
+anthropic/claude-haiku-5.5,1,S4.4,"Arguments appear to be passed by position, and the call syntax has no labeled-argument form, so after_two(Light.Red) just supplies the value in order. The code shows no label syntax, so this is also an inference.",no
+anthropic/claude-haiku-5.5,2,S4.1,"The three rows cover every variant of Light (Red, Green, Yellow), so no fallback is needed. Each possible input matches exactly one row.",yes
+anthropic/claude-haiku-5.5,2,S4.2,"Light.Yellow would have no matching row. The decide would be non-exhaustive, so I'd expect it to be rejected at compile time, though the code doesn't show the exact behavior.",yes
+anthropic/claude-haiku-5.5,2,S4.3,"The code doesn't state the scoping rule. Inside next, the bare Red, Green, and Yellow resolve because the parameter's type is Light. The example appears to sit outside that context, so it uses the qualified Light.Red form.",no
+anthropic/claude-haiku-5.5,2,S4.4,"The calls in the code pass arguments positionally, as next(next(light)) does, and no labeled-argument syntax appears anywhere in the code. So after_two(Light.Red) follows the same positional convention.",no
+anthropic/claude-haiku-5.5,1,S5.1,grade(score: 95) returns Pass. The first arm score >= 60 matches before the Honors arm is checked.,yes
+anthropic/claude-haiku-5.5,1,S5.2,grade(score: 40) returns Fail. No arm matches before otherwise.,yes
+anthropic/claude-haiku-5.5,1,S5.3,"Yes. The arms are in the wrong order, so the score >= 90 arm is unreachable and Honors is never returned. Every score of 90 or above gets Pass, which contradicts the intent. Nothing shown here would catch it: the requires clause only checks the input range, and the code doesn't state a postcondition tied to the intent. A checker that flags unreachable or subsumed arms, or a test on the boundary values, could catch it, but I can't tell from the code alone whether this language does that.",yes
+anthropic/claude-haiku-5.5,2,S5.1,"It returns Pass. The first arm, score >= 60, matches 95 before the score >= 90 arm is reached.",yes
+anthropic/claude-haiku-5.5,2,S5.2,"It returns Fail. 40 fails score >= 60, fails score >= 90, and falls through to otherwise.",yes
+anthropic/claude-haiku-5.5,2,S5.3,"Yes. The arms are checked in order, so the score >= 90 => Honors arm is unreachable, since any score of 90 or above already matched the 60 arm. Scores of 90 to 100 get Pass when the intent says Honors. The intent string is prose and isn't checked against the code, and the requires clause only validates the input range. Nothing shown here would catch the bug. I can't tell from this code alone whether the decide construct warns about unreachable arms. The fix is to test score >= 90 before score >= 60.",yes
+openai/gpt-6-luna,1,S1.1,Flat,yes
+openai/gpt-6-luna,1,S1.2,PerDay,yes
+openai/gpt-6-luna,1,S1.3,It violates the days_late >= 0 precondition.,yes
+openai/gpt-6-luna,1,S1.4,"No; intent is descriptive, not a checked condition.",yes
+openai/gpt-6-luna,2,S1.1,Flat.,yes
+openai/gpt-6-luna,2,S1.2,PerDay.,yes
+openai/gpt-6-luna,2,S1.3,"It violates the days_late >= 0 requirement, so the call is invalid.",yes
+openai/gpt-6-luna,2,S1.4,"No; intent is descriptive text, not a condition the code checks.",yes
+openai/gpt-6-luna,1,S2.1,It returns 0.,yes
+openai/gpt-6-luna,1,S2.2,result means the value returned by the function.,yes
+openai/gpt-6-luna,1,S2.3,"If value is already between low and high, the function returns it unchanged.",yes
+openai/gpt-6-luna,1,S2.4,"Yes, it satisfies the remaining formal postcondition, though it would contradict the intent.",yes
+openai/gpt-6-luna,2,S2.1,0,yes
+openai/gpt-6-luna,2,S2.2,result is the value returned by the function.,yes
+openai/gpt-6-luna,2,S2.3,"If value is already between low and high, the function must return it unchanged.",yes
+openai/gpt-6-luna,2,S2.4,"Yes, under the remaining formal contract: returning low is within the range. It would, however, conflict with the intent text when value is in range.",yes
+openai/gpt-6-luna,1,S3.1,"It ensures the sum fits in an i32, so the addition and result are representable.",yes
+openai/gpt-6-luna,1,S3.2,"No; the precondition’s sum is understood mathematically, not as an overflowing i32 operation.",yes
+openai/gpt-6-luna,1,S3.3,No; the arguments satisfy the first requirement but their sum exceeds 2147483647.,yes
+openai/gpt-6-luna,2,S3.1,"It requires the sum to fit in an i32, preventing overflow when total adds the counts.",yes
+openai/gpt-6-luna,2,S3.2,"Yes; nonnegative i32 operands can still sum past the maximum, so evaluating a + b could overflow.",no
+openai/gpt-6-luna,2,S3.3,"No; the sum is 4,000,000,000, which exceeds the allowed maximum.",yes
+openai/gpt-6-luna,1,S4.1,"The three rows cover every variant of Light, so no otherwise case is needed.",yes
+openai/gpt-6-luna,1,S4.2,"The Yellow case would be uncovered, making next incomplete and likely rejected as non-exhaustive.",yes
+openai/gpt-6-luna,1,S4.3,"Outside next, the variant is qualified with its enum name; inside, Red is used unqualified.",yes
+openai/gpt-6-luna,1,S4.4,"The call passes its argument positionally, so the parameter label light: isn’t needed.",no
+openai/gpt-6-luna,2,S4.1,"The rows cover all three variants of Light, so the decision is exhaustive.",yes
+openai/gpt-6-luna,2,S4.2,The decision would be incomplete and should be rejected as missing a case for Yellow.,yes
+openai/gpt-6-luna,2,S4.3,"Light.Red qualifies the variant with its enum type; inside next, Red is an unqualified shorthand.",yes
+openai/gpt-6-luna,2,S4.4,The argument is passed positionally; the parameter name light need not be written at the call site.,no
+openai/gpt-6-luna,1,S5.1,Pass,yes
+openai/gpt-6-luna,1,S5.2,Fail,yes
+openai/gpt-6-luna,1,S5.3,"Yes. The score >= 60 branch catches scores of 90 and above first, making Honors unreachable. The snippet doesn’t say whether the language warns about this.",yes
+openai/gpt-6-luna,2,S5.1,Pass,yes
+openai/gpt-6-luna,2,S5.2,Fail,yes
+openai/gpt-6-luna,2,S5.3,"Yes. The score >= 60 branch catches scores of 90 and above, so the Honors branch is unreachable. The code doesn’t say whether the language will flag that; it might warn about the unreachable branch, but need not detect the mismatch with the stated intent.",yes
+mistralai/mistral-large-4-0,1,S1.1,Flat,yes
+mistralai/mistral-large-4-0,1,S1.2,PerDay,yes
+mistralai/mistral-large-4-0,1,S1.3,"It violates the requires days_late >= 0 precondition, so the call is invalid (typically an error/panic).",yes
+mistralai/mistral-large-4-0,1,S1.4,No; intent is just a natural-language string annotation—nothing in the code parses or checks it; only the decide rules and requires are executable.,yes
+mistralai/mistral-large-4-0,2,S1.1,Flat,yes
+mistralai/mistral-large-4-0,2,S1.2,PerDay,yes
+mistralai/mistral-large-4-0,2,S1.3,"It violates the requires days_late >= 0 precondition, so the call is rejected/fails before the decide body runs.",yes
+mistralai/mistral-large-4-0,2,S1.4,No. The intent sentence is just a string annotation; nothing in the code reads or enforces it.,yes
+mistralai/mistral-large-4-0,1,S2.1,0,yes
+mistralai/mistral-large-4-0,1,S2.2,The value returned by the function.,yes
+mistralai/mistral-large-4-0,1,S2.3,"If the input value is already between low and high (inclusive), the function returns that same value unchanged.",yes
+mistralai/mistral-large-4-0,1,S2.4,"Yes — the remaining ensures only requires the result to be in [low, high], and returning low satisfies that because the precondition guarantees low <= high.",yes
+mistralai/mistral-large-4-0,2,S2.1,0,yes
+mistralai/mistral-large-4-0,2,S2.2,result is the value the function returns.,yes
+mistralai/mistral-large-4-0,2,S2.3,"If the input value is already within the inclusive range [low, high], the function promises to return that same value unchanged.",yes
+mistralai/mistral-large-4-0,2,S2.4,"Yes — with the second ensures removed, the only remaining postcondition is that result lies between low and high, and always returning low satisfies that because the requires low <= high guarantees low is a valid result.",yes
+mistralai/mistral-large-4-0,1,S3.1,"To ensure the sum fits in i32 (≤ 2147483647), so the body’s i32 addition cannot overflow.",yes
+mistralai/mistral-large-4-0,1,S3.2,"No — in a requires clause the expression is mathematical/logical, not i32 machine arithmetic, so a + b cannot overflow.",yes
+mistralai/mistral-large-4-0,1,S3.3,"No — 2000000000 + 2000000000 = 4000000000 > 2147483647, so the second requires is violated.",yes
+mistralai/mistral-large-4-0,2,S3.1,"To ensure the sum fits in an i32 (≤ 2147483647), so the body’s a + b / returned result cannot overflow.",yes
+mistralai/mistral-large-4-0,2,S3.2,"No. In the requires clause, a + b is a logical/specification expression over mathematical integers, not the machine i32 addition used in the body, so it cannot overflow.",yes
+mistralai/mistral-large-4-0,2,S3.3,"No. 2000000000 + 2000000000 = 4000000000, which is greater than 2147483647, so the second requires fails.",yes
+mistralai/mistral-large-4-0,1,S4.1,"The three rows cover every variant of Light, so the decide is exhaustive and no catch-all otherwise is needed.",yes
+mistralai/mistral-large-4-0,1,S4.2,"Yellow would be left uncovered, so the decide would be non-exhaustive and the function would be rejected as incomplete (or fail at runtime if not checked).",yes
+mistralai/mistral-large-4-0,1,S4.3,"Inside next, the decide matches on a value of type Light, so its constructors are in scope unqualified; in the example, Light.Red is used as a normal expression and must be qualified by the enum name.",no
+mistralai/mistral-large-4-0,1,S4.4,"The call passes its single argument positionally, so a parameter label like light: is not required.",yes
+mistralai/mistral-large-4-0,2,S4.1,"next covers all three possible Light values (Red, Green, Yellow), so the decide is exhaustive and no otherwise row is needed.",yes
+mistralai/mistral-large-4-0,2,S4.2,"It would become non-exhaustive for Light.Yellow; the compiler would reject it or require an otherwise row, and next(Light.Yellow) would have no matching row.",yes
+mistralai/mistral-large-4-0,2,S4.3,"Inside next, the parameter/scrutinee light has type Light, so its variants are in scope unqualified; at top level in the example, there is no such type context, so the variant must be qualified as Light.Red.",no
+mistralai/mistral-large-4-0,2,S4.4,"The call uses a positional argument; light: would be a named label, which is not required for an ordinary single-argument call.",yes
+mistralai/mistral-large-4-0,1,S5.1,Pass,yes
+mistralai/mistral-large-4-0,1,S5.2,Fail,yes
+mistralai/mistral-large-4-0,1,S5.3,Yes — the score >= 90 => Honors arm is unreachable because score >= 60 matches first for any score ≥ 90; the language would not notice from the code alone unless it does reachability/intent checking (the intent string is not enforced).,yes
+mistralai/mistral-large-4-0,2,S5.1,Pass,yes
+mistralai/mistral-large-4-0,2,S5.2,Fail,yes
+mistralai/mistral-large-4-0,2,S5.3,"Yes—the guards are in the wrong order: any score ≥ 90 also satisfies score >= 60, so the Honors branch is unreachable and 90+ returns Pass instead. The language wouldn’t automatically catch the semantic bug (the intent is just a string), though a compiler might warn that the second arm is dead code.",yes
+z-ai/glm-5.3-flashx,1,S1.1,"Flat — days_late is 2 (≤ 3), it's not 0, and member and first_offense is false.",yes
+z-ai/glm-5.3-flashx,1,S1.2,"PerDay — 10 > 3, and the waiver requires both member and first_offense, which fails.",yes
+z-ai/glm-5.3-flashx,1,S1.3,"The call violates the requires days_late >= 0 precondition, so it's rejected (an error / undefined behavior); the decide body never runs.",yes
+z-ai/glm-5.3-flashx,1,S1.4,"No — the intent is free-form English prose (like a docstring), which a machine can't verify. Only machine-checkable parts like requires (precondition) and example (test case) are actually checked; the intent must be trusted to match the code.",yes
+z-ai/glm-5.3-flashx,2,S1.1,"Flat — days_late isn't 0, the member/first_offense clause fails (member is false), and 2 ≤ 3.",yes
+z-ai/glm-5.3-flashx,2,S1.2,"PerDay — not 0, not (member and first_offense) since first_offense is false, and 10 > 3.",yes
+z-ai/glm-5.3-flashx,2,S1.3,"It violates the precondition requires days_late >= 0, so the call is invalid — a contract violation; no result is guaranteed (the program would fail/be rejected, not return a Fee).",yes
+z-ai/glm-5.3-flashx,2,S1.4,"No — the intent sentence is natural-language documentation for human readers; it can't be mechanically checked. (The example after the function is checked, and it happens to be consistent with the intent, but nothing verifies the sentence itself.)",yes
+z-ai/glm-5.3-flashx,1,S2.1,"0 (since -3 < low, the body returns low).",yes
+z-ai/glm-5.3-flashx,1,S2.2,"result is the function's return value — the value that clamp gives back, referenced in the ensures postconditions.",yes
+z-ai/glm-5.3-flashx,1,S2.3,"If the input value is already inside the range [low, high], the function returns it unchanged (the result equals the original value).",yes
+z-ai/glm-5.3-flashx,1,S2.4,"Yes. With the second ensures deleted, the only promise is result >= low and result <= high; always returning low trivially satisfies result >= low, and result <= high holds because the precondition guarantees low <= high.",yes
+z-ai/glm-5.3-flashx,2,S2.1,"0 — since -3 < low (0), the body returns low.",yes
+z-ai/glm-5.3-flashx,2,S2.2,result is the function's return value; the ensures clauses use it to state properties of whatever clamp returns.,yes
+z-ai/glm-5.3-flashx,2,S2.3,"If the input value is already within the range (i.e., low ≤ value ≤ high), the function returns it unchanged — it promises not to alter readings that are already in range.",yes
+z-ai/glm-5.3-flashx,2,S2.4,"Yes — with the second ensures gone, the contract only promises the result lies in [low, high], and returning low always satisfies that (the precondition low ≤ high guarantees low ≤ high). Note, though, that the example check would then fail, since clamp(12, 0, 10) would return 0 instead of 10 — so the example, unlike the contract, would no longer be satisfied.",yes
+z-ai/glm-5.3-flashx,1,S3.1,"It guards against i32 overflow: the caller must ensure the mathematical sum doesn't exceed the 32-bit signed maximum (2147483647), so the body's a + b is safe and ensures result == a + b can actually hold.",yes
+z-ai/glm-5.3-flashx,1,S3.2,"No. The requires/ensures annotations are specifications, evaluated with exact (mathematical, unbounded) integers rather than the machine's i32 arithmetic — that's precisely what lets the contract express a bound like a + b <= 2147483647 to protect the executable body.",yes
+z-ai/glm-5.3-flashx,1,S3.3,"No. The sum 2000000000 + 2000000000 = 4000000000 exceeds 2147483647, so the call violates the second requires precondition and is not a valid call.",yes
+z-ai/glm-5.3-flashx,2,S3.1,"It guards against i32 overflow. Since an i32 maxes out at 2147483647 (2^31 − 1), the body a + b would overflow for large inputs, which would break the postcondition ensures result == a + b; the precondition rules out inputs whose mathematical sum doesn't fit in an i32.",yes
+z-ai/glm-5.3-flashx,2,S3.2,"No. Contract expressions like requires/ensures are checked as mathematical (unbounded) integer arithmetic by the verifier, not executed as machine i32 operations, so a + b in that line is computed exactly and cannot wrap around. Overflow only matters in the executable body, which is exactly what the precondition prevents.",yes
+z-ai/glm-5.3-flashx,2,S3.3,"No. Both arguments are non-negative, so the first precondition holds, but their sum is 4,000,000,000, which exceeds 2147483647, violating the second precondition — a caller must prove all preconditions, and this call can't, so it would be rejected.",yes
+z-ai/glm-5.3-flashx,1,S4.1,"Light is a closed enum with exactly three variants, and the decide block covers all three, so the match is exhaustive; no fallback case is needed (and the checker can verify that).",yes
+z-ai/glm-5.3-flashx,1,S4.2,"The decide block would no longer be exhaustive — a Yellow input would have no matching row — so the compiler would reject the program (non-exhaustive match error). The after_two(Light.Red) == Yellow example itself would still be logically true, but it wouldn't get that far since the code doesn't compile.",yes
+z-ai/glm-5.3-flashx,1,S4.3,"Inside next, the scrutinee light has a known type (Light), so variants like Red resolve without qualification. In the example line there is no type context (it's a standalone call), so the variant must be fully qualified as Light.Red.",no
+z-ai/glm-5.3-flashx,1,S4.4,"light is just the local parameter name used inside the function body; calls pass arguments positionally in this language, so no argument label is required (or supported) at the call site.",no
+z-ai/glm-5.3-flashx,2,S4.1,"Light is a closed enum with exactly three variants, and the decide rows cover all of them (Red, Green, Yellow), so the match is exhaustive — every possible input is handled, making a default otherwise row unnecessary.",yes
+z-ai/glm-5.3-flashx,2,S4.2,"The match would no longer be exhaustive: next(Light.Yellow) would have no matching row, so the program should be rejected at compile time (or, if unchecked, fail/return garbage at runtime). Note this would also silently break after_two(Light.Green), since it calls next on Yellow internally.",yes
+z-ai/glm-5.3-flashx,2,S4.3,"Inside next, the parameter is declared as type Light, so variants can be written unqualified — the type is known from context. In the top-level example there's no such contextual type, so the fully qualified Light.Red is needed to name the constructor.",no
+z-ai/glm-5.3-flashx,2,S4.4,"Arguments in this language are positional by default; parameter names serve as optional labels, not required ones. With a single argument there's no ambiguity (and indeed next(light) is also called positionally inside after_two), so after_two(Light.Red) needs no label.",yes
+z-ai/glm-5.3-flashx,1,S5.1,"Pass — the first matching branch is score >= 60, so 95 never reaches the Honors case.",yes
+z-ai/glm-5.3-flashx,1,S5.2,"Fail — neither guard (>= 60, >= 90) matches, so the otherwise branch applies.",yes
+z-ai/glm-5.3-flashx,1,S5.3,"Yes — the branches are misordered. score >= 60 matches everything 60 and above, including 90+, so the score >= 90 => Honors branch is dead code and high scores wrongly get Pass, violating the stated intent. Given the language has machine-checkable-looking intent and requires clauses, it would plausibly notice: either by failing the intent check (""90 and above earn honors"") or by flagging the score >= 90 branch as unreachable. Swapping the two guards fixes it.",yes
+z-ai/glm-5.3-flashx,2,S5.1,Pass — the first arm score >= 60 matches 95 before the score >= 90 arm is ever consulted.,yes
+z-ai/glm-5.3-flashx,2,S5.2,"Fail — 40 fails both score >= 60 and score >= 90, so the otherwise arm applies.",yes
+z-ai/glm-5.3-flashx,2,S5.3,"Yes — the arms are in the wrong order. score >= 60 shadows score >= 90, making the Honors arm unreachable and giving Pass to any score of 60 or more, which contradicts the stated intent. Given the language has contract-style machinery (intent, requires), it plausibly would notice: either as an unreachable/shadowed arm in decide, or by verifying the implementation against the intent (grade(95) = Pass violates it). If it checks neither, the bug would be silent.",yes
+x-ai/grok-4.7,1,S1.1,Flat,yes
+x-ai/grok-4.7,1,S1.2,PerDay,yes
+x-ai/grok-4.7,1,S1.3,"The call breaks the requires days_late >= 0 precondition, so the function’s contract does not cover it.",yes
+x-ai/grok-4.7,1,S1.4,"No. It is only an unchecked natural-language string, unlike the formal requires condition and the example.",yes
+x-ai/grok-4.7,2,S1.1,Flat,yes
+x-ai/grok-4.7,2,S1.2,PerDay,yes
+x-ai/grok-4.7,2,S1.3,"The call violates requires days_late >= 0, so it is not a valid call.",yes
+x-ai/grok-4.7,2,S1.4,No. It is only a quoted annotation; nothing in the code checks that sentence.,yes
+x-ai/grok-4.7,1,S2.1,0,yes
+x-ai/grok-4.7,1,S2.2,The function's return value.,yes
+x-ai/grok-4.7,1,S2.3,"If value is already between low and high, the result equals value.",yes
+x-ai/grok-4.7,1,S2.4,"Yes, because the remaining postcondition only requires the result to lie between low and high, which always returning low satisfies.",yes
+x-ai/grok-4.7,2,S2.1,0,yes
+x-ai/grok-4.7,2,S2.2,The function’s return value.,yes
+x-ai/grok-4.7,2,S2.3,"If value is already between low and high (inclusive), the result equals value.",yes
+x-ai/grok-4.7,2,S2.4,"Yes. The only remaining postcondition is low ≤ result ≤ high, which always returning low meets whenever low ≤ high.",yes
+x-ai/grok-4.7,1,S3.1,To keep the sum inside the i32 range so the addition cannot overflow.,yes
+x-ai/grok-4.7,1,S3.2,"Yes. a and b are only known to be non-negative i32s, so their sum can exceed 2147483647 and the + can overflow.",no
+x-ai/grok-4.7,1,S3.3,"No. 2000000000 + 2000000000 exceeds 2147483647, so the second precondition fails.",yes
+x-ai/grok-4.7,2,S3.1,It keeps the mathematical sum inside i32’s max (2147483647) so the body’s a + b cannot overflow.,yes
+x-ai/grok-4.7,2,S3.2,"No. In a requires clause + is the unbounded mathematical sum, not wrapping i32 addition, so the comparison itself cannot overflow.",yes
+x-ai/grok-4.7,2,S3.3,"No. 2000000000 + 2000000000 = 4000000000, which violates a + b <= 2147483647.",yes
+x-ai/grok-4.7,1,S4.1,"The three rows already cover every Light variant, so the decision is exhaustive.",yes
+x-ai/grok-4.7,1,S4.2,"Yellow would be unhandled, so the decide would be incomplete and rejected.",yes
+x-ai/grok-4.7,1,S4.3,"Inside next, light is already a Light, so bare variant names are in scope; the example is outside that context and must qualify Light.Red.",no
+x-ai/grok-4.7,1,S4.4,"after_two has one parameter, and the example passes its argument by position; light is only the parameter name, not a required call label.",yes
+x-ai/grok-4.7,2,S4.1,"The three rows already cover every Light variant, so the decide is exhaustive.",yes
+x-ai/grok-4.7,2,S4.2,"Yellow would match nothing, so the decide would be incomplete and rejected unless an otherwise (or that row) were added.",yes
+x-ai/grok-4.7,2,S4.3,"Inside next, bare names sit where the type is already Light (light == …, and the => results); the example’s argument is a standalone value, so it is written Light.Red.",no
+x-ai/grok-4.7,2,S4.4,"light: Light is the parameter’s name and type, not a call-site label; arguments are positional.",no
+x-ai/grok-4.7,1,S5.1,Pass,yes
+x-ai/grok-4.7,1,S5.2,Fail,yes
+x-ai/grok-4.7,1,S5.3,"Yes—arms are tried in order, so score >= 90 is caught by >= 60 and Honors is dead, contradicting the intent. Reachability/dead-branch analysis would notice; the informal intent string and requires clause would not.",yes
+x-ai/grok-4.7,2,S5.1,Pass,yes
+x-ai/grok-4.7,2,S5.2,Fail,yes
+x-ai/grok-4.7,2,S5.3,"Yes — arms are tried in order, so any score ≥ 90 hits score >= 60 and returns Pass; Honors is unreachable and the body contradicts the intent. Nothing in the shown syntax makes that string machine-checked (unlike a formal postcondition); a compiler would only notice if it also warns on unreachable guards.",yes
+deepseek/deepseek-v4.1-flash,2,S4.1,"Because the three rows cover all three variants of Light (Red, Green, Yellow), so the decide is exhaustive.",yes
+deepseek/deepseek-v4.1-flash,2,S4.2,"It would no longer cover the Yellow case, making the function non-exhaustive; the compiler would reject it unless an otherwise row were added.",yes
+deepseek/deepseek-v4.1-flash,2,S4.3,"Inside next, the parameter light is known to have type Light, so Red can be resolved as Light.Red. In the example, Light.Red is qualified to specify the enum type explicitly (no light variable is in scope there); Yellow can be unqualified because the left side of == already has type Light.",yes
+deepseek/deepseek-v4.1-flash,2,S4.4,Because function calls use positional arguments; the parameter name light is not required as a label at the call site.,no

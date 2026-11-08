@@ -3,8 +3,8 @@
 A programming language and a proof-oriented compiler for humans and coding
 agents working together.
 
-**Status:** experimental and internal. Nothing here is released, and the
-language doesn't exist yet: the [roadmap](ROADMAP.md) says what's being built
+**Status:** experimental. Nothing is released, and the language doesn't
+compile anything yet: the [roadmap](ROADMAP.md) says what's being built
 and in what order.
 
 ## The idea
@@ -16,7 +16,8 @@ proof obligations, discharges them with SMT solvers, and reports each one as
 proved, refuted with a counterexample, undecided or unsupported. Evidence is
 bound to the exact content it checked and goes stale when that changes.
 Nothing undecided is reported as proved. The [concepts](docs/concepts.md)
-define each term.
+define each term, and the [background](docs/design/background.md) says where
+the design comes from.
 
 ## License
 

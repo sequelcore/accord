@@ -3,7 +3,7 @@
 **Status:** draft for stage 1 ([#2](https://github.com/sequelcore/accord/issues/2)).
 It covers what stage 2 compiles: enums, pure functions, `intent`,
 `requires`, `ensures`, decision tables and examples, over `Bool` and
-fixed-width integers. The owner's decisions on it are listed at the end. The
+fixed-width integers. The decisions taken on it are listed at the end. The
 [concepts](../concepts.md) define the terms and the
 [influences](influences.md) state the design goals each choice serves.
 
@@ -138,7 +138,7 @@ Blocks are expressions: the last expression is the block's value. There is no
 
 ## Decisions
 
-Accepted by the owner on 2026-11-07:
+Accepted on 2026-11-07:
 
 1. **Specifications use `implies` and no equivalence operator.** An
    equivalence is written as two `implies`, or as a decision table. Every

@@ -1,0 +1,3 @@
+Below is code in a programming language you have probably never seen, followed by questions about it. Don't search the web or look anything up; answer only from reading the code.
+
+Answer each question on its own line, starting with its label (for example "S1.1:"), briefly.
