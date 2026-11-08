@@ -1,0 +1,19 @@
+/// How one proof of a file ended.
+pub enum ProofOutcome { Passed, Failed, Vacuous, TimedOut, Cancelled, NotStarted }
+
+intent "A proof passes only when nothing stopped it and something was verified."
+
+pub fn proof_outcome(cancelled: Bool, timed_out: Bool, started: Bool,
+                     regenerated: Bool, check_exit: i32, verified: i64) -> ProofOutcome
+  requires verified >= 0
+decide {
+  | cancelled                            => Cancelled
+  | timed_out                            => TimedOut
+  | not started                          => NotStarted
+  | not regenerated or check_exit != 0   => Failed
+  | verified > 0                         => Passed
+  | otherwise                            => Vacuous
+}
+
+example proof_outcome(cancelled: false, timed_out: false, started: true,
+                      regenerated: true, check_exit: 0, verified: 3) == Passed

@@ -1,0 +1,10 @@
+Below is code in a programming language you have probably never seen. Don't search the web or look anything up; answer only from reading it.
+
+1. In one or two sentences, what does this code do?
+2. Does the code do what its `intent` line says? Answer yes or no.
+3. If no: give one concrete input (all six arguments) where it breaks the intent, and what it returns for that input.
+4. How confident are you in your answer to question 2, from 1 (a guess) to 5 (certain)?
+5. What does `intent` mean here? Is it checked by anything?
+6. Which part was hardest to understand, and why?
+
+Answer each question separately and briefly.
