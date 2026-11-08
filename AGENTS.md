@@ -25,8 +25,12 @@ owns why.
 
 ## Checks
 
-CI runs the same three commands on Windows, Linux and macOS
-(`.github/workflows/ci.yml`); run them before pushing. The toolchain is pinned
+CI runs fmt, clippy and the tests (`.github/workflows/ci.yml`); run them
+locally before every push, and push only a finished change: every push runs
+CI and holds up review. Linux runs on every push and in the merge queue, and
+is the required check. Windows and macOS run once per pull request, before
+merging: add the `full-ci` label (remove and add it again to rerun after a
+later push). Changes merge through the merge queue. The toolchain is pinned
 in `rust-toolchain.toml`. If `cargo fmt` reports that rustfmt "is not
 applicable" to the toolchain, the component is missing on disk: run
 `rustup component remove rustfmt --toolchain 1.93.1` and add it again.
