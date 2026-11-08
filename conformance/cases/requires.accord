@@ -1,0 +1,7 @@
+// expect: proved
+fn both(a: Bool, b: Bool) -> Bool
+    requires a
+    ensures result == b
+{
+    a and b
+}

@@ -1,0 +1,6 @@
+// expect: refuted
+fn same(a: Bool) -> Bool
+    ensures result == a
+{
+    not a
+}

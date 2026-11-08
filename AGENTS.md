@@ -25,6 +25,11 @@ each term means.
 
 ## Checks
 
+The tests need Z3 and cvc5. `scripts/install-solvers.sh <folder>` downloads
+the pinned releases, verifies their checksums and prints the `ACCORD_Z3` and
+`ACCORD_CVC5` values to export; CI runs the same script. Without the solvers,
+the conformance harness fails rather than skipping.
+
 CI runs fmt, clippy and the tests (`.github/workflows/ci.yml`); run them
 locally before every push, and push only a finished change: every push runs
 CI and holds up review. Linux runs on every push and is the required check.
