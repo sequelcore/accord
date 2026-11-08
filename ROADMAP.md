@@ -24,9 +24,9 @@ Taken on 2026-11-07:
 
 | Stage | Delivers | Done when | Status |
 | --- | --- | --- | --- |
-| 0. Foundation | Workspace, pinned toolchain, CI on three platforms, `accord --version` | CI passes on Windows, Linux and macOS | In progress |
-| 1. Language design | The surface syntax and the core concepts (obligation, evidence, intent, open case, staleness), each with one meaning, written as a reference with examples | Comprehension check passes (below) | Next |
-| 2. First proof | Pure, total functions over `Bool`, fixed-width integers and enums; `requires` and `ensures`; obligation generation to SMT-LIB; counterexamples in source terms; an interpreter for `example`s; the result type and the conformance harness | Tesota's `proof-outcome-rule` ported and proved; every planted fault refuted with a counterexample; a solver timeout reported as undecided | |
+| 0. Foundation | Workspace, pinned toolchain, CI on three platforms, `accord --version` | CI passes on Windows, Linux and macOS | Done |
+| 1. Language design | The surface syntax and the core concepts (obligation, evidence, intent, open case, staleness), each with one meaning, written as a reference with examples | Comprehension check passes (below) | Done: the models arm of the comprehension check passed (version 2) |
+| 2. First proof | Pure, total functions over `Bool`, fixed-width integers and enums; `requires` and `ensures`; obligation generation to SMT-LIB; counterexamples in source terms; an interpreter for `example`s; the result type and the conformance harness | Tesota's `proof-outcome-rule` ported and proved; every planted fault refuted with a counterexample; a solver timeout reported as undecided | Next |
 | 3. Evidence bound to content | A hash per normalized definition, an evidence ledger by hash, the receipt as the compiler's output (`--json` and text), incremental checking | Changing a body makes exactly its own and its dependents' evidence stale; a rename changes none | |
 | 4. Contract strength | Mutation of function bodies; proved weakening between two revisions of a specification (`accord diff`) | Planted weakenings detected, strengthenings not flagged; `weakening-rule` and `mutation-rule` ported | |
 | 5. Open cases | For each specification, a search for one input with two permitted outputs; `open` declarations; no verified result while an undecided `open` applies | Experiment E1 registered and run | |

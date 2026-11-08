@@ -80,7 +80,7 @@ questions name what to redesign. These rules don't change after a run.
 ## Result (2026-11-07)
 
 **All three forms pass, and they tie on S4.2, so by the choice rule the
-maintainers choose.** 210 conversations, all with a reply (two came back
+maintainers choose. They chose the bare form on 2026-11-07.** 210 conversations, all with a reply (two came back
 empty and were run once more, as registered), cost $0.99. The judgments are
 in [`answers.csv`](answers.csv) and the replies in
 [`replies.jsonl`](replies.jsonl).

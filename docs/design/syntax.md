@@ -113,10 +113,9 @@ condition can never be the first to hold.
   overflows, so a specification can state `a + b > a` without caring about
   width.
 - Enum variants are written bare (`Passed`) where the type is known, and
-  qualified (`ProofOutcome.Passed`) where it isn't. This rule is under test:
-  [version 2](comprehension-check/v2/README.md) of the comprehension check
-  compares it with always-qualified variants and with a leading dot
-  (`.Passed`).
+  qualified (`ProofOutcome.Passed`) where it isn't. The formatter writes the
+  bare form wherever it can, so a qualified variant appears only where it is
+  needed.
 
 ## Expressions
 
@@ -154,3 +153,8 @@ Accepted on 2026-11-07:
    the function it describes.
 4. **`result` is a fixed name** for the value a function returns. Every model
    in both probes understood it.
+5. **Variants are bare where the type is known.** Version 2 of the
+   [comprehension check](comprehension-check/v2/README.md) compared bare,
+   always-qualified and leading-dot variants; all three passed and read
+   equally well, including two enums that share a variant name. The bare form
+   is the shortest, and decision tables read most like their rule.
