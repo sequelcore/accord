@@ -15,8 +15,8 @@ and they never mix:
 | Authority | What it produces | Example |
 | --- | --- | --- |
 | **Compiler** | Evidence: outcomes of checks it ran | An obligation proved by both solvers |
-| **Model** | Opinion: a judgment no check backs | A model says a claim and its contract disagree |
-| **Human** | Approval and acceptance: decisions | A person approves a claim, or accepts a change |
+| **Model** | Opinion: a judgment no check backs | A model says an intent and its contract disagree |
+| **Human** | Approval and acceptance: decisions | A person approves an intent, or accepts a change |
 
 Opinion never becomes evidence, and neither becomes approval. The compiler
 never records acceptance; that stays with the person.
@@ -32,10 +32,17 @@ never records acceptance; that stays with the person.
   invariants and machine properties. Examples are not part of it.
 - **Example:** one concrete call and the result it must give. It states
   intent in concrete terms and is checked by running it.
-- **Claim:** a statement of intent in natural language, linked to the
-  specifications that formalize it. A claim proves nothing; whether its
-  specifications say what it says is a matter of opinion or approval, never
-  of evidence.
+- **Decision table:** a function body written as ordered rows of a
+  condition and a result, where the first row whose condition holds decides.
+  It is the body and the specification at once, so a decision isn't written
+  twice. The compiler proves that every input reaches a row and reports any
+  row that no input can reach.
+- **Intent:** a statement, in natural language, of what a definition is for,
+  linked to the specifications that formalize it. An intent proves nothing;
+  whether its specifications say what it says is a matter of opinion or
+  approval, never of evidence. The word is chosen so that readers take it as
+  unchecked; "claim" reads as an assertion
+  ([probe](design/probes/2026-11-07-intent-and-decision-tables/README.md)).
 - **Assumption:** a premise the compiler doesn't prove, such as the behavior
   of an external function. Every assumption is listed in the receipt.
 - **Permitted freedom:** a declaration that, for a described set of inputs,
@@ -81,7 +88,7 @@ counts for nothing, whatever its outcome was.
 
 ## Approval
 
-**Approval** is a person's decision that a claim, a specification, an
+**Approval** is a person's decision that an intent, a specification, an
 assumption or a permitted freedom is the intended one. It is bound to the
 hash of what was approved. A change to an approved item makes its approval
 stale, so an agent can propose a change to a specification but can't make a
@@ -101,7 +108,7 @@ weaker one count without a person.
 An obligation is *proved*; a definition is *verified*. A weak contract is
 reported but doesn't change standing, since mutation tries only a sample of
 changes. Verified never means the specification captures what the person
-meant: that is the claim's question, answered by approval.
+meant: that is the intent's question, answered by approval.
 
 ## The receipt
 

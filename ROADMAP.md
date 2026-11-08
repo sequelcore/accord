@@ -25,13 +25,13 @@ Taken by the owner on 2026-11-07:
 | Stage | Delivers | Done when | Status |
 | --- | --- | --- | --- |
 | 0. Foundation | Workspace, pinned toolchain, CI on three platforms, `accord --version` | CI passes on Windows, Linux and macOS | In progress |
-| 1. Language design | The surface syntax and the core concepts (obligation, evidence, claim, open case, staleness), each with one meaning, written as a reference with examples | Comprehension check passes (below) | Next |
+| 1. Language design | The surface syntax and the core concepts (obligation, evidence, intent, open case, staleness), each with one meaning, written as a reference with examples | Comprehension check passes (below) | Next |
 | 2. First proof | Pure, total functions over `Bool`, fixed-width integers and enums; `requires` and `ensures`; obligation generation to SMT-LIB; counterexamples in source terms; an interpreter for `example`s; the result type and the conformance harness | Tesota's `proof-outcome-rule` ported and proved; every planted fault refuted with a counterexample; a solver timeout reported as undecided | |
 | 3. Evidence bound to content | A hash per normalized definition, an evidence ledger by hash, the receipt as the compiler's output (`--json` and text), incremental checking | Changing a body makes exactly its own and its dependents' evidence stale; a rename changes none | |
 | 4. Contract strength | Mutation of function bodies; proved weakening between two revisions of a specification (`accord diff`) | Planted weakenings detected, strengthenings not flagged; `weakening-rule` and `mutation-rule` ported | |
 | 5. Open cases | For each specification, a search for one input with two permitted outputs; `open` declarations; no verified result while an undecided `open` applies | Experiment E1 registered and run | |
 | 6. Data | Records, sum types, `match`, sequences, bounded quantifiers | `gate-rule` ported and proved | |
-| 7. Claims and the review view | `claim` declarations; the human view (claim, specification, examples, counterexamples, open cases, surviving mutants, what wasn't proved); the agent view as structured diagnostics | The review of `gate-rule` is readable without its code | |
+| 7. Intents and the review view | `intent` declarations; the human view (intent, specification, examples, counterexamples, open cases, surviving mutants, what wasn't proved); the agent view as structured diagnostics | The review of `gate-rule` is readable without its code | |
 | 8. TypeScript output | Accord compiled to a TypeScript module | Tesota's own tests pass with the generated rule in place of the original | |
 | 9. State machines | `machine` declarations, invariants, explicit-state model checking, planted faults | A Tesota design model ported, its faults detected | |
 | 10. `verdict-rule` | What the largest rule needs | Ported and proved | |

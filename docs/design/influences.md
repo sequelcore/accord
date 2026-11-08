@@ -34,6 +34,7 @@ feature that is merely good elsewhere doesn't qualify.
 | Unison | Definitions identified by the hash of their meaning, names as labels | Evidence bound to content ([concepts](../concepts.md#evidence)) |
 | Bend 2 | Human-owned laws kept apart from agent-written code | Approval ([concepts](../concepts.md#approval)) |
 | Lean | Proofs as part of the language, `#eval`-style examples beside definitions | Examples as stated intent; Lean as an escape route |
+| Haskell guards, DMN decision tables | Ordered rows of a condition and a result, where the first match decides (`decide`) | 2, 4: a decision rule written once, as body and specification together ([probe](probes/2026-11-07-intent-and-decision-tables/README.md)) |
 | Koka | Effects in function types | Deferred until a stage needs effects |
 
 ## Left
