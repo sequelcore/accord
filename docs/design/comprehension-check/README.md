@@ -87,8 +87,9 @@ For each arm, over every scored question:
 A question below 70% names a construct to redesign or document before stage 2
 builds it. The pass mark doesn't change after a run.
 
-## Decision for the owner
+## When stage 1 is done
 
-Stage 1 is done when the check passes. With no people available yet, the
-proposal is: the models arm passing lets stage 2 start, and the people arm,
-when it runs, can reopen any construct it shows to be misread.
+**Accepted by the owner, 2026-11-07.** The models arm passing lets stage 2
+start. The people arm runs when people are available, or with the feedback
+of readers once the repository is public, and it can reopen any construct
+it shows to be misread.
