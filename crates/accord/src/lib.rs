@@ -24,6 +24,8 @@ pub type Inputs = Vec<(String, String)>;
 /// A reason a file was rejected before any obligation was generated.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Diagnostic {
+    /// The file the problem is in, for a folder of files; `None` for one file.
+    pub file: Option<String>,
     /// The 1-based line the problem is on.
     pub line: usize,
     /// What is wrong, for a person to read.
@@ -33,9 +35,19 @@ pub struct Diagnostic {
 impl Diagnostic {
     pub(crate) fn new(line: usize, message: impl Into<String>) -> Diagnostic {
         Diagnostic {
+            file: None,
             line,
             message: message.into(),
         }
+    }
+
+    /// The same diagnostic about `file`, unless it already names one or
+    /// `file` is empty, as it is when a single file was checked.
+    fn in_file(mut self, file: &str) -> Diagnostic {
+        if !file.is_empty() {
+            self.file.get_or_insert_with(|| file.to_string());
+        }
+        self
     }
 }
 
@@ -139,6 +151,8 @@ pub enum Standing {
 pub struct Definition {
     /// The function's name.
     pub name: String,
+    /// The file it's declared in, when a folder was checked.
+    pub file: Option<String>,
     /// The hash of the normalized function.
     pub hash: String,
     /// What its obligations and examples add up to.
@@ -220,8 +234,56 @@ fn file_standing(definitions: &[Definition]) -> Standing {
 /// operation's range. Or the diagnostic that rejected the file.
 pub fn verify(source: &str, solvers: &Solvers) -> Result<Report, Diagnostic> {
     let mut program = syntax::parse(source)?;
-    check::check(&mut program)?;
-    let units = identity::units(&program);
+    check::check(&mut program, &[])?;
+    Ok(report(&program, None, &[], solvers))
+}
+
+/// Parses and checks a folder's files as one program, each a file's name and
+/// its source, and decides what `only` declares, or every file's when it's
+/// `None`. Every file's declarations are in view of every other's; a name
+/// declared twice is an error. Or the diagnostic that rejected a file, naming
+/// it.
+pub fn verify_folder(
+    files: &[(String, String)],
+    only: Option<&str>,
+    solvers: &Solvers,
+) -> Result<Report, Diagnostic> {
+    let names: Vec<String> = files.iter().map(|(name, _)| name.clone()).collect();
+    let mut program = syntax::Program {
+        enums: Vec::new(),
+        functions: Vec::new(),
+        examples: Vec::new(),
+    };
+    for (index, (name, source)) in files.iter().enumerate() {
+        let mut part = syntax::parse(source).map_err(|d| d.in_file(name))?;
+        part.enums.iter_mut().for_each(|e| e.file = index);
+        part.functions.iter_mut().for_each(|f| f.file = index);
+        part.examples.iter_mut().for_each(|e| e.file = index);
+        program.enums.extend(part.enums);
+        program.functions.extend(part.functions);
+        program.examples.extend(part.examples);
+    }
+    check::check(&mut program, &names)?;
+    let target = only.and_then(|name| names.iter().position(|n| n == name));
+    if only.is_some() && target.is_none() {
+        return Err(Diagnostic::new(0, "the file isn't in its folder's program"));
+    }
+    Ok(report(&program, target, &names, solvers))
+}
+
+/// Everything a check establishes about a checked program's functions: all
+/// of them, or only those declared in file `target`.
+fn report(
+    program: &syntax::Program,
+    target: Option<usize>,
+    names: &[String],
+    solvers: &Solvers,
+) -> Report {
+    let file_of = |file: usize| names.get(file).cloned();
+    let units: Vec<_> = identity::units(program)
+        .into_iter()
+        .filter(|unit| target.is_none_or(|t| unit.source.file == t))
+        .collect();
     let mut verdicts = Vec::new();
     for unit in &units {
         for o in obligation::obligations(&unit.program) {
@@ -242,6 +304,7 @@ pub fn verify(source: &str, solvers: &Solvers) -> Result<Report, Diagnostic> {
     let examples = program
         .examples
         .iter()
+        .filter(|example| target.is_none_or(|t| example.file == t))
         .filter_map(|example| {
             let function = program
                 .functions
@@ -263,6 +326,7 @@ pub fn verify(source: &str, solvers: &Solvers) -> Result<Report, Diagnostic> {
         .iter()
         .map(|unit| Definition {
             name: unit.source.name.clone(),
+            file: file_of(unit.source.file),
             hash: unit.hash.clone(),
             standing: standing_of(
                 verdicts.iter().filter(|v| v.function == unit.source.name),
@@ -280,14 +344,14 @@ pub fn verify(source: &str, solvers: &Solvers) -> Result<Report, Diagnostic> {
     } else {
         Vec::new()
     };
-    Ok(Report {
+    Report {
         verdicts,
         examples,
         definitions,
         standing,
         strength,
         openness,
-    })
+    }
 }
 
 #[cfg(test)]
@@ -362,6 +426,7 @@ mod tests {
                 .iter()
                 .map(|&standing| Definition {
                     name: "f".to_string(),
+                    file: None,
                     hash: String::new(),
                     standing,
                 })

@@ -8,6 +8,10 @@ compiler code that produces it:
 // expect: proved, refuted
 ```
 
+Each folder in [`programs/`](programs) is one program of several files. Every
+file in it starts with its own `// expect:` line (empty when it declares
+nothing to check), and is checked with the other files' declarations in view.
+
 A case may add an `// open:` line as its second line: the openness of each
 function with an `ensures`, in source order, as `determined`, `open` or
 `undecided`. Without it, openness isn't compared.

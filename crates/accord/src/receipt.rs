@@ -151,8 +151,12 @@ pub fn text(report: &Report) -> String {
     lines.extend(report.openness.iter().flat_map(openness_text));
     lines.extend(report.strength.iter().flat_map(strength_text));
     for definition in &report.definitions {
+        let file = definition
+            .file
+            .as_ref()
+            .map_or(String::new(), |f| format!(" ({f})"));
         lines.push(format!(
-            "standing     {}: {}",
+            "standing     {}{file}: {}",
             definition.name,
             definition.standing.name()
         ));
@@ -168,8 +172,13 @@ pub fn text(report: &Report) -> String {
         .filter(|e| e.run == Run::Passed)
         .count();
     let reused = report.verdicts.iter().filter(|v| v.reused).count();
+    let what = if report.definitions.iter().any(|d| d.file.is_some()) {
+        "the folder"
+    } else {
+        "the file"
+    };
     lines.push(format!(
-        "standing     the file: {} ({proved} of {} obligations proved, {reused} reused from the ledger; {passed} of {} examples passed)",
+        "standing     {what}: {} ({proved} of {} obligations proved, {reused} reused from the ledger; {passed} of {} examples passed)",
         report.standing.name(),
         report.verdicts.len(),
         report.examples.len()
@@ -272,6 +281,7 @@ pub fn json(report: &Report, file: &str) -> String {
         .map(|definition| {
             json!({
                 "name": definition.name,
+                "file": definition.file,
                 "kind": "function",
                 "hash": definition.hash,
                 "standing": definition.standing.name(),

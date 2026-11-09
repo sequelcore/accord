@@ -180,6 +180,7 @@ pub(crate) fn units(program: &Program) -> Vec<Unit<'_>> {
                     name: format!("E{index}"),
                     variants: (0..e.variants.len()).map(|v| format!("v{v}")).collect(),
                     line: 0,
+                    file: 0,
                 })
                 .collect();
             let hash = hash(&canonical(&function, &enums));
@@ -250,7 +251,7 @@ mod tests {
     /// Each function's name, its definition hash and its obligations' keys.
     fn identities(source: &str) -> Vec<(String, String, Vec<String>)> {
         let mut program = syntax::parse(source).expect("parses");
-        check::check(&mut program).expect("checks");
+        check::check(&mut program, &[]).expect("checks");
         units(&program)
             .iter()
             .map(|unit| {

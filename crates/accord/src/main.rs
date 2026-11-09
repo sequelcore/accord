@@ -2,9 +2,11 @@
 
 use std::process::ExitCode;
 
-use accord::{Solvers, Standing, diff, receipt, verify};
+use std::path::Path;
 
-const USAGE: &str = "usage: accord check <file> [--json]\n       accord diff <old> <new> [--json]    (either file may be `-` for stdin)\n       accord --version";
+use accord::{Solvers, Standing, diff, receipt, verify, verify_folder};
+
+const USAGE: &str = "usage: accord check <file or folder> [--json]\n       accord diff <old> <new> [--json]    (either file may be `-` for stdin)\n       accord --version";
 
 /// `check`'s exit code follows the file's standing: 0 verified; 1 failed (an
 /// obligation refuted or an example failed); 3 incomplete or unverified
@@ -33,19 +35,44 @@ fn main() -> ExitCode {
     }
 }
 
+/// A folder's `.accord` files, not its subfolders', in name order, each with
+/// its source.
+fn folder(dir: &Path) -> std::io::Result<Vec<(String, String)>> {
+    let mut files = Vec::new();
+    for entry in std::fs::read_dir(dir)? {
+        let path = entry?.path();
+        if path.is_file() && path.extension().is_some_and(|e| e == "accord") {
+            let name = path.file_name().map(|n| n.to_string_lossy().into_owned());
+            files.push((name.unwrap_or_default(), std::fs::read_to_string(&path)?));
+        }
+    }
+    files.sort();
+    Ok(files)
+}
+
+/// Checks a file on its own, or a folder as one program: every `.accord` file
+/// in it sees the others' declarations.
 fn check(path: &str, as_json: bool) -> ExitCode {
-    let source = match std::fs::read_to_string(path) {
-        Ok(source) => source,
+    let target = Path::new(path);
+    let sources = if target.is_dir() {
+        folder(target)
+    } else {
+        std::fs::read_to_string(target).map(|source| vec![(String::new(), source)])
+    };
+    let sources = match sources {
+        Ok(sources) => sources,
         Err(error) => {
             eprintln!("{path}: {error}");
             return ExitCode::from(4);
         }
     };
-    // The ledger sits beside the file checked, as a cache nobody commits.
-    let ledger = std::path::Path::new(path)
-        .parent()
-        .unwrap_or(std::path::Path::new(""))
-        .join(".accord");
+    // The ledger sits beside what's checked, as a cache nobody commits.
+    let ledger = if target.is_dir() {
+        target.to_path_buf()
+    } else {
+        target.parent().unwrap_or(Path::new("")).to_path_buf()
+    }
+    .join(".accord");
     let solvers = match Solvers::from_env() {
         Ok(solvers) => solvers.with_ledger(&ledger).with_mutation(),
         Err(message) => {
@@ -53,10 +80,19 @@ fn check(path: &str, as_json: bool) -> ExitCode {
             return ExitCode::from(4);
         }
     };
-    let report = match verify(&source, &solvers) {
+    let checked = if target.is_dir() {
+        verify_folder(&sources, None, &solvers)
+    } else {
+        verify(&sources[0].1, &solvers)
+    };
+    let report = match checked {
         Ok(report) => report,
         Err(diagnostic) => {
-            eprintln!("{path}:{}: {}", diagnostic.line, diagnostic.message);
+            let place = match &diagnostic.file {
+                Some(file) => target.join(file).display().to_string(),
+                None => path.to_string(),
+            };
+            eprintln!("{place}:{}: {}", diagnostic.line, diagnostic.message);
             return ExitCode::from(4);
         }
     };

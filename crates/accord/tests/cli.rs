@@ -210,3 +210,44 @@ fn diff_exits_by_whether_a_contract_got_weaker() {
         String::from_utf8_lossy(&rejected.stderr).contains("broken.accord:3: unknown name `b`")
     );
 }
+
+#[test]
+fn check_takes_a_folder_as_one_program() {
+    let folder = format!(
+        "{}/../../conformance/programs/shared-enum",
+        env!("CARGO_MANIFEST_DIR")
+    );
+    let whole = accord(&["check", &folder]);
+    let stdout = String::from_utf8_lossy(&whole.stdout);
+    assert_eq!(whole.status.code(), Some(3), "{stdout}");
+    assert!(
+        stdout.contains("standing     must_stop (stop.accord): verified"),
+        "{stdout}"
+    );
+    assert!(
+        stdout.contains("standing     the folder: incomplete"),
+        "{stdout}"
+    );
+
+    // A file on its own doesn't see its folder: `Light` is declared beside it.
+    let alone = accord(&["check", &format!("{folder}/next.accord")]);
+    assert_eq!(alone.status.code(), Some(4));
+    let stderr = String::from_utf8_lossy(&alone.stderr);
+    assert!(
+        stderr.contains("next.accord:3: unknown type `Light`"),
+        "{stderr}"
+    );
+
+    let twice = accord(&[
+        "check",
+        &format!(
+            "{}/../../conformance/programs/duplicate-name",
+            env!("CARGO_MANIFEST_DIR")
+        ),
+    ]);
+    assert_eq!(twice.status.code(), Some(4));
+    assert!(
+        String::from_utf8_lossy(&twice.stderr)
+            .contains("b.accord:2: `same` is declared more than once")
+    );
+}

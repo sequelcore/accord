@@ -414,7 +414,7 @@ mod tests {
     /// Replays `model` against the obligation whose clause contains `clause`.
     fn replays(source: &str, clause: &str, model: &[(&str, &str)]) -> Result<(), String> {
         let mut program = syntax::parse(source).expect("parses");
-        check::check(&mut program).expect("checks");
+        check::check(&mut program, &[]).expect("checks");
         let all: Vec<Obligation> = obligations(&program);
         let obligation = all
             .iter()
