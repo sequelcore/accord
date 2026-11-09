@@ -33,8 +33,9 @@ fn values(inputs: &Inputs) -> String {
 }
 
 fn verdict_text(verdict: &Verdict) -> String {
+    let reused = if verdict.reused { "  [reused]" } else { "" };
     let place = format!(
-        "{} (line {}): {}",
+        "{} (line {}): {}{reused}",
         verdict.function, verdict.line, verdict.clause
     );
     match &verdict.outcome {
@@ -94,8 +95,9 @@ pub fn text(report: &Report) -> String {
         .iter()
         .filter(|e| e.run == Run::Passed)
         .count();
+    let reused = report.verdicts.iter().filter(|v| v.reused).count();
     lines.push(format!(
-        "standing     the file: {} ({proved} of {} obligations proved, {passed} of {} examples passed)",
+        "standing     the file: {} ({proved} of {} obligations proved, {reused} reused from the ledger; {passed} of {} examples passed)",
         report.standing.name(),
         report.verdicts.len(),
         report.examples.len()
@@ -115,6 +117,7 @@ fn verdict_json(verdict: &Verdict) -> Value {
         "clause": verdict.clause,
         "line": verdict.line,
         "key": verdict.key,
+        "reused": verdict.reused,
     });
     let fields = match &verdict.outcome {
         Outcome::Proved { witness } => {

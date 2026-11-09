@@ -35,8 +35,13 @@ fn check(path: &str, as_json: bool) -> ExitCode {
             return ExitCode::from(4);
         }
     };
+    // The ledger sits beside the file checked, as a cache nobody commits.
+    let ledger = std::path::Path::new(path)
+        .parent()
+        .unwrap_or(std::path::Path::new(""))
+        .join(".accord");
     let solvers = match Solvers::from_env() {
-        Ok(solvers) => solvers,
+        Ok(solvers) => solvers.with_ledger(&ledger),
         Err(message) => {
             eprintln!("{message}");
             return ExitCode::from(4);

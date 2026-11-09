@@ -5,6 +5,7 @@ use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
 
+use crate::ledger::Ledger;
 use crate::obligation::Polarity;
 use crate::{Inputs, Outcome, Refutation};
 
@@ -14,6 +15,7 @@ pub struct Solvers {
     z3: PathBuf,
     cvc5: PathBuf,
     timeout: Duration,
+    ledger: Option<Ledger>,
 }
 
 /// What one solver said about one obligation.
@@ -35,6 +37,7 @@ impl Solvers {
             z3: locate("ACCORD_Z3", "z3")?,
             cvc5: locate("ACCORD_CVC5", "cvc5")?,
             timeout: Duration::from_secs(10),
+            ledger: None,
         })
     }
 
@@ -45,7 +48,16 @@ impl Solvers {
         self
     }
 
-    /// Both solvers' answers, combined. A counterexample or witness counts
+    /// The same solvers, reusing and storing evidence in a ledger in `dir`.
+    /// If the solvers' versions can't be read, nothing is reused.
+    #[must_use]
+    pub fn with_ledger(mut self, dir: &std::path::Path) -> Solvers {
+        self.ledger = Ledger::open(dir, &self.z3, &self.cvc5);
+        self
+    }
+
+    /// Both solvers' answers, combined, and whether they came from the
+    /// ledger. A counterexample or witness counts
     /// only if `replay` reproduces every model the solvers gave.
     pub(crate) fn decide(
         &self,
@@ -53,7 +65,10 @@ impl Solvers {
         params: &[String],
         polarity: Polarity,
         replay: impl Fn(&Inputs) -> Result<(), String>,
-    ) -> Outcome {
+    ) -> (Outcome, bool) {
+        if let Some(outcome) = self.ledger.as_ref().and_then(|l| l.get(script)) {
+            return (outcome, true);
+        }
         let ms = self.timeout.as_millis().max(1);
         let z3 = run(
             &self.z3,
@@ -69,7 +84,11 @@ impl Solvers {
             self.timeout,
             params,
         );
-        confirm(combine(&z3, &cvc5, polarity), &z3, &cvc5, replay)
+        let outcome = confirm(combine(&z3, &cvc5, polarity), &z3, &cvc5, replay);
+        if let Some(ledger) = &self.ledger {
+            ledger.put(script, &outcome);
+        }
+        (outcome, false)
     }
 }
 
@@ -441,11 +460,12 @@ mod tests {
             z3: PathBuf::from("no-such-solver-z3"),
             cvc5: PathBuf::from("no-such-solver-cvc5"),
             timeout: Duration::from_secs(1),
+            ledger: None,
         };
         let script = "(set-logic QF_UF)\n(assert false)\n(check-sat)\n";
         for polarity in [Universal, Existential] {
             assert!(matches!(
-                solvers.decide(script, &[], polarity, |_| Ok(())),
+                solvers.decide(script, &[], polarity, |_| Ok(())).0,
                 Outcome::Undecided { .. }
             ));
         }
