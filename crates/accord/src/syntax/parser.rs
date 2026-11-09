@@ -82,6 +82,7 @@ impl Parser<'_> {
         let len = |token: &Token| match token {
             Token::Word(w) => w.len(),
             Token::Sym(s) => s.len(),
+            Token::Str(s) => s.len() + 2,
         };
         match (tokens.first(), tokens.last()) {
             (Some(first), Some(last)) if first.1 == last.1 => {
@@ -92,6 +93,7 @@ impl Parser<'_> {
                 .map(|t| match &t.0 {
                     Token::Word(w) => w.clone(),
                     Token::Sym(s) => (*s).to_string(),
+                    Token::Str(s) => format!("\"{s}\""),
                 })
                 .collect::<Vec<_>>()
                 .join(" "),
@@ -156,6 +158,14 @@ impl Parser<'_> {
         self.expect_sym(")")?;
         self.expect_sym("->")?;
         let ret = self.ty()?;
+        if self.at_word("intent") {
+            // An intent is for people: nothing checks it, so nothing keeps it.
+            self.pos += 1;
+            match self.peek() {
+                Some(Token::Str(_)) => self.pos += 1,
+                _ => return self.error("expected the intent as a string"),
+            }
+        }
         let mut clauses = Vec::new();
         while self.at_word("requires") || self.at_word("ensures") {
             let kind = if self.at_word("requires") {
@@ -214,6 +224,17 @@ impl Parser<'_> {
         self.expect_sym(")")?;
         self.expect_sym("==")?;
         let expected = self.expr()?;
+        // A call written over several lines reads as one.
+        let last = self.tokens[self.pos - 1].1;
+        let text = if last == line {
+            text
+        } else {
+            self.source[line - 1..last]
+                .iter()
+                .map(|l| l.trim())
+                .collect::<Vec<_>>()
+                .join(" ")
+        };
         Ok(Example {
             function,
             args,
@@ -261,6 +282,8 @@ pub(super) fn is_keyword(word: &str) -> bool {
         word,
         "fn" | "enum"
             | "example"
+            | "pub"
+            | "intent"
             | "requires"
             | "ensures"
             | "decide"
@@ -290,6 +313,10 @@ pub(crate) fn parse(source: &str) -> Result<Program, Diagnostic> {
         examples: Vec::new(),
     };
     while parser.peek().is_some() {
+        // `pub` has no effect until one file can import another.
+        if parser.at_word("pub") {
+            parser.pos += 1;
+        }
         if parser.at_word("enum") {
             program.enums.push(parser.enumeration()?);
         } else if parser.at_word("example") {

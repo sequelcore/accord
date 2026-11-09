@@ -184,7 +184,20 @@ pub(crate) fn parse_answer(output: &str, params: &[String]) -> Answer {
                 Answer::Unknown("sat, but the counterexample couldn't be read".to_string())
             }
         }
-        Some("unknown") => Answer::Unknown("the solver answered unknown".to_string()),
+        Some("unknown") => {
+            let rest: String = lines.collect::<Vec<_>>().join(" ");
+            let reason = rest
+                .split_once("(:reason-unknown ")
+                .and_then(|(_, r)| r.split(')').next())
+                .map(|r| r.trim().trim_matches('"'));
+            Answer::Unknown(match reason {
+                Some("timeout") => "the solver ran out of time".to_string(),
+                Some(reason) if !reason.is_empty() => {
+                    format!("the solver answered unknown ({reason})")
+                }
+                _ => "the solver answered unknown".to_string(),
+            })
+        }
         Some("timeout") => Answer::Unknown("the solver ran out of time".to_string()),
         _ => Answer::Unknown("the solver gave no answer".to_string()),
     }
@@ -368,6 +381,46 @@ mod tests {
                 "never called".to_string()
             )),
             proved
+        );
+    }
+
+    /// A stand-in for a solver that ignores its own time limit. It runs only
+    /// when `a_solver_that_never_answers_is_killed` starts it.
+    #[test]
+    #[ignore = "started as a child process by a_solver_that_never_answers_is_killed"]
+    fn never_answers() {
+        std::thread::sleep(Duration::from_secs(30));
+    }
+
+    #[test]
+    fn a_solver_that_never_answers_is_killed() {
+        let this = std::env::current_exe().expect("the test binary's path");
+        let args = ["--ignored", "--exact", "solver::tests::never_answers"];
+        let timeout = Duration::from_millis(100);
+        let start = std::time::Instant::now();
+        let answer = super::run(&this, &args, "(check-sat)\n", timeout, &[]);
+        let elapsed = start.elapsed();
+        assert_eq!(
+            answer,
+            Answer::Unknown(format!("{} ran out of time", this.display()))
+        );
+        // The backstop waits five seconds past the limit, then kills it.
+        assert!(elapsed < Duration::from_secs(10), "{elapsed:?}");
+    }
+
+    #[test]
+    fn an_unknown_answer_says_when_the_solver_ran_out_of_time() {
+        let z3 = "unknown\n(error \"model is not available\")\n(:reason-unknown \"timeout\")\n";
+        let cvc5 = "unknown\n((a 0))\n(:reason-unknown timeout)\n";
+        for output in [z3, cvc5] {
+            assert_eq!(
+                parse_answer(output, &names(&["a"])),
+                Answer::Unknown("the solver ran out of time".to_string())
+            );
+        }
+        assert_eq!(
+            parse_answer("unknown\n(:reason-unknown incomplete)\n", &[]),
+            Answer::Unknown("the solver answered unknown (incomplete)".to_string())
         );
     }
 

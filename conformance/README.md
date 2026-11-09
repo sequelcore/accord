@@ -11,8 +11,8 @@ compiler code that produces it:
 `proved`, `refuted`, `undecided` and `unsupported` are obligation outcomes
 ([concepts](../docs/concepts.md)); `passed` and `failed` are example runs,
 listed after every obligation, in source order; `error` means the file must
-be rejected before any obligation is generated. A case whose name ends in `-fault` plants
-a fault in a correct case of the same name, and must be refuted.
+be rejected before any obligation is generated. A case named `x-fault` or `x-<what>-fault`
+plants a fault in the correct case `x`, and must be refuted or fail.
 
 `cargo test --test conformance` runs every case through both solvers. It
 needs Z3 and cvc5: on the `PATH` as `z3` and `cvc5`, or named by the
