@@ -51,7 +51,7 @@ behaviour is the body, and a change to it changes the function's
 | 0 | No contract got weaker |
 | 1 | A contract got weaker or incomparable, or a function was removed |
 | 3 | Nothing was proved weaker, but something couldn't be compared |
-| 2 | A usage error, such as both files given as `-` |
+| 2 | A usage error, such as both files given as `-`, or a folder given instead of a file |
 | 4 | A file couldn't be read or was rejected (named with its line), or the solvers couldn't be found |
 
 ## JSON, version 1

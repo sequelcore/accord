@@ -2,9 +2,9 @@
 
 A programming language whose compiler proves what the code promises.
 
-**Status:** experimental. Nothing is released, and the language doesn't
-compile anything yet: the [roadmap](ROADMAP.md) says what's being built
-and in what order.
+**Status:** experimental. Nothing is released. The compiler checks and
+proves programs, but doesn't yet produce code that runs: the
+[roadmap](ROADMAP.md) says what's being built and in what order.
 
 ## The idea
 
