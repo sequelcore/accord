@@ -1,0 +1,31 @@
+// expect: proved, proved, proved, proved, proved, proved, proved, proved, passed, passed, passed, passed, passed, passed
+// Tesota's weakening-rule (src/verification/weakening-rule.ts at dev 4ef9b191),
+// each equivalence written as two `implies`.
+/// A contract annotation's kind, by its first word; Other for anything else.
+enum AnnotationKind { Requires, Ensures, Assume, Skip, Other }
+
+/// Whether an annotation line a change removed or added may weaken what its
+/// proof shows.
+fn weakens(kind: AnnotationKind, removed: Bool, matched: Bool, existed: Bool) -> Bool
+    ensures result implies not matched and ((removed and (kind == Requires or kind == Ensures)) or (not removed and (kind == Assume or ((kind == Requires or kind == Skip) and existed))))
+    ensures not matched and ((removed and (kind == Requires or kind == Ensures)) or (not removed and (kind == Assume or ((kind == Requires or kind == Skip) and existed)))) implies result
+decide {
+    | matched   => false
+    | removed   => kind == Requires or kind == Ensures
+    | otherwise => kind == Assume or ((kind == Requires or kind == Skip) and existed)
+}
+
+/// Whether a check script selected at the base may weaken evidence.
+fn check_script_weakens(was_selected: Bool, is_selected: Bool, same_command: Bool) -> Bool
+    ensures result implies was_selected and (not is_selected or not same_command)
+    ensures was_selected and (not is_selected or not same_command) implies result
+{
+    was_selected and (not is_selected or not same_command)
+}
+
+example weakens(kind: Requires, removed: true, matched: false, existed: false) == true
+example weakens(kind: Ensures, removed: true, matched: true, existed: true) == false
+example weakens(kind: Assume, removed: false, matched: false, existed: false) == true
+example weakens(kind: Ensures, removed: false, matched: false, existed: true) == false
+example check_script_weakens(was_selected: true, is_selected: true, same_command: false) == true
+example check_script_weakens(was_selected: false, is_selected: false, same_command: false) == false
