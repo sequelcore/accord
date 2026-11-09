@@ -1,0 +1,8 @@
+// expect: refuted
+enum Light { Red, Amber, Green }
+
+fn must_stop(light: Light) -> Bool
+    ensures result implies light != Green
+{
+    light != Red
+}

@@ -1,0 +1,9 @@
+// expect: proved
+enum Switch { On, Off }
+enum Lamp { On, Off }
+
+fn lamp(switch: Switch) -> Lamp
+    ensures switch == On implies result == On
+{
+    if switch == On { On } else { Off }
+}

@@ -70,6 +70,20 @@ fn check_exits_1_and_shows_the_counterexample_when_one_is_refuted() {
 }
 
 #[test]
+fn check_shows_a_witness_for_each_reached_row_and_says_when_no_input_reaches_one() {
+    let output = accord(&["check", &case("decide-otherwise-fault")]);
+    assert_eq!(
+        output.status.code(),
+        Some(1),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("reached with light = Light."), "{stdout}");
+    assert!(stdout.contains("no input reaches it"), "{stdout}");
+}
+
+#[test]
 fn check_exits_4_and_names_the_line_when_the_file_is_rejected() {
     let output = accord(&["check", &case("unknown-name")]);
     assert_eq!(output.status.code(), Some(4));

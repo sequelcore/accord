@@ -2,7 +2,7 @@
 
 use std::process::ExitCode;
 
-use accord::{Outcome, Solvers, verify};
+use accord::{Inputs, Outcome, Refutation, Solvers, verify};
 
 const USAGE: &str = "usage: accord check <file>\n       accord --version";
 
@@ -53,17 +53,24 @@ fn check(path: &str) -> ExitCode {
             verdict.function, verdict.line, verdict.clause
         );
         match &verdict.outcome {
-            Outcome::Proved => println!("proved       {place}"),
-            Outcome::Refuted { counterexample } => {
+            Outcome::Proved { witness: None } => println!("proved       {place}"),
+            Outcome::Proved {
+                witness: Some(inputs),
+            } => println!(
+                "proved       {place}\n             reached with {}",
+                values(inputs)
+            ),
+            Outcome::Refuted { evidence } => {
                 refuted = true;
-                let values: Vec<String> = counterexample
-                    .iter()
-                    .map(|(n, v)| format!("{n} = {v}"))
-                    .collect();
-                println!(
-                    "refuted      {place}\n             fails with {}",
-                    values.join(", ")
-                );
+                match evidence {
+                    Refutation::Counterexample(inputs) => println!(
+                        "refuted      {place}\n             fails with {}",
+                        values(inputs)
+                    ),
+                    Refutation::NoSuchInput => {
+                        println!("refuted      {place}\n             no input reaches it")
+                    }
+                }
             }
             Outcome::Undecided { reason } => {
                 open = true;
@@ -80,4 +87,15 @@ fn check(path: &str) -> ExitCode {
         (false, true) => ExitCode::from(3),
         (false, false) => ExitCode::SUCCESS,
     }
+}
+
+fn values(inputs: &Inputs) -> String {
+    if inputs.is_empty() {
+        return "no inputs".to_string();
+    }
+    inputs
+        .iter()
+        .map(|(n, v)| format!("{n} = {v}"))
+        .collect::<Vec<_>>()
+        .join(", ")
 }

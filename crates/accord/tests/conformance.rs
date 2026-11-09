@@ -4,7 +4,7 @@
 use std::fs;
 use std::path::PathBuf;
 
-use accord::{Outcome, Solvers, verify};
+use accord::{Outcome, Refutation, Solvers, verify};
 
 fn cases() -> Vec<PathBuf> {
     let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../conformance/cases");
@@ -30,7 +30,7 @@ fn expected(source: &str) -> Vec<String> {
 
 fn kind(outcome: &Outcome) -> &'static str {
     match outcome {
-        Outcome::Proved => "proved",
+        Outcome::Proved { .. } => "proved",
         Outcome::Refuted { .. } => "refuted",
         Outcome::Undecided { .. } => "undecided",
         Outcome::Unsupported { .. } => "unsupported",
@@ -76,7 +76,10 @@ fn every_refutation_names_a_value_for_each_parameter() {
             continue;
         };
         for result in results {
-            if let Outcome::Refuted { counterexample } = &result.outcome {
+            if let Outcome::Refuted {
+                evidence: Refutation::Counterexample(counterexample),
+            } = &result.outcome
+            {
                 assert!(
                     !counterexample.is_empty(),
                     "{}: refutation of `{}` has no counterexample",

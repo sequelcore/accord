@@ -1,0 +1,7 @@
+// expect: proved, proved, refuted, proved
+fn first(a: Bool, b: Bool) -> Bool
+decide {
+    | a       => true
+    | a and b => false
+    | otherwise => false
+}
