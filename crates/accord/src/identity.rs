@@ -59,6 +59,7 @@ impl<'a> Renamer<'a> {
     fn ty(&mut self, ty: &Type) -> Type {
         match ty {
             Type::Enum(name) => Type::Enum(format!("E{}", self.enum_index(name))),
+            Type::List(element) => Type::List(Box::new(self.ty(element))),
             other => other.clone(),
         }
     }
@@ -89,6 +90,14 @@ impl<'a> Renamer<'a> {
                 self.expr(condition);
                 self.expr(then);
                 self.expr(otherwise);
+            }
+            Expr::List(items, element, _) => {
+                for item in items {
+                    self.expr(item);
+                }
+                if let Some(t) = element {
+                    *t = self.ty(t);
+                }
             }
             Expr::Bool(_) | Expr::Int(..) | Expr::Text(..) | Expr::Name(..) => {}
         }

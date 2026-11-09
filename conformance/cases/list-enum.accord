@@ -1,0 +1,12 @@
+// expect: proved, passed, passed
+// open: determined
+enum Light { Red, Amber, Green }
+
+fn has_red(lights: List<Light>) -> Bool
+    ensures result == (Red in lights)
+{
+    Light.Red in lights
+}
+
+example has_red(lights: [Green, Red]) == true
+example has_red(lights: [Amber]) == false

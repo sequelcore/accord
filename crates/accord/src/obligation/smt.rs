@@ -3,12 +3,13 @@
 
 use crate::syntax::{Arith, Body, ClauseKind, Expr, Function, Op, Program, Row, Type, Width};
 
-pub(crate) fn sort(ty: &Type) -> &str {
+pub(crate) fn sort(ty: &Type) -> String {
     match ty {
-        Type::Bool => "Bool",
-        Type::Int(_) => "Int",
-        Type::Text => "String",
-        Type::Enum(name) => name,
+        Type::Bool => "Bool".to_string(),
+        Type::Int(_) => "Int".to_string(),
+        Type::Text => "String".to_string(),
+        Type::List(element) => format!("(Seq {})", sort(element)),
+        Type::Enum(name) => name.clone(),
     }
 }
 pub(crate) fn term(expr: &Expr) -> String {
@@ -16,6 +17,20 @@ pub(crate) fn term(expr: &Expr) -> String {
         Expr::Bool(value) => value.to_string(),
         Expr::Int(value, _) => number(*value),
         Expr::Text(text, _) => string(text),
+        Expr::List(items, element, _) => {
+            let units: Vec<String> = items
+                .iter()
+                .map(|i| format!("(seq.unit {})", term(i)))
+                .collect();
+            match units.len() {
+                0 => format!(
+                    "(as seq.empty (Seq {}))",
+                    element.as_ref().map_or("Bool".to_string(), sort)
+                ),
+                1 => units.concat(),
+                _ => format!("(seq.++ {})", units.join(" ")),
+            }
+        }
         Expr::Name(name, _) => name.clone(),
         Expr::Variant(owner, name, _) => format!("{owner}.{name}"),
         Expr::Not(inner) => format!("(not {})", term(inner)),
@@ -31,6 +46,7 @@ pub(crate) fn term(expr: &Expr) -> String {
                 Op::Le => format!("(<= {l} {r})"),
                 Op::Gt => format!("(> {l} {r})"),
                 Op::Ge => format!("(>= {l} {r})"),
+                Op::In => format!("(seq.contains {r} (seq.unit {l}))"),
             }
         }
         Expr::Arith(op, left, right, _) => {

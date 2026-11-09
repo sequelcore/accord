@@ -13,6 +13,8 @@ pub(crate) enum Type {
     Bool,
     Int(Width),
     Text,
+    /// A list whose elements have this type.
+    List(Box<Type>),
     /// An enum, by name.
     Enum(String),
 }
@@ -58,6 +60,8 @@ pub(crate) enum Op {
     Le,
     Gt,
     Ge,
+    /// An element in a list.
+    In,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -83,6 +87,8 @@ pub(crate) enum Expr {
     Int(i128, usize),
     /// A text literal's characters, without its quotes.
     Text(String, usize),
+    /// A list literal, with its element type once the checker knows it.
+    List(Vec<Expr>, Option<Type>, usize),
     /// A parameter, `result`, or a bare variant until the checker resolves it.
     Name(String, usize),
     /// A variant of the named enum: written qualified, or resolved by the checker.

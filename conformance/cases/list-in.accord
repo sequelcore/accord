@@ -1,0 +1,11 @@
+// expect: proved, passed, passed, passed
+// open: determined
+fn already_sent(failure: Text, sent: List<Text>) -> Bool
+    ensures result == (failure in sent)
+{
+    failure in sent
+}
+
+example already_sent(failure: "timeout", sent: ["exit 1", "timeout"]) == true
+example already_sent(failure: "timeout", sent: ["exit 1"]) == false
+example already_sent(failure: "timeout", sent: []) == false

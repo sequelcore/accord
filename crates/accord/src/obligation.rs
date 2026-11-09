@@ -104,6 +104,11 @@ fn overflows<'a>(expr: &'a Expr, guards: &[Guard<'a>], out: &mut Vec<Overflow<'a
             overflows(then, &[guards, &[guard(true)]].concat(), out);
             overflows(otherwise, &[guards, &[guard(false)]].concat(), out);
         }
+        Expr::List(items, ..) => {
+            for item in items {
+                overflows(item, guards, out);
+            }
+        }
         Expr::Bool(_) | Expr::Int(..) | Expr::Text(..) | Expr::Name(..) | Expr::Variant(..) => {}
     }
 }

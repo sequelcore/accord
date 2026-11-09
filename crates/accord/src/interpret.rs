@@ -14,6 +14,7 @@ pub(crate) enum Value {
     Bool(bool),
     Int(i128),
     Text(String),
+    List(Vec<Value>),
     /// An enum's variant: the enum, then the variant.
     Variant(String, String),
 }
@@ -25,6 +26,14 @@ impl Value {
             Value::Bool(b) => b.to_string(),
             Value::Int(n) => n.to_string(),
             Value::Text(t) => format!("\"{t}\""),
+            Value::List(items) => format!(
+                "[{}]",
+                items
+                    .iter()
+                    .map(Value::source)
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ),
             Value::Variant(owner, name) => format!("{owner}.{name}"),
         }
     }
@@ -48,6 +57,12 @@ impl Env<'_> {
             Expr::Bool(b) => Ok(Value::Bool(*b)),
             Expr::Int(n, _) => Ok(Value::Int(*n)),
             Expr::Text(t, _) => Ok(Value::Text(t.clone())),
+            Expr::List(items, ..) => Ok(Value::List(
+                items
+                    .iter()
+                    .map(|i| self.eval(i))
+                    .collect::<Result<_, _>>()?,
+            )),
             Expr::Variant(owner, name, _) => Ok(Value::Variant(owner.clone(), name.clone())),
             Expr::Name(name, _) if name == "result" => self
                 .result
@@ -72,6 +87,10 @@ impl Env<'_> {
                     _ => Err("a connective needs `Bool` values".to_string()),
                 };
                 Ok(Value::Bool(match op {
+                    Op::In => match &r {
+                        Value::List(items) => items.contains(&l),
+                        _ => return Err("`in` needs a list".to_string()),
+                    },
                     Op::Eq => l == r,
                     Op::Ne => l != r,
                     Op::Lt => ints().map(|(a, b)| a < b)?,
@@ -223,6 +242,27 @@ pub(crate) fn run(example: &Example, function: &Function) -> Result<(), String> 
     }
 }
 
+/// A list literal's elements as written, split at its top-level commas; a
+/// comma inside a text is part of the text.
+fn split_list(value: &str) -> Option<Vec<String>> {
+    let inner = value.trim().strip_prefix('[')?.strip_suffix(']')?;
+    let (mut items, mut current, mut quoted) = (Vec::new(), String::new(), false);
+    for c in inner.chars() {
+        match c {
+            '"' => {
+                quoted = !quoted;
+                current.push(c);
+            }
+            ',' if !quoted => items.push(std::mem::take(&mut current)),
+            _ => current.push(c),
+        }
+    }
+    if !current.trim().is_empty() || !items.is_empty() {
+        items.push(current);
+    }
+    Some(items.into_iter().map(|i| i.trim().to_string()).collect())
+}
+
 /// Reads a solver's value for a parameter of type `ty`.
 pub(crate) fn read(value: &str, ty: &Type) -> Option<Value> {
     match ty {
@@ -232,6 +272,11 @@ pub(crate) fn read(value: &str, ty: &Type) -> Option<Value> {
             .strip_prefix('"')
             .and_then(|v| v.strip_suffix('"'))
             .map(|v| Value::Text(v.to_string())),
+        Type::List(element) => split_list(value)?
+            .iter()
+            .map(|item| read(item, element))
+            .collect::<Option<Vec<_>>>()
+            .map(Value::List),
         Type::Enum(owner) => value
             .strip_prefix(&format!("{owner}."))
             .map(|name| Value::Variant(owner.clone(), name.to_string())),

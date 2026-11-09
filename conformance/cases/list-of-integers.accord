@@ -1,0 +1,5 @@
+// expect: error
+fn has_zero(xs: List<i32>) -> Bool
+{
+    0 in xs
+}

@@ -1,0 +1,5 @@
+// expect: error
+fn odd(tools: List<Text>) -> Bool
+{
+    true in tools
+}
