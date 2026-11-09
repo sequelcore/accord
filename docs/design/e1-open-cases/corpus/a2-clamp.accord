@@ -1,0 +1,6 @@
+fn clamp(x: i64, low: i64, high: i64) -> i64
+    requires low <= high
+    ensures result >= low and result <= high
+{
+    if x < low { low } else { if x > high { high } else { x } }
+}

@@ -1,0 +1,13 @@
+/// A contract annotation's kind, by its first word; Other for anything else.
+enum AnnotationKind { Requires, Ensures, Assume, Skip, Other }
+
+/// Whether an annotation line a change removed or added may weaken what its
+/// proof shows.
+fn weakens(kind: AnnotationKind, removed: Bool, matched: Bool, existed: Bool) -> Bool
+    ensures result implies not matched and ((removed and (kind == Requires or kind == Ensures)) or (not removed and (kind == Assume or ((kind == Requires or kind == Skip) and existed))))
+    ensures not matched and ((removed and (kind == Requires or kind == Ensures)) or (not removed and (kind == Assume or ((kind == Requires or kind == Skip) and existed)))) implies result
+decide {
+    | matched   => false
+    | removed   => kind == Requires or kind == Ensures
+    | otherwise => kind == Assume or ((kind == Requires or kind == Skip) and existed)
+}
