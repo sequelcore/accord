@@ -135,6 +135,7 @@ pub(crate) enum Body {
 #[derive(Clone, Debug)]
 pub(crate) struct Function {
     pub name: String,
+    pub intent: Option<String>,
     pub line: usize,
     /// The index of the file it was declared in, within its folder.
     pub file: usize,

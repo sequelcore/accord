@@ -155,6 +155,13 @@ pub fn text(report: &Report) -> String {
             .file
             .as_ref()
             .map_or(String::new(), |f| format!(" ({f})"));
+        lines.push(match &definition.intent {
+            Some(intent) => format!(
+                "intent       {}{file} (unchecked): {intent}",
+                definition.name
+            ),
+            None => format!("intent       {}{file}: not declared", definition.name),
+        });
         lines.push(format!(
             "standing     {}{file}: {}",
             definition.name,
@@ -281,6 +288,7 @@ pub fn json(report: &Report, file: &str) -> String {
         .map(|definition| {
             json!({
                 "name": definition.name,
+                "intent": definition.intent,
                 "file": definition.file,
                 "kind": "function",
                 "hash": definition.hash,

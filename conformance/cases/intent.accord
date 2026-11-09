@@ -1,0 +1,21 @@
+// expect: proved, proved
+// open: determined, determined
+
+fn verified_flag() -> Bool
+    intent "Returns false."
+    ensures result
+{
+    true
+}
+
+fn intent_only() -> Bool
+    intent "This statement has not been checked."
+{
+    false
+}
+
+fn without_intent() -> Bool
+    ensures not result
+{
+    false
+}

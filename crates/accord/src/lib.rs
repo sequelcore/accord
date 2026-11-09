@@ -146,11 +146,13 @@ pub enum Standing {
     Unverified,
 }
 
-/// One function's identity and standing.
+/// One function's identity, unchecked intent, and standing.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Definition {
     /// The function's name.
     pub name: String,
+    /// Its declared purpose in unchecked natural language, when present.
+    pub intent: Option<String>,
     /// The file it's declared in, when a folder was checked.
     pub file: Option<String>,
     /// The hash of the normalized function.
@@ -326,6 +328,7 @@ fn report(
         .iter()
         .map(|unit| Definition {
             name: unit.source.name.clone(),
+            intent: unit.source.intent.clone(),
             file: file_of(unit.source.file),
             hash: unit.hash.clone(),
             standing: standing_of(
@@ -425,6 +428,7 @@ mod tests {
             let definitions: Vec<Definition> = standings
                 .iter()
                 .map(|&standing| Definition {
+                    intent: None,
                     name: "f".to_string(),
                     file: None,
                     hash: String::new(),

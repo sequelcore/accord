@@ -33,6 +33,7 @@ Object keys come in no fixed order; arrays keep source order.
   "definitions": [
     {
       "name": "count",
+      "intent": null,
       "kind": "function",
       "hash": "98d964c8…",
       "standing": "failed",
@@ -66,6 +67,7 @@ Object keys come in no fixed order; arrays keep source order.
 | `standing` | The file's: `verified`, `incomplete`, `failed` or `unverified` |
 | `definitions[]` | One per function, in source order |
 | `.name`, `.kind` | The function's name; `kind` is `function` |
+| `.intent` | The declared purpose as unchecked text, or `null` when absent; it is never evidence or approval |
 | `.file` | The file it's declared in, when a folder was checked; otherwise `null` |
 | `.hash` | SHA-256 of the normalized function: its identity, which no rename changes |
 | `.standing` | The function's, from its own obligations and examples |
@@ -87,6 +89,24 @@ Object keys come in no fixed order; arrays keep source order.
 Inputs (`witness`, `counterexample`) are arrays of `{"name": ..., "value": ...}`
 in parameter order, with values written as Accord source (`-3`,
 `Light.Amber`).
+
+## Intent
+
+Each function's declared purpose is reported as unchecked text:
+
+```text
+intent       flag (unchecked): Returns true.
+```
+
+Without a declaration the text says `not declared`, and JSON has `"intent": null`.
+An intent is neither evidence nor approval. It does not affect standing: a
+function with only intent and no checked obligation or example is unverified.
+A contradictory intent does not refute a contract; deciding whether the
+contract expresses the intent remains a person's task.
+
+Changing intent updates the report without changing the normalized definition
+hash or its proof keys. Current proof evidence can be reused; the new text is
+always read from the current source, never from the evidence ledger.
 
 ## Open cases
 
