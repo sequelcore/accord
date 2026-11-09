@@ -11,3 +11,6 @@ publish.workspace = true
 [[bin]]
 name = "accord"
 path = "src/main.rs"
+
+[dependencies]
+sha2 = "0.10"
