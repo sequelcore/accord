@@ -76,10 +76,10 @@ never records acceptance; that stays with the person.
   although it behaves differently, shown with an input on which the two
   differ) or **undecided**. A contract with a surviving mutant is **weak**.
   Only functions with an `ensures` are mutated.
-- **Weakening:** two revisions of one specification compared: weaker,
-  stronger, equivalent, incomparable or undecided. Unlike Tesota's heuristic
-  weakening flags, this is decided by the solvers where both revisions are
-  decidable.
+- **Weakening:** two revisions of one contract compared: weaker, stronger,
+  equivalent, incomparable or undecided, decided by the solvers. A weaker
+  contract accepts fewer inputs or promises less, and is reported with what
+  it newly allows ([`accord diff`](diff.md)).
 - **Open case:** an input for which the specification permits more than one
   result and no permitted freedom covers it. It is found by the solvers, with
   its witness: the input and two permitted results.

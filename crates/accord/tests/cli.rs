@@ -157,3 +157,56 @@ fn check_exits_4_when_the_file_is_missing() {
         Some(4)
     );
 }
+
+fn write(dir: &std::path::Path, name: &str, text: &str) -> String {
+    let path = dir.join(name);
+    std::fs::write(&path, text).expect("written");
+    path.to_string_lossy().into_owned()
+}
+
+#[test]
+fn diff_exits_by_whether_a_contract_got_weaker() {
+    let dir = std::env::temp_dir().join(format!("accord-diff-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).expect("a temporary folder");
+    let strict = write(
+        &dir,
+        "strict.accord",
+        "fn same(a: Bool) -> Bool\n    ensures result == a\n{\n    a\n}\n",
+    );
+    let loose = write(
+        &dir,
+        "loose.accord",
+        "fn same(a: Bool) -> Bool\n    ensures result or not result\n{\n    a\n}\n",
+    );
+    let broken = write(
+        &dir,
+        "broken.accord",
+        "fn same(a: Bool) -> Bool\n{\n    b\n}\n",
+    );
+    let weaker = accord(&["diff", &strict, &loose]);
+    let stronger = accord(&["diff", &loose, &strict]);
+    let json = accord(&["diff", &strict, &loose, "--json"]);
+    let both_stdin = accord(&["diff", "-", "-"]);
+    let missing = accord(&["diff", &strict, "no-such-file.accord"]);
+    let rejected = accord(&["diff", &strict, &broken]);
+    let _ = std::fs::remove_dir_all(&dir);
+
+    assert_eq!(weaker.status.code(), Some(1));
+    assert!(String::from_utf8_lossy(&weaker.stdout).contains("weaker       same"));
+    assert_eq!(stronger.status.code(), Some(0));
+    assert!(String::from_utf8_lossy(&stronger.stdout).contains("stronger     same"));
+
+    assert_eq!(json.status.code(), Some(1));
+    let document: serde_json::Value = serde_json::from_slice(&json.stdout).expect("JSON");
+    assert_eq!(document["comparison"], 1);
+    assert_eq!(document["verdict"], "weakened");
+    assert_eq!(document["functions"][0]["change"], "weaker");
+    assert!(document["functions"][0]["loosening"]["allows"].is_object());
+
+    assert_eq!(both_stdin.status.code(), Some(2));
+    assert_eq!(missing.status.code(), Some(4));
+    assert_eq!(rejected.status.code(), Some(4));
+    assert!(
+        String::from_utf8_lossy(&rejected.stderr).contains("broken.accord:3: unknown name `b`")
+    );
+}
