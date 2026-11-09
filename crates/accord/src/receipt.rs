@@ -114,8 +114,13 @@ fn strength_text(strength: &Strength) -> Vec<String> {
     lines
 }
 
-fn openness_text(d: &Determinacy) -> Option<String> {
-    match &d.openness {
+fn openness_text(d: &Determinacy) -> Vec<String> {
+    let mut lines: Vec<String> = d
+        .free
+        .iter()
+        .map(|clause| format!("free         {}: {clause}", d.function))
+        .collect();
+    lines.extend(match &d.openness {
         Openness::Determined => None,
         Openness::Open {
             inputs,
@@ -133,7 +138,8 @@ fn openness_text(d: &Determinacy) -> Option<String> {
             "undecided    {}: whether the contract determines the result\n             {reason}",
             d.function
         )),
-    }
+    });
+    lines
 }
 
 /// The receipt as text: each obligation and example, each open case, each
@@ -142,7 +148,7 @@ fn openness_text(d: &Determinacy) -> Option<String> {
 pub fn text(report: &Report) -> String {
     let mut lines: Vec<String> = report.verdicts.iter().map(verdict_text).collect();
     lines.extend(report.examples.iter().map(example_text));
-    lines.extend(report.openness.iter().filter_map(openness_text));
+    lines.extend(report.openness.iter().flat_map(openness_text));
     lines.extend(report.strength.iter().flat_map(strength_text));
     for definition in &report.definitions {
         lines.push(format!(
@@ -290,7 +296,11 @@ pub fn json(report: &Report, file: &str) -> String {
                     .openness
                     .iter()
                     .find(|d| d.function == definition.name)
-                    .map(|d| openness_json(&d.openness)),
+                    .map(|d| {
+                        let mut value = openness_json(&d.openness);
+                        value["free"] = json!(d.free);
+                        value
+                    }),
             })
         })
         .collect();

@@ -167,14 +167,19 @@ impl Parser<'_> {
             }
         }
         let mut clauses = Vec::new();
-        while self.at_word("requires") || self.at_word("ensures") {
+        while self.at_word("requires") || self.at_word("ensures") || self.at_word("open") {
             let kind = if self.at_word("requires") {
                 ClauseKind::Requires
-            } else {
+            } else if self.at_word("ensures") {
                 ClauseKind::Ensures
+            } else {
+                ClauseKind::Open
             };
             let (text, line) = self.rest_of_line();
             self.pos += 1;
+            if kind == ClauseKind::Open {
+                self.expect_word("when")?;
+            }
             let expr = self.expr()?;
             clauses.push(Clause {
                 kind,
@@ -284,6 +289,8 @@ pub(super) fn is_keyword(word: &str) -> bool {
             | "example"
             | "pub"
             | "intent"
+            | "open"
+            | "when"
             | "requires"
             | "ensures"
             | "decide"
