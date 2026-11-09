@@ -1,8 +1,11 @@
 # Roadmap
 
 Each stage runs end to end, from source to a result, and ends on a check
-anyone can rerun. The target that grows the language is Tesota's proved rules,
-smallest first: each stage adds only what the next rule needs. Issues exist
+anyone can rerun. The targets that grow the language are real rules that are
+already proved or tested elsewhere, smallest first: each stage adds only what
+its next rule needs. Tesota's proved rules were the first source; from stage 7
+each stage also takes a rule from outside Tesota, so the language isn't
+shaped by one product's needs. Issues exist
 for the current stage and the next one; later stages are planned here and will
 change as the earlier ones teach us.
 
