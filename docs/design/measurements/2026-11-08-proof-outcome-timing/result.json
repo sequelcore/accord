@@ -1,0 +1,59 @@
+{
+  "accord check (release)": {
+    "runs": 10,
+    "median_s": 0.632,
+    "min_s": 0.553,
+    "max_s": 0.652,
+    "times_s": [
+      0.629,
+      0.652,
+      0.627,
+      0.582,
+      0.641,
+      0.623,
+      0.648,
+      0.636,
+      0.553,
+      0.635
+    ],
+    "last_line": "passed       proof_outcome (line 42): example proof_outcome( cancelled: false, timed_out: true, started: true, regenerated: true, check_exit: 0, verified: 3, ) == TimedOut"
+  },
+  "lsc check --backend=dafny": {
+    "runs": 10,
+    "median_s": 5.648,
+    "min_s": 5.6,
+    "max_s": 5.893,
+    "times_s": [
+      5.631,
+      5.6,
+      5.601,
+      5.664,
+      5.618,
+      5.893,
+      5.605,
+      5.672,
+      5.812,
+      5.832
+    ],
+    "last_line": "Dafny program verifier finished with 2 verified, 0 errors"
+  },
+  "dafny verify (the .dfy only)": {
+    "runs": 10,
+    "median_s": 0.874,
+    "min_s": 0.849,
+    "max_s": 0.932,
+    "times_s": [
+      0.853,
+      0.91,
+      0.859,
+      0.849,
+      0.89,
+      0.92,
+      0.889,
+      0.854,
+      0.853,
+      0.932
+    ],
+    "last_line": "Dafny program verifier finished with 2 verified, 0 errors"
+  }
+}
