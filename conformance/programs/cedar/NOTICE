@@ -1,0 +1,9 @@
+Cedar partial authorization decision
+Copyright Cedar Contributors
+
+The Boolean port in partial-decision.accord is derived from Cedar,
+https://github.com/cedar-policy/cedar, at commit
+5af7b8cd78e4e0da3ae23f1715023fff8e62941d.
+It is licensed under Apache-2.0 (see LICENSE-APACHE at the repository root).
+The port replaces collection nonemptiness with Boolean parameters and
+Option<Decision> with an enum; it does not port policy evaluation.

@@ -1,0 +1,37 @@
+// expect: refuted, proved, proved, proved, proved, refuted, proved, proved, proved, proved, proved, proved, failed
+// open: determined
+// Copyright Cedar Contributors
+// SPDX-License-Identifier: Apache-2.0
+// Boolean port of PartialResponse::decision, modified from Cedar at
+// 5af7b8cd78e4e0da3ae23f1715023fff8e62941d:
+// https://github.com/cedar-policy/cedar/blob/5af7b8cd78e4e0da3ae23f1715023fff8e62941d/cedar-policy-core/src/authorizer/partial_response.rs
+// Collection nonemptiness is supplied as input, not proved here. Rust's
+// Some(Deny), Some(Allow), and None become Deny, Allow, and Unknown.
+// Licensed under Apache-2.0; see LICENSE-APACHE at the repository root.
+
+// Planted residual-permit fault in the decision; the contract and expected result stay fixed.
+
+enum PartialDecision { Deny, Allow, Unknown }
+
+fn partial_decision(
+    satisfied_forbid: Bool,
+    satisfied_permit: Bool,
+    residual_permit: Bool,
+    residual_forbid: Bool,
+) -> PartialDecision
+    intent "Deny on a satisfied forbid or no possible permit; allow on a satisfied permit with no possible forbid; otherwise keep the decision unknown."
+    ensures result == Deny implies satisfied_forbid or (not satisfied_permit and not residual_permit)
+    ensures satisfied_forbid or (not satisfied_permit and not residual_permit) implies result == Deny
+    ensures result == Allow implies not satisfied_forbid and satisfied_permit and not residual_forbid
+    ensures not satisfied_forbid and satisfied_permit and not residual_forbid implies result == Allow
+    ensures result == Unknown implies not satisfied_forbid and (satisfied_permit or residual_permit) and (residual_forbid or not satisfied_permit)
+    ensures not satisfied_forbid and (satisfied_permit or residual_permit) and (residual_forbid or not satisfied_permit) implies result == Unknown
+decide {
+    | satisfied_forbid                                                   => Deny
+    | not satisfied_permit and not residual_permit                        => Deny
+    | residual_forbid                                                    => Unknown
+    | not satisfied_permit and residual_permit                            => Deny
+    | otherwise                                                          => Allow
+}
+
+example partial_decision(satisfied_forbid: false, satisfied_permit: false, residual_permit: true, residual_forbid: false) == Unknown

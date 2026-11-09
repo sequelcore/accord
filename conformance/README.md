@@ -26,3 +26,17 @@ plants a fault in the correct case `x`, and must be refuted or fail.
 needs Z3 and cvc5: on the `PATH` as `z3` and `cvc5`, or named by the
 `ACCORD_Z3` and `ACCORD_CVC5` environment variables. Without them the
 harness fails rather than skipping.
+
+## Cedar partial authorization
+
+[`programs/cedar/`](programs/cedar) ports the Boolean decision in Cedar's
+`PartialResponse::decision` at commit
+`5af7b8cd78e4e0da3ae23f1715023fff8e62941d`. Its 16 examples cover every
+combination of satisfied and residual permits and forbids. `Unknown` is a
+domain result, not an undecided proof. The three `cedar-partial-decision-*-fault`
+cases plant incorrect decisions under the unchanged contract.
+
+The port checks only the decision from supplied collection-nonemptiness flags,
+not policy evaluation or construction of those collections. It is licensed
+under Apache-2.0; attribution is in [`programs/cedar/NOTICE`](programs/cedar/NOTICE)
+and the source headers. The rest of Accord retains its own license.
