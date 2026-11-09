@@ -35,6 +35,10 @@ jobs:
         shell: bash
         run: scripts/install-solvers.sh "$RUNNER_TEMP/solvers"
       - run: cargo test --workspace --locked
+      - name: Validate the draft review materials and scorer
+        run: |
+          python3 docs/design/e2-human-review/score.py --self-test
+          python3 docs/design/e2-human-review/materials.py target/debug/accord
 
   platforms:
     if: >-

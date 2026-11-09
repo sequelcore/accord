@@ -1,0 +1,179 @@
+[
+  {
+    "task": "R01",
+    "domain": "gate",
+    "category": "clean",
+    "standing": "verified",
+    "openness": "determined",
+    "defect": null,
+    "witness": null,
+    "required_result": null,
+    "examples": 2
+  },
+  {
+    "task": "R07",
+    "domain": "cedar",
+    "category": "clean",
+    "standing": "verified",
+    "openness": "determined",
+    "defect": null,
+    "witness": null,
+    "required_result": null,
+    "examples": 5
+  },
+  {
+    "task": "R02",
+    "domain": "gate",
+    "category": "body",
+    "standing": "failed",
+    "openness": "determined",
+    "defect": "gate_body",
+    "witness": {
+      "outcome": "TimedOut",
+      "failure": "exit 1",
+      "sent": []
+    },
+    "required_result": "Operator",
+    "examples": 2
+  },
+  {
+    "task": "R08",
+    "domain": "cedar",
+    "category": "body",
+    "standing": "failed",
+    "openness": "determined",
+    "defect": "cedar_body",
+    "witness": {
+      "satisfied_forbid": false,
+      "satisfied_permit": true,
+      "residual_permit": false,
+      "residual_forbid": true
+    },
+    "required_result": "Unknown",
+    "examples": 5
+  },
+  {
+    "task": "R03",
+    "domain": "gate",
+    "category": "weak_specification",
+    "standing": "incomplete",
+    "openness": "open",
+    "defect": "gate_weak_specification",
+    "witness": {
+      "outcome": "TimedOut",
+      "failure": "exit 1",
+      "sent": []
+    },
+    "required_result": "Operator",
+    "examples": 2
+  },
+  {
+    "task": "R09",
+    "domain": "cedar",
+    "category": "weak_specification",
+    "standing": "incomplete",
+    "openness": "open",
+    "defect": "cedar_weak_specification",
+    "witness": {
+      "satisfied_forbid": false,
+      "satisfied_permit": true,
+      "residual_permit": false,
+      "residual_forbid": true
+    },
+    "required_result": "Unknown",
+    "examples": 5
+  },
+  {
+    "task": "R04",
+    "domain": "gate",
+    "category": "wrong_complete",
+    "standing": "verified",
+    "openness": "determined",
+    "defect": "gate_wrong_complete",
+    "witness": {
+      "outcome": "TimedOut",
+      "failure": "exit 1",
+      "sent": []
+    },
+    "required_result": "Operator",
+    "examples": 2
+  },
+  {
+    "task": "R10",
+    "domain": "cedar",
+    "category": "wrong_complete",
+    "standing": "verified",
+    "openness": "determined",
+    "defect": "cedar_wrong_complete",
+    "witness": {
+      "satisfied_forbid": false,
+      "satisfied_permit": true,
+      "residual_permit": false,
+      "residual_forbid": true
+    },
+    "required_result": "Unknown",
+    "examples": 5
+  },
+  {
+    "task": "R05",
+    "domain": "gate",
+    "category": "excluded_input",
+    "standing": "verified",
+    "openness": "determined",
+    "defect": "gate_excluded_input",
+    "witness": {
+      "outcome": "TimedOut",
+      "failure": "exit 1",
+      "sent": []
+    },
+    "required_result": "Operator",
+    "examples": 2
+  },
+  {
+    "task": "R11",
+    "domain": "cedar",
+    "category": "excluded_input",
+    "standing": "verified",
+    "openness": "determined",
+    "defect": "cedar_excluded_input",
+    "witness": {
+      "satisfied_forbid": false,
+      "satisfied_permit": true,
+      "residual_permit": false,
+      "residual_forbid": true
+    },
+    "required_result": "Unknown",
+    "examples": 5
+  },
+  {
+    "task": "R06",
+    "domain": "gate",
+    "category": "misdeclared_freedom",
+    "standing": "verified",
+    "openness": "determined",
+    "defect": "gate_misdeclared_freedom",
+    "witness": {
+      "outcome": "TimedOut",
+      "failure": "exit 1",
+      "sent": []
+    },
+    "required_result": "Operator",
+    "examples": 2
+  },
+  {
+    "task": "R12",
+    "domain": "cedar",
+    "category": "misdeclared_freedom",
+    "standing": "verified",
+    "openness": "determined",
+    "defect": "cedar_misdeclared_freedom",
+    "witness": {
+      "satisfied_forbid": false,
+      "satisfied_permit": true,
+      "residual_permit": false,
+      "residual_forbid": true
+    },
+    "required_result": "Unknown",
+    "examples": 5
+  }
+]
