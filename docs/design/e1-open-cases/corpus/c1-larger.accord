@@ -1,0 +1,6 @@
+fn larger(a: i64, b: i64) -> i64
+    ensures result >= a and result >= b
+    ensures result == a or result == b
+{
+    if a >= b { a } else { b }
+}

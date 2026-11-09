@@ -1,0 +1,11 @@
+Below is a function written in Accord, a programming language with contracts. `requires` is a condition every input must meet. `ensures` is a guarantee about `result`, the value the function returns; several `ensures` must all hold. Integers in `requires` and `ensures` are mathematical; `i32` and `i64` parameters lie in their signed 32-bit and 64-bit ranges.
+
+Ignore the body. Look only at the contract (`requires` and `ensures`): find inputs for which the contract allows more than one result, so that two implementations could both meet it and still return different values.
+
+Answer with JSON only, in this shape, listing up to five such inputs, each with two different results the contract allows for it:
+
+{"open_cases": [{"inputs": {"<parameter>": <value>, ...}, "results": [<value>, <value>]}]}
+
+Write integers as JSON numbers, booleans as true or false, and enum values as strings with their type, such as "Light.Red". If the contract allows exactly one result for every input it admits, answer {"open_cases": []}.
+
+The function:
