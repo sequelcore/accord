@@ -1,0 +1,5 @@
+// expect: error
+fn less() -> Bool
+{
+    1 < 2
+}

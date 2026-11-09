@@ -108,10 +108,15 @@ condition can never be the first to hold.
 
 - `Bool`: `true`, `false`.
 - `i32`, `i64`: signed integers of that width. Arithmetic that could leave the
-  range is an obligation; the program can't overflow.
+  range is an obligation; the program can't overflow. The obligation holds
+  under the conditions that make the operation run: only the branch of an
+  `if` that runs, and only the decision table row that decides. Both
+  operands of `and` and `or` must stay in range, whatever the other's value.
+- An integer literal takes its type from its context, as a bare variant
+  does (`n > 0`); in code that runs it must fit that type.
 - In `requires` and `ensures`, integer arithmetic is mathematical: it never
   overflows, so a specification can state `a + b > a` without caring about
-  width.
+  width, and its literals needn't fit a width.
 - Enum variants are written bare (`Passed`) where the type is known, and
   qualified (`ProofOutcome.Passed`) where it isn't. The formatter writes the
   bare form wherever it can, so a qualified variant appears only where it is
@@ -123,7 +128,7 @@ condition can never be the first to hold.
 | --- | --- |
 | Logic | `and`, `or`, `not`; in `requires` and `ensures`, also `implies` |
 | Comparison | `==`, `!=`, `<`, `<=`, `>`, `>=` |
-| Arithmetic | `+`, `-`, `*`, `/`, `%`, with `/` and `%` on a zero divisor an obligation |
+| Arithmetic | `+`, `-`, `*`, and `-` before a value; `/` and `%`, with a zero divisor an obligation, are planned but not compiled: how they round is not yet decided |
 | Choice | `if condition { a } else { b }`, always with `else` |
 | Call | `name(label: value, …)`; labels are required when the function has more than one parameter |
 

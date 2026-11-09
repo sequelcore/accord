@@ -1,0 +1,6 @@
+// expect: proved, refuted
+fn step(a: i32) -> i32
+    ensures result >= a
+{
+    if a <= 2147483647 { a + 1 } else { a }
+}

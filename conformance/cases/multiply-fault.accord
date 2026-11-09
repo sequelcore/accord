@@ -1,0 +1,7 @@
+// expect: proved, refuted
+fn double(a: i64) -> i64
+    requires a <= 1000
+    ensures result == a + a
+{
+    a * 2
+}

@@ -4,8 +4,13 @@
 //! asserts that it fails, so `unsat` proves it. An existential obligation
 //! needs some admitted input, such as one that reaches a decision table's
 //! row: its script asserts that the input exists, so `sat` proves it.
+//!
+//! Integers are mathematical in every script. A parameter of a fixed width is
+//! assumed to be in its range, and each arithmetic operation in code that
+//! runs carries the obligation that its result stays in range, so the
+//! mathematical value is the one the program computes.
 
-use crate::syntax::{Body, ClauseKind, Expr, Function, Op, Program, Row, Type};
+use crate::syntax::{Arith, Body, ClauseKind, Expr, Function, Op, Program, Row, Site, Type, Width};
 
 /// Whether an obligation is about every input or about some input.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -27,6 +32,7 @@ pub(crate) struct Obligation {
 fn sort(ty: &Type) -> &str {
     match ty {
         Type::Bool => "Bool",
+        Type::Int(_) => "Int",
         Type::Enum(name) => name,
     }
 }
@@ -34,6 +40,7 @@ fn sort(ty: &Type) -> &str {
 fn term(expr: &Expr) -> String {
     match expr {
         Expr::Bool(value) => value.to_string(),
+        Expr::Int(value, _) => number(*value),
         Expr::Name(name, _) => name.clone(),
         Expr::Variant(owner, name, _) => format!("{owner}.{name}"),
         Expr::Not(inner) => format!("(not {})", term(inner)),
@@ -45,8 +52,21 @@ fn term(expr: &Expr) -> String {
                 Op::Implies => format!("(=> {l} {r})"),
                 Op::Eq => format!("(= {l} {r})"),
                 Op::Ne => format!("(not (= {l} {r}))"),
+                Op::Lt => format!("(< {l} {r})"),
+                Op::Le => format!("(<= {l} {r})"),
+                Op::Gt => format!("(> {l} {r})"),
+                Op::Ge => format!("(>= {l} {r})"),
             }
         }
+        Expr::Arith(op, left, right, _) => {
+            let symbol = match op {
+                Arith::Add => "+",
+                Arith::Sub => "-",
+                Arith::Mul => "*",
+            };
+            format!("({symbol} {} {})", term(left), term(right))
+        }
+        Expr::Neg(inner, _) => format!("(- {})", term(inner)),
         Expr::If(condition, then, otherwise) => {
             format!(
                 "(ite {} {} {})",
@@ -55,6 +75,67 @@ fn term(expr: &Expr) -> String {
                 term(otherwise)
             )
         }
+    }
+}
+
+fn number(value: i128) -> String {
+    if value < 0 {
+        format!("(- {})", value.unsigned_abs())
+    } else {
+        value.to_string()
+    }
+}
+
+/// That `term` is a value of `width`.
+fn in_range(term: &str, width: Width) -> String {
+    format!(
+        "(and (<= {} {term}) (<= {term} {}))",
+        number(width.min()),
+        number(width.max())
+    )
+}
+
+/// One arithmetic operation in code, with the conditions under which it runs.
+struct Overflow<'a> {
+    expr: &'a Expr,
+    site: &'a Site,
+    guards: Vec<String>,
+}
+
+/// Every arithmetic operation in `expr`, inner ones first. Only the branch
+/// of an `if` that runs is guarded by its condition; both operands of `and`
+/// and `or` are checked, whatever the other's value.
+fn overflows<'a>(expr: &'a Expr, guards: &[String], out: &mut Vec<Overflow<'a>>) {
+    match expr {
+        Expr::Arith(_, left, right, site) => {
+            overflows(left, guards, out);
+            overflows(right, guards, out);
+            out.push(Overflow {
+                expr,
+                site,
+                guards: guards.to_vec(),
+            });
+        }
+        Expr::Neg(inner, site) => {
+            overflows(inner, guards, out);
+            out.push(Overflow {
+                expr,
+                site,
+                guards: guards.to_vec(),
+            });
+        }
+        Expr::Not(inner) => overflows(inner, guards, out),
+        Expr::Binary(_, left, right) => {
+            overflows(left, guards, out);
+            overflows(right, guards, out);
+        }
+        Expr::If(condition, then, otherwise) => {
+            overflows(condition, guards, out);
+            let c = term(condition);
+            overflows(then, &[guards, std::slice::from_ref(&c)].concat(), out);
+            overflows(otherwise, &[guards, &[format!("(not {c})")]].concat(), out);
+        }
+        Expr::Bool(_) | Expr::Int(..) | Expr::Name(..) | Expr::Variant(..) => {}
     }
 }
 
@@ -86,6 +167,9 @@ fn obligations_of(function: &Function, datatypes: &str) -> Vec<Obligation> {
     let mut prelude = format!("(set-option :produce-models true)\n(set-logic ALL)\n{datatypes}");
     for (name, ty) in &function.params {
         prelude += &format!("(declare-const {name} {})\n", sort(ty));
+        if let Type::Int(width) = ty {
+            prelude += &format!("(assert {})\n", in_range(name, *width));
+        }
     }
     for clause in function
         .clauses
@@ -123,6 +207,10 @@ fn obligations_of(function: &Function, datatypes: &str) -> Vec<Obligation> {
     };
     let covered = rows.map(|(rows, _)| all("or", rows.iter().map(condition).collect(), "false"));
     let mut out = Vec::new();
+    let mut ops = Vec::new();
+    if let Body::Expr(body) = &function.body {
+        overflows(body, &[], &mut ops);
+    }
     for clause in function
         .clauses
         .iter()
@@ -153,7 +241,11 @@ fn obligations_of(function: &Function, datatypes: &str) -> Vec<Obligation> {
                 .iter()
                 .map(|earlier| format!("(not {})", condition(earlier)))
                 .collect();
+            if let Some(c) = &row.condition {
+                overflows(c, &reaches, &mut ops);
+            }
             reaches.push(condition(row));
+            overflows(&row.result, &reaches, &mut ops);
             out.push(obligation(
                 &row.text,
                 row.line,
@@ -163,12 +255,30 @@ fn obligations_of(function: &Function, datatypes: &str) -> Vec<Obligation> {
             ));
         }
     }
+    for op in ops {
+        let Some(width) = op.site.width else {
+            // `check` sets every width before obligations are generated.
+            unreachable!("arithmetic without a width: `{}`", op.site.text)
+        };
+        let mut assertion = op.guards;
+        assertion.push(format!("(not {})", in_range(&term(op.expr), width)));
+        out.push(obligation(
+            &format!("`{}` stays within `{}`", op.site.text, width.name()),
+            op.site.line,
+            Polarity::Universal,
+            "",
+            all("and", assertion, "true"),
+        ));
+    }
+    // Stable, so obligations on one line keep the order above.
+    out.sort_by_key(|o| o.line);
     out
 }
 
-/// The obligations of every function, in source order: one per `ensures`,
-/// then, for a decision table, that every input reaches a row and that each
-/// row can be the first to hold.
+/// The obligations of every function, in source order: one per `ensures`;
+/// for a decision table, that every input reaches a row and that each row
+/// can be the first to hold; and that each arithmetic operation in code stays
+/// in its type's range.
 pub(crate) fn obligations(program: &Program) -> Vec<Obligation> {
     let datatypes: String = program
         .enums

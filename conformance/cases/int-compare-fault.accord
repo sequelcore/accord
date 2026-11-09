@@ -1,0 +1,6 @@
+// expect: refuted
+fn positive(n: i64) -> Bool
+    ensures result implies n > 0
+{
+    0 <= n
+}

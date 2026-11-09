@@ -1,0 +1,6 @@
+// expect: proved, proved, proved, refuted
+fn step(a: i32) -> i32
+decide {
+    | a == 0    => a
+    | otherwise => a + 1
+}

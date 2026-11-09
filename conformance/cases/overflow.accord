@@ -1,0 +1,8 @@
+// expect: proved, proved
+fn add(a: i32, b: i32) -> i32
+    requires a + b <= 2147483647
+    requires a + b >= -2147483648
+    ensures result == a + b
+{
+    a + b
+}

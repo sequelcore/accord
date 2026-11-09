@@ -1,0 +1,7 @@
+// expect: proved, proved
+fn negate(a: i32) -> i32
+    requires a != -2147483648
+    ensures result == 0 - a
+{
+    -a
+}
