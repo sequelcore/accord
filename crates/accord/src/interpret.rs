@@ -221,7 +221,7 @@ pub(crate) fn run(example: &Example, function: &Function) -> Result<(), String> 
 }
 
 /// Reads a solver's value for a parameter of type `ty`.
-fn read(value: &str, ty: &Type) -> Option<Value> {
+pub(crate) fn read(value: &str, ty: &Type) -> Option<Value> {
     match ty {
         Type::Bool => value.parse().ok().map(Value::Bool),
         Type::Int(_) => value.parse().ok().map(Value::Int),

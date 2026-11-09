@@ -3,6 +3,7 @@
 //! runs its examples.
 
 mod check;
+pub mod diff;
 mod identity;
 mod interpret;
 mod ledger;

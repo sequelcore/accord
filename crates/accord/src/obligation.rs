@@ -60,7 +60,7 @@ fn guard_term(guard: &Guard) -> String {
     if guard.holds { c } else { format!("(not {c})") }
 }
 
-fn sort(ty: &Type) -> &str {
+pub(crate) fn sort(ty: &Type) -> &str {
     match ty {
         Type::Bool => "Bool",
         Type::Int(_) => "Int",
@@ -118,7 +118,7 @@ fn number(value: i128) -> String {
 }
 
 /// That `term` is a value of `width`.
-fn in_range(term: &str, width: Width) -> String {
+pub(crate) fn in_range(term: &str, width: Width) -> String {
     format!(
         "(and (<= {} {term}) (<= {term} {}))",
         number(width.min()),
@@ -178,7 +178,7 @@ fn condition(row: &Row) -> String {
 }
 
 /// `and` or `or` over any number of terms; SMT-LIB needs two or more.
-fn all(op: &str, terms: Vec<String>, empty: &str) -> String {
+pub(crate) fn all(op: &str, terms: Vec<String>, empty: &str) -> String {
     match terms.len() {
         0 => empty.to_string(),
         1 => terms.concat(),
@@ -220,7 +220,7 @@ fn prelude(function: &Function, datatypes: &str) -> String {
 /// A script's ending: check, then the values of `names`, then why an
 /// `unknown` was unknown. Asked last, so its error after `sat` never precedes
 /// the values.
-fn ending(names: &[String]) -> String {
+pub(crate) fn ending(names: &[String]) -> String {
     let values = if names.is_empty() {
         String::new()
     } else {
