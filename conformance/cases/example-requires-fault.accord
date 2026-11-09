@@ -1,0 +1,9 @@
+// expect: proved, failed
+fn count(n: i64) -> Bool
+    requires n >= 0
+    ensures result == (n > 0)
+{
+    n != 0
+}
+
+example count(n: -1) == true

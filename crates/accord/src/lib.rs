@@ -1,7 +1,9 @@
 //! Accord's compiler: it parses a source file, checks it, turns each
-//! specification into proof obligations and has two SMT solvers decide them.
+//! specification into proof obligations, has two SMT solvers decide them and
+//! runs its examples.
 
 mod check;
+mod interpret;
 mod obligation;
 mod solver;
 mod syntax;
@@ -77,21 +79,78 @@ pub struct Verdict {
     pub outcome: Outcome,
 }
 
-/// Parses and checks `source`, then decides every obligation in it.
+/// Whether an example gave its result when run.
+#[derive(Clone, Debug, PartialEq)]
+pub enum Run {
+    /// The call gave the expected result.
+    Passed,
+    /// It didn't, broke a `requires`, overflowed or reached no row.
+    Failed {
+        /// What went wrong, for a person to read.
+        reason: String,
+    },
+}
+
+/// The run of one `example`, with where it is.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ExampleRun {
+    /// The function the example calls.
+    pub function: String,
+    /// The example's first line as written.
+    pub text: String,
+    /// The example's 1-based line.
+    pub line: usize,
+    /// How the run went.
+    pub run: Run,
+}
+
+/// Everything one check of a file established.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Report {
+    /// One verdict per obligation, in source order.
+    pub verdicts: Vec<Verdict>,
+    /// One run per `example`, in source order.
+    pub examples: Vec<ExampleRun>,
+}
+
+/// Parses and checks `source`, decides every obligation in it and runs every
+/// example.
 ///
-/// Returns one verdict per obligation, in source order: each `ensures`,
-/// then for a decision table its coverage and each row's reachability. Or
-/// the diagnostic that rejected the file.
-pub fn verify(source: &str, solvers: &Solvers) -> Result<Vec<Verdict>, Diagnostic> {
+/// Verdicts are in source order: per function, each `ensures`, a decision
+/// table's coverage and each row's reachability, and each arithmetic
+/// operation's range. Or the diagnostic that rejected the file.
+pub fn verify(source: &str, solvers: &Solvers) -> Result<Report, Diagnostic> {
     let mut program = syntax::parse(source)?;
     check::check(&mut program)?;
-    Ok(obligation::obligations(&program)
+    let verdicts = obligation::obligations(&program)
         .into_iter()
         .map(|o| Verdict {
-            outcome: solvers.decide(&o.script, &o.params, o.polarity),
-            function: o.function,
+            outcome: solvers.decide(&o.script, &o.params, o.polarity, |model| {
+                interpret::replay(&o, model)
+            }),
+            function: o.function.name.clone(),
             clause: o.clause,
             line: o.line,
         })
-        .collect())
+        .collect();
+    let examples = program
+        .examples
+        .iter()
+        .filter_map(|example| {
+            let function = program
+                .functions
+                .iter()
+                .find(|f| f.name == example.function)?;
+            Some(ExampleRun {
+                function: function.name.clone(),
+                text: example.text.clone(),
+                line: example.line,
+                run: match interpret::run(example, function) {
+                    Ok(()) => Run::Passed,
+                    Err(reason) => Run::Failed { reason },
+                },
+            })
+        })
+        .collect();
+    Ok(Report { verdicts, examples })
 }

@@ -138,9 +138,21 @@ pub(crate) struct Enum {
     pub line: usize,
 }
 
+/// `example name(label: value, ...) == value`: a concrete call and the
+/// result it must give. A label is `None` where the call omits it.
+#[derive(Clone, Debug)]
+pub(crate) struct Example {
+    pub function: String,
+    pub args: Vec<(Option<String>, Expr)>,
+    pub expected: Expr,
+    pub text: String,
+    pub line: usize,
+}
+
 /// Everything declared in one file, in source order within each kind.
 #[derive(Clone, Debug)]
 pub(crate) struct Program {
     pub enums: Vec<Enum>,
     pub functions: Vec<Function>,
+    pub examples: Vec<Example>,
 }

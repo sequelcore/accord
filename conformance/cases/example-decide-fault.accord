@@ -1,0 +1,12 @@
+// expect: proved, refuted, proved, proved, passed, failed
+enum Light { Red, Amber, Green }
+
+fn next(light: Light) -> Light
+    ensures result != light
+decide {
+    | light == Red   => Green
+    | light == Green => Amber
+}
+
+example next(Red) == Green
+example next(light: Amber) == Light.Red

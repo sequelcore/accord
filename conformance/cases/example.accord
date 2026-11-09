@@ -1,0 +1,10 @@
+// expect: proved, proved, passed, passed
+fn larger(a: i64, b: i64) -> i64
+    ensures result >= a and result >= b
+    ensures result == a or result == b
+{
+    if a >= b { a } else { b }
+}
+
+example larger(a: 2, b: 5) == 5
+example larger(b: 1, a: -3) == 1

@@ -9,8 +9,9 @@ compiler code that produces it:
 ```
 
 `proved`, `refuted`, `undecided` and `unsupported` are obligation outcomes
-([concepts](../docs/concepts.md)); `error` means the file must be rejected
-before any obligation is generated. A case whose name ends in `-fault` plants
+([concepts](../docs/concepts.md)); `passed` and `failed` are example runs,
+listed after every obligation, in source order; `error` means the file must
+be rejected before any obligation is generated. A case whose name ends in `-fault` plants
 a fault in a correct case of the same name, and must be refuted.
 
 `cargo test --test conformance` runs every case through both solvers. It

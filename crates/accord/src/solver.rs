@@ -6,7 +6,7 @@ use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
 
 use crate::obligation::Polarity;
-use crate::{Outcome, Refutation};
+use crate::{Inputs, Outcome, Refutation};
 
 /// The two solvers every obligation goes to.
 #[derive(Clone, Debug)]
@@ -45,7 +45,15 @@ impl Solvers {
         self
     }
 
-    pub(crate) fn decide(&self, script: &str, params: &[String], polarity: Polarity) -> Outcome {
+    /// Both solvers' answers, combined. A counterexample or witness counts
+    /// only if `replay` reproduces every model the solvers gave.
+    pub(crate) fn decide(
+        &self,
+        script: &str,
+        params: &[String],
+        polarity: Polarity,
+        replay: impl Fn(&Inputs) -> Result<(), String>,
+    ) -> Outcome {
         let ms = self.timeout.as_millis().max(1);
         let z3 = run(
             &self.z3,
@@ -61,8 +69,35 @@ impl Solvers {
             self.timeout,
             params,
         );
-        combine(&z3, &cvc5, polarity)
+        confirm(combine(&z3, &cvc5, polarity), &z3, &cvc5, replay)
     }
+}
+
+/// An outcome that rests on models stands only if `replay` reproduces each
+/// solver's model; otherwise it is undecided.
+pub(crate) fn confirm(
+    outcome: Outcome,
+    z3: &Answer,
+    cvc5: &Answer,
+    replay: impl Fn(&Inputs) -> Result<(), String>,
+) -> Outcome {
+    let kind = match &outcome {
+        Outcome::Proved { witness: Some(_) } => "witness",
+        Outcome::Refuted {
+            evidence: Refutation::Counterexample(_),
+        } => "counterexample",
+        _ => return outcome,
+    };
+    for (solver, answer) in [("Z3", z3), ("cvc5", cvc5)] {
+        if let Answer::Sat(model) = answer
+            && let Err(why) = replay(model)
+        {
+            return Outcome::Undecided {
+                reason: format!("{solver}'s {kind} doesn't reproduce: {why}"),
+            };
+        }
+    }
+    outcome
 }
 
 fn locate(variable: &str, program: &str) -> Result<PathBuf, String> {
@@ -213,7 +248,7 @@ pub(crate) fn combine(z3: &Answer, cvc5: &Answer, polarity: Polarity) -> Outcome
 
 #[cfg(test)]
 mod tests {
-    use super::{Answer, Solvers, combine, parse_answer};
+    use super::{Answer, Solvers, combine, confirm, parse_answer};
     use crate::obligation::Polarity::{Existential, Universal};
     use crate::{Outcome, Refutation};
     use std::path::PathBuf;
@@ -307,6 +342,36 @@ mod tests {
     }
 
     #[test]
+    fn a_model_that_does_not_replay_leaves_the_obligation_undecided() {
+        let a = |v: &str| Answer::Sat(vec![("a".to_string(), v.to_string())]);
+        let (good, bad) = (a("1"), a("2"));
+        let replay = |model: &crate::Inputs| match model[0].1.as_str() {
+            "1" => Ok(()),
+            _ => Err("no".to_string()),
+        };
+        for polarity in [Universal, Existential] {
+            let agreed = combine(&good, &good, polarity);
+            assert_eq!(confirm(agreed.clone(), &good, &good, replay), agreed);
+            let undecided = |z3: &Answer, cvc5: &Answer| {
+                matches!(
+                    confirm(combine(z3, cvc5, polarity), z3, cvc5, replay),
+                    Outcome::Undecided { .. }
+                )
+            };
+            assert!(undecided(&bad, &good), "Z3's model is checked");
+            assert!(undecided(&good, &bad), "cvc5's model is checked too");
+        }
+        // An outcome that rests on `unsat` has no model to replay.
+        let proved = combine(&Answer::Unsat, &Answer::Unsat, Universal);
+        assert_eq!(
+            confirm(proved.clone(), &Answer::Unsat, &Answer::Unsat, |_| Err(
+                "never called".to_string()
+            )),
+            proved
+        );
+    }
+
+    #[test]
     fn negative_values_read_as_source() {
         assert_eq!(
             parse_answer("sat\n((a (- 2147483648))\n (b 7))\n", &names(&["a", "b"])),
@@ -327,7 +392,7 @@ mod tests {
         let script = "(set-logic QF_UF)\n(assert false)\n(check-sat)\n";
         for polarity in [Universal, Existential] {
             assert!(matches!(
-                solvers.decide(script, &[], polarity),
+                solvers.decide(script, &[], polarity, |_| Ok(())),
                 Outcome::Undecided { .. }
             ));
         }

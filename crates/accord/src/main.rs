@@ -2,11 +2,12 @@
 
 use std::process::ExitCode;
 
-use accord::{Inputs, Outcome, Refutation, Solvers, verify};
+use accord::{Inputs, Outcome, Refutation, Run, Solvers, verify};
 
 const USAGE: &str = "usage: accord check <file>\n       accord --version";
 
-/// Exit codes: 0 every obligation proved; 1 one was refuted; 2 usage error;
+/// Exit codes: 0 every obligation proved and every example passed; 1 one was
+/// refuted or an example failed; 2 usage error;
 /// 3 none refuted but one undecided or unsupported; 4 the file was rejected
 /// or couldn't be read, or the solvers couldn't be found.
 fn main() -> ExitCode {
@@ -39,15 +40,15 @@ fn check(path: &str) -> ExitCode {
             return ExitCode::from(4);
         }
     };
-    let verdicts = match verify(&source, &solvers) {
-        Ok(verdicts) => verdicts,
+    let report = match verify(&source, &solvers) {
+        Ok(report) => report,
         Err(diagnostic) => {
             eprintln!("{path}:{}: {}", diagnostic.line, diagnostic.message);
             return ExitCode::from(4);
         }
     };
     let (mut refuted, mut open) = (false, false);
-    for verdict in &verdicts {
+    for verdict in &report.verdicts {
         let place = format!(
             "{} (line {}): {}",
             verdict.function, verdict.line, verdict.clause
@@ -79,6 +80,19 @@ fn check(path: &str) -> ExitCode {
             Outcome::Unsupported { reason } => {
                 open = true;
                 println!("unsupported  {place}\n             {reason}");
+            }
+        }
+    }
+    for example in &report.examples {
+        let place = format!(
+            "{} (line {}): {}",
+            example.function, example.line, example.text
+        );
+        match &example.run {
+            Run::Passed => println!("passed       {place}"),
+            Run::Failed { reason } => {
+                refuted = true;
+                println!("failed       {place}\n             {reason}");
             }
         }
     }

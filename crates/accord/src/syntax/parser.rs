@@ -1,7 +1,7 @@
 //! The parser: tokens to a [`Program`].
 
 use super::token::{Token, tokenize};
-use super::{Body, Clause, ClauseKind, Enum, Function, Program, Row, Site, Type, Width};
+use super::{Body, Clause, ClauseKind, Enum, Example, Function, Program, Row, Site, Type, Width};
 use crate::Diagnostic;
 
 pub(super) struct Parser<'a> {
@@ -191,6 +191,38 @@ impl Parser<'_> {
         })
     }
 
+    fn example(&mut self) -> Result<Example, Diagnostic> {
+        let (text, line) = self.rest_of_line();
+        self.expect_word("example")?;
+        let function = self.name()?;
+        self.expect_sym("(")?;
+        let mut args = Vec::new();
+        while !self.at_sym(")") {
+            let labelled = matches!(self.tokens.get(self.pos + 1), Some((Token::Sym(":"), ..)));
+            let label = if labelled {
+                let label = self.name()?;
+                self.expect_sym(":")?;
+                Some(label)
+            } else {
+                None
+            };
+            args.push((label, self.expr()?));
+            if !self.at_sym(")") {
+                self.expect_sym(",")?;
+            }
+        }
+        self.expect_sym(")")?;
+        self.expect_sym("==")?;
+        let expected = self.expr()?;
+        Ok(Example {
+            function,
+            args,
+            expected,
+            text,
+            line,
+        })
+    }
+
     fn decide(&mut self) -> Result<Body, Diagnostic> {
         let line = self.line();
         self.expect_word("decide")?;
@@ -228,6 +260,7 @@ pub(super) fn is_keyword(word: &str) -> bool {
     matches!(
         word,
         "fn" | "enum"
+            | "example"
             | "requires"
             | "ensures"
             | "decide"
@@ -254,10 +287,13 @@ pub(crate) fn parse(source: &str) -> Result<Program, Diagnostic> {
     let mut program = Program {
         enums: Vec::new(),
         functions: Vec::new(),
+        examples: Vec::new(),
     };
     while parser.peek().is_some() {
         if parser.at_word("enum") {
             program.enums.push(parser.enumeration()?);
+        } else if parser.at_word("example") {
+            program.examples.push(parser.example()?);
         } else {
             program.functions.push(parser.function()?);
         }
