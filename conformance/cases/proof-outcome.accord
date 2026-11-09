@@ -1,4 +1,5 @@
 // expect: proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, passed, passed
+// open: open
 // Tesota's proof-outcome-rule (src/verification/proof-outcome-rule.ts at dev
 // 4ef9b191): its decision as a table, and its six LemmaScript properties as
 // `ensures`, each equivalence written as two `implies`. Tesota's `checkExit`

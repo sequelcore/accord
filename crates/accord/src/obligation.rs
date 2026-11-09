@@ -289,6 +289,37 @@ pub(crate) fn mutant_scripts(
     (survives, differs)
 }
 
+/// The script that searches for an open case of `function`: an admitted input
+/// with two different results, `r0` and `r1`, that both meet every
+/// `ensures`. `sat` finds one; `unsat` means the contract determines the
+/// result for every admitted input.
+pub(crate) fn open_script(function: &Function, datatypes: &str) -> String {
+    let ret = sort(&function.ret);
+    let ensures = all(
+        "and",
+        function
+            .clauses
+            .iter()
+            .filter(|c| c.kind == ClauseKind::Ensures)
+            .map(|c| term(&c.expr))
+            .collect(),
+        "true",
+    );
+    let mut results = format!("(declare-const r0 {ret})\n(declare-const r1 {ret})\n");
+    if let Type::Int(width) = &function.ret {
+        for r in ["r0", "r1"] {
+            results += &format!("(assert {})\n", in_range(r, *width));
+        }
+    }
+    let mut named: Vec<String> = function.params.iter().map(|(n, _)| n.clone()).collect();
+    named.extend(["r0".to_string(), "r1".to_string()]);
+    format!(
+        "{}(define-fun contract ((result {ret})) Bool {ensures})\n{results}(assert (and (contract r0) (contract r1) (not (= r0 r1))))\n{}",
+        prelude(function, datatypes),
+        ending(&named)
+    )
+}
+
 /// The SMT-LIB declarations of a program's enums.
 pub(crate) fn datatypes(program: &Program) -> String {
     program

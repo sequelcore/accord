@@ -9,11 +9,13 @@ mod interpret;
 mod ledger;
 mod mutation;
 mod obligation;
+mod openness;
 pub mod receipt;
 mod solver;
 mod syntax;
 
 pub use mutation::{Strength, Survivor};
+pub use openness::{Determinacy, Openness};
 pub use solver::Solvers;
 
 /// Parameter names with the values a solver gave them, in source terms.
@@ -123,7 +125,8 @@ pub enum Standing {
     /// Every obligation proved and every example passed.
     Verified,
     /// Nothing failed, but something keeps it from verified: an undecided or
-    /// unsupported obligation, or, for a file, a definition with no evidence.
+    /// unsupported obligation, an open case, or, for a file, a definition
+    /// with no evidence.
     Incomplete,
     /// An obligation was refuted or an example failed.
     Failed,
@@ -156,14 +159,24 @@ pub struct Report {
     /// Each contract's strength against mutants, when the solvers were asked
     /// for it; it doesn't change standing.
     pub strength: Vec<Strength>,
+    /// Whether each contract with an `ensures` determines its result.
+    pub openness: Vec<Determinacy>,
 }
 
 /// A definition's standing from its own evidence.
 fn standing_of<'a>(
     verdicts: impl Iterator<Item = &'a Verdict>,
     examples: impl Iterator<Item = &'a ExampleRun>,
+    openness: Option<&Openness>,
 ) -> Standing {
     let (mut any, mut failed, mut open) = (false, false, false);
+    // An open case, or a search for one that didn't settle, keeps a
+    // definition from verified; whether a freedom is intended is a person's
+    // decision, so it doesn't fail it.
+    open |= matches!(
+        openness,
+        Some(Openness::Open { .. } | Openness::Undecided { .. })
+    );
     for verdict in verdicts {
         any = true;
         match verdict.outcome {
@@ -245,6 +258,7 @@ pub fn verify(source: &str, solvers: &Solvers) -> Result<Report, Diagnostic> {
             })
         })
         .collect::<Vec<_>>();
+    let openness = openness::determinacy(&units, solvers);
     let definitions: Vec<Definition> = units
         .iter()
         .map(|unit| Definition {
@@ -253,6 +267,10 @@ pub fn verify(source: &str, solvers: &Solvers) -> Result<Report, Diagnostic> {
             standing: standing_of(
                 verdicts.iter().filter(|v| v.function == unit.source.name),
                 examples.iter().filter(|e| e.function == unit.source.name),
+                openness
+                    .iter()
+                    .find(|d| d.function == unit.source.name)
+                    .map(|d| &d.openness),
             ),
         })
         .collect();
@@ -268,6 +286,7 @@ pub fn verify(source: &str, solvers: &Solvers) -> Result<Report, Diagnostic> {
         definitions,
         standing,
         strength,
+        openness,
     })
 }
 
@@ -310,13 +329,30 @@ mod tests {
         let failed = example(Run::Failed {
             reason: "no".to_string(),
         });
-        let of =
-            |v: &[&Verdict], e: &[&ExampleRun]| standing_of(v.iter().copied(), e.iter().copied());
+        let of = |v: &[&Verdict], e: &[&ExampleRun]| {
+            standing_of(v.iter().copied(), e.iter().copied(), None)
+        };
         assert_eq!(of(&[&proved], &[&example(Run::Passed)]), Standing::Verified);
         assert_eq!(of(&[&proved, &undecided], &[]), Standing::Incomplete);
         assert_eq!(of(&[&undecided, &refuted], &[]), Standing::Failed);
         assert_eq!(of(&[&proved], &[&failed]), Standing::Failed);
         assert_eq!(of(&[], &[]), Standing::Unverified);
+        let open = crate::Openness::Open {
+            inputs: Vec::new(),
+            results: ("true".to_string(), "false".to_string()),
+            code: "true".to_string(),
+        };
+        let proved_only = [&proved];
+        assert_eq!(
+            standing_of(proved_only.iter().copied(), [].iter(), Some(&open)),
+            Standing::Incomplete,
+            "an open case keeps a proved definition from verified"
+        );
+        let failing = [&refuted];
+        assert_eq!(
+            standing_of(failing.iter().copied(), [].iter(), Some(&open)),
+            Standing::Failed
+        );
     }
 
     #[test]

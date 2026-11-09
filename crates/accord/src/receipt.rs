@@ -4,7 +4,10 @@
 
 use serde_json::{Value, json};
 
-use crate::{ExampleRun, Inputs, Outcome, Refutation, Report, Run, Standing, Strength, Verdict};
+use crate::{
+    Determinacy, ExampleRun, Inputs, Openness, Outcome, Refutation, Report, Run, Standing,
+    Strength, Verdict,
+};
 
 /// The receipt schema's version.
 pub const VERSION: u32 = 1;
@@ -111,11 +114,35 @@ fn strength_text(strength: &Strength) -> Vec<String> {
     lines
 }
 
-/// The receipt as text: each obligation and example, each contract's
-/// strength when it was judged, then each function's standing and the file's.
+fn openness_text(d: &Determinacy) -> Option<String> {
+    match &d.openness {
+        Openness::Determined => None,
+        Openness::Open {
+            inputs,
+            results,
+            code,
+        } => Some(format!(
+            "open         {}: for {}, the contract allows both {} and {} (the code gives {})",
+            d.function,
+            values(inputs),
+            results.0,
+            results.1,
+            code
+        )),
+        Openness::Undecided { reason } => Some(format!(
+            "undecided    {}: whether the contract determines the result\n             {reason}",
+            d.function
+        )),
+    }
+}
+
+/// The receipt as text: each obligation and example, each open case, each
+/// contract's strength when it was judged, then each function's standing and
+/// the file's.
 pub fn text(report: &Report) -> String {
     let mut lines: Vec<String> = report.verdicts.iter().map(verdict_text).collect();
     lines.extend(report.examples.iter().map(example_text));
+    lines.extend(report.openness.iter().filter_map(openness_text));
     lines.extend(report.strength.iter().flat_map(strength_text));
     for definition in &report.definitions {
         lines.push(format!(
@@ -193,6 +220,24 @@ fn example_json(example: &ExampleRun) -> Value {
     }
 }
 
+fn openness_json(openness: &Openness) -> Value {
+    match openness {
+        Openness::Determined => json!({ "determined": true }),
+        Openness::Open {
+            inputs,
+            results,
+            code,
+        } => json!({
+            "open": {
+                "inputs": inputs_json(inputs),
+                "results": [results.0, results.1],
+                "code": code,
+            }
+        }),
+        Openness::Undecided { reason } => json!({ "undecided": reason }),
+    }
+}
+
 fn strength_json(strength: &Strength) -> Value {
     json!({
         "tried": strength.tried,
@@ -241,6 +286,11 @@ pub fn json(report: &Report, file: &str) -> String {
                     .iter()
                     .find(|s| s.function == definition.name)
                     .map(strength_json),
+                "openness": report
+                    .openness
+                    .iter()
+                    .find(|d| d.function == definition.name)
+                    .map(|d| openness_json(&d.openness)),
             })
         })
         .collect();
