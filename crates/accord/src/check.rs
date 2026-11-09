@@ -20,6 +20,7 @@ fn type_name(ty: &Type) -> &str {
     match ty {
         Type::Bool => "Bool",
         Type::Int(width) => width.name(),
+        Type::Text => "Text",
         Type::Enum(name) => name,
     }
 }
@@ -64,6 +65,7 @@ impl Scope<'_> {
     fn infer(&self, expr: &mut Expr, expected: Option<&Type>) -> Result<Type, Diagnostic> {
         match expr {
             Expr::Bool(_) => Ok(Type::Bool),
+            Expr::Text(..) => Ok(Type::Text),
             Expr::Int(value, line) => match expected {
                 Some(Type::Int(width)) if self.spec || *value <= width.max() => {
                     Ok(Type::Int(*width))
@@ -234,7 +236,10 @@ impl Scope<'_> {
 
 fn line_of(expr: &Expr) -> usize {
     match expr {
-        Expr::Name(_, line) | Expr::Variant(_, _, line) | Expr::Int(_, line) => *line,
+        Expr::Name(_, line)
+        | Expr::Variant(_, _, line)
+        | Expr::Int(_, line)
+        | Expr::Text(_, line) => *line,
         Expr::Arith(.., site) | Expr::Neg(_, site) => site.line,
         Expr::Not(inner) => line_of(inner),
         Expr::Binary(_, left, _) | Expr::If(left, _, _) => line_of(left),

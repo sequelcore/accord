@@ -90,7 +90,7 @@ impl<'a> Renamer<'a> {
                 self.expr(then);
                 self.expr(otherwise);
             }
-            Expr::Bool(_) | Expr::Int(..) | Expr::Name(..) => {}
+            Expr::Bool(_) | Expr::Int(..) | Expr::Text(..) | Expr::Name(..) => {}
         }
     }
 }

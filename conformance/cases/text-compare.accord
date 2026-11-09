@@ -1,0 +1,11 @@
+// expect: proved, passed, passed, passed
+// open: determined
+fn is_reader(tool: Text) -> Bool
+    ensures result == (tool == "read" or tool == "grep")
+{
+    tool == "read" or tool == "grep"
+}
+
+example is_reader(tool: "read") == true
+example is_reader(tool: "edit") == false
+example is_reader(tool: "grep") == true

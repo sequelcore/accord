@@ -1,0 +1,7 @@
+// expect: refuted
+// open: determined
+fn is_cafe(word: Text) -> Bool
+    ensures result == (word == "café")
+{
+    word == "cafe"
+}

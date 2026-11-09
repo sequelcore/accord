@@ -241,6 +241,9 @@ pub(crate) fn parse_answer(output: &str, params: &[String]) -> Answer {
 fn value_of(text: &str, name: &str) -> Option<String> {
     let start = text.find(&format!("({name} "))? + name.len() + 2;
     let rest = text[start..].trim_start();
+    if let Some(quoted) = rest.strip_prefix('"') {
+        return read_string(quoted);
+    }
     let value = if rest.starts_with('(') {
         let mut depth = 0;
         let end = rest.find(|c: char| {
@@ -259,6 +262,36 @@ fn value_of(text: &str, name: &str) -> Option<String> {
         Some(magnitude) => Some(format!("-{}", magnitude.trim())),
         None if value.starts_with('(') => None,
         None => Some(value.to_string()),
+    }
+}
+
+/// An SMT-LIB string literal, after its opening quote, as Accord source:
+/// `""` is a quote, and `\u{...}` or `\uXXXX` a character. Z3 prints a
+/// backslash raw, so a text that itself contains `\u{...}` reads back as the
+/// character it spells; the interpreter's replay then rejects the model, and
+/// the obligation is undecided, never wrongly decided.
+fn read_string(quoted: &str) -> Option<String> {
+    let mut out = String::new();
+    let mut chars = quoted.chars().peekable();
+    loop {
+        match chars.next()? {
+            '"' if chars.peek() == Some(&'"') => {
+                chars.next();
+                out.push('"');
+            }
+            '"' => return Some(format!("\"{out}\"")),
+            '\\' if chars.peek() == Some(&'u') => {
+                chars.next();
+                let hex: String = if chars.peek() == Some(&'{') {
+                    chars.next();
+                    chars.by_ref().take_while(|c| *c != '}').collect()
+                } else {
+                    chars.by_ref().take(4).collect()
+                };
+                out.push(char::from_u32(u32::from_str_radix(&hex, 16).ok()?)?);
+            }
+            c => out.push(c),
+        }
     }
 }
 
@@ -455,6 +488,32 @@ mod tests {
             parse_answer("unknown\n(:reason-unknown incomplete)\n", &[]),
             Answer::Unknown("the solver answered unknown (incomplete)".to_string())
         );
+    }
+
+    #[test]
+    fn text_values_read_as_source() {
+        let both = parse_answer(
+            "sat\n((a \"caf\\u{e9}\")\n (b \"say \"\"hi\"\"\"))\n",
+            &names(&["a", "b"]),
+        );
+        assert_eq!(
+            both,
+            Answer::Sat(vec![
+                ("a".to_string(), "\"café\"".to_string()),
+                ("b".to_string(), "\"say \"hi\"\"".to_string())
+            ])
+        );
+    }
+
+    #[test]
+    fn a_raw_backslash_from_z3_reads_as_itself() {
+        // Z3 prints a backslash raw where cvc5 writes `\u{5c}`; both read alike.
+        for output in ["sat\n((a \"x \\\"))\n", "sat\n((a \"x \\u{5c}\"))\n"] {
+            assert_eq!(
+                parse_answer(output, &names(&["a"])),
+                Answer::Sat(vec![("a".to_string(), "\"x \\\"".to_string())])
+            );
+        }
     }
 
     #[test]

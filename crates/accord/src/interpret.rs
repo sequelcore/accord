@@ -13,6 +13,7 @@ use crate::syntax::{Arith, Body, ClauseKind, Example, Expr, Function, Op, Type};
 pub(crate) enum Value {
     Bool(bool),
     Int(i128),
+    Text(String),
     /// An enum's variant: the enum, then the variant.
     Variant(String, String),
 }
@@ -23,6 +24,7 @@ impl Value {
         match self {
             Value::Bool(b) => b.to_string(),
             Value::Int(n) => n.to_string(),
+            Value::Text(t) => format!("\"{t}\""),
             Value::Variant(owner, name) => format!("{owner}.{name}"),
         }
     }
@@ -45,6 +47,7 @@ impl Env<'_> {
         match expr {
             Expr::Bool(b) => Ok(Value::Bool(*b)),
             Expr::Int(n, _) => Ok(Value::Int(*n)),
+            Expr::Text(t, _) => Ok(Value::Text(t.clone())),
             Expr::Variant(owner, name, _) => Ok(Value::Variant(owner.clone(), name.clone())),
             Expr::Name(name, _) if name == "result" => self
                 .result
@@ -225,6 +228,10 @@ pub(crate) fn read(value: &str, ty: &Type) -> Option<Value> {
     match ty {
         Type::Bool => value.parse().ok().map(Value::Bool),
         Type::Int(_) => value.parse().ok().map(Value::Int),
+        Type::Text => value
+            .strip_prefix('"')
+            .and_then(|v| v.strip_suffix('"'))
+            .map(|v| Value::Text(v.to_string())),
         Type::Enum(owner) => value
             .strip_prefix(&format!("{owner}."))
             .map(|name| Value::Variant(owner.clone(), name.to_string())),

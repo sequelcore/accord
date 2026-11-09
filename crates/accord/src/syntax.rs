@@ -12,6 +12,7 @@ pub(crate) use parser::parse;
 pub(crate) enum Type {
     Bool,
     Int(Width),
+    Text,
     /// An enum, by name.
     Enum(String),
 }
@@ -80,6 +81,8 @@ pub(crate) enum Expr {
     Bool(bool),
     /// A non-negative integer literal; `-` before it is a negation.
     Int(i128, usize),
+    /// A text literal's characters, without its quotes.
+    Text(String, usize),
     /// A parameter, `result`, or a bare variant until the checker resolves it.
     Name(String, usize),
     /// A variant of the named enum: written qualified, or resolved by the checker.

@@ -132,6 +132,11 @@ impl Parser<'_> {
             return Ok(Expr::Bool(value));
         }
         let line = self.line();
+        if let Some(Token::Str(text)) = self.peek() {
+            let text = text.clone();
+            self.pos += 1;
+            return Ok(Expr::Text(text, line));
+        }
         if let Some(Token::Word(word)) = self.peek()
             && word.starts_with(|c: char| c.is_ascii_digit())
         {

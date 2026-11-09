@@ -114,6 +114,7 @@ impl Parser<'_> {
             "Bool" => Type::Bool,
             "i32" => Type::Int(Width::I32),
             "i64" => Type::Int(Width::I64),
+            "Text" => Type::Text,
             _ => Type::Enum(name),
         })
     }
