@@ -39,6 +39,7 @@ Object keys come in no fixed order; arrays keep source order.
           "clause": "ensures result == (n > 0)",
           "line": 4,
           "key": "2e0445ed…",
+          "reused": false,
           "outcome": "proved"
         }
       ],
@@ -68,6 +69,7 @@ Object keys come in no fixed order; arrays keep source order.
 | `.obligations[]` | One per obligation, in source order |
 | `..clause`, `..line` | The obligation as written and its line |
 | `..key` | SHA-256 of the obligation's SMT-LIB script: exactly what was checked |
+| `..reused` | `true` when the outcome came from the ledger instead of the solvers |
 | `..outcome` | `proved`, `refuted`, `undecided` or `unsupported` |
 | `..witness` | With `proved`, for an obligation that needs some input: that input |
 | `..counterexample` | With `refuted`: inputs on which it fails |
@@ -81,6 +83,20 @@ Inputs (`witness`, `counterexample`) are arrays of `{"name": ..., "value": ...}`
 in parameter order, with values written as Accord source (`-3`,
 `Light.Amber`).
 
+## The ledger
+
+`accord check` keeps a ledger in `.accord/` beside the file it checks: a
+local cache, not meant to be committed. An obligation whose script was
+already decided by the same Z3, cvc5 and compiler build is **reused**, not
+decided again; the text receipt marks it `[reused]` and its summary counts
+them. A changed body or contract changes its scripts, and an enum change
+changes the scripts of the functions that use it, so exactly those are
+decided again; a rename changes no script.
+
+Only `proved` and `refuted` are stored. An undecided obligation is decided
+again on every run, and an entry that can't be read is decided again, never
+trusted. Examples always run. Deleting `.accord/` loses nothing but time.
+
 ## Standing
 
 A function is **failed** if an obligation is refuted or an example fails;
@@ -91,7 +107,8 @@ function is, unverified if none has evidence, and incomplete otherwise.
 
 ## Not in version 1
 
-The [concepts](concepts.md) describe a receipt that also carries freshness
-(current or stale, from stage 3's ledger), the solver versions, assumptions,
-opinions kept apart, and what wasn't checked. None of these exist in the
-compiler yet; each joins the receipt when it does.
+The [concepts](concepts.md) describe a receipt that also carries the solver
+versions, assumptions, opinions kept apart, and what wasn't checked. None of
+these exist in the compiler yet; each joins the receipt when it does. Stale
+evidence never appears: a key that no longer matches is simply not found, and
+its obligation is decided again.

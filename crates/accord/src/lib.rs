@@ -5,6 +5,7 @@
 mod check;
 mod identity;
 mod interpret;
+mod ledger;
 mod obligation;
 pub mod receipt;
 mod solver;
@@ -84,6 +85,8 @@ pub struct Verdict {
     pub key: String,
     /// The hash of the normalized function the obligation belongs to.
     pub definition: String,
+    /// Whether the outcome came from the ledger rather than the solvers.
+    pub reused: bool,
 }
 
 /// Whether an example gave its result when run.
@@ -203,7 +206,7 @@ pub fn verify(source: &str, solvers: &Solvers) -> Result<Report, Diagnostic> {
     let mut verdicts = Vec::new();
     for unit in &units {
         for o in obligation::obligations(&unit.program) {
-            let outcome = solvers.decide(&o.script, &o.params, o.polarity, |model| {
+            let (outcome, reused) = solvers.decide(&o.script, &o.params, o.polarity, |model| {
                 interpret::replay(&o, model)
             });
             verdicts.push(Verdict {
@@ -211,6 +214,7 @@ pub fn verify(source: &str, solvers: &Solvers) -> Result<Report, Diagnostic> {
                 function: unit.source.name.clone(),
                 key: identity::hash(&o.script),
                 definition: unit.hash.clone(),
+                reused,
                 clause: o.clause,
                 line: o.line,
             });
@@ -269,6 +273,7 @@ mod tests {
             outcome,
             key: String::new(),
             definition: String::new(),
+            reused: false,
         }
     }
 

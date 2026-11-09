@@ -27,7 +27,12 @@ pub(crate) struct Unit<'a> {
 
 /// SHA-256 of `text`, in hex.
 pub(crate) fn hash(text: &str) -> String {
-    Sha256::digest(text.as_bytes())
+    hash_bytes(text.as_bytes())
+}
+
+/// SHA-256 of `bytes`, in hex.
+pub(crate) fn hash_bytes(bytes: &[u8]) -> String {
+    Sha256::digest(bytes)
         .iter()
         .map(|byte| format!("{byte:02x}"))
         .collect()
