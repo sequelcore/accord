@@ -234,7 +234,10 @@ fn obligations_of<'a>(function: &'a Function, datatypes: &str) -> Vec<Obligation
         params: params.clone(),
         polarity,
         claim,
-        script: format!("{prelude}{declare}(assert {assertion})\n(check-sat)\n{values}"),
+        // Asked last, so its error after `sat` never precedes the values.
+        script: format!(
+            "{prelude}{declare}(assert {assertion})\n(check-sat)\n{values}(get-info :reason-unknown)\n"
+        ),
     };
     let result = format!("(declare-const result {})\n", sort(&function.ret));
 

@@ -1,4 +1,5 @@
-//! Splits source text into words and symbols, each with its line and column.
+//! Splits source text into words, symbols and strings, each with its line
+//! and column. `//` starts a comment, except inside a string.
 
 use crate::Diagnostic;
 
@@ -6,6 +7,8 @@ use crate::Diagnostic;
 pub(super) enum Token {
     Word(String),
     Sym(&'static str),
+    /// A string literal's contents, without its quotes. It has no escapes.
+    Str(String),
 }
 
 /// Longer symbols first, so `->`, `<=` and the like aren't read as two.
@@ -18,11 +21,22 @@ pub(super) fn tokenize(source: &str) -> Result<Vec<(Token, usize, usize)>, Diagn
     let mut tokens = Vec::new();
     for (index, raw) in source.lines().enumerate() {
         let line = index + 1;
-        let text = raw.split("//").next().unwrap_or_default();
+        let text = raw;
         let mut rest = text;
         while let Some(start) = rest.find(|c: char| !c.is_whitespace()) {
             let at = text.len() - rest.len() + start;
             rest = &rest[start..];
+            if rest.starts_with("//") {
+                break;
+            }
+            if let Some(inner) = rest.strip_prefix('"') {
+                let Some(end) = inner.find('"') else {
+                    return Err(Diagnostic::new(line, "a string must end on its line"));
+                };
+                tokens.push((Token::Str(inner[..end].to_string()), line, at));
+                rest = &inner[end + 1..];
+                continue;
+            }
             if let Some(sym) = SYMBOLS.iter().find(|s| rest.starts_with(**s)) {
                 tokens.push((Token::Sym(sym), line, at));
                 rest = &rest[sym.len()..];
