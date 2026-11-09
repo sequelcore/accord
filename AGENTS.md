@@ -18,7 +18,8 @@ each term means.
   meaning differs from TypeScript's or Rust's (integer width, overflow,
   evaluation order), the reference says so and a case covers it.
 - **Grow by the roadmap's target.** Add only what the current stage's target
-  needs; the next Tesota rule to port decides the next construct.
+  needs; the next rule to port decides the next construct. From stage 7 each
+  stage takes at least one rule from outside Tesota.
 - **Independent of Tesota.** No Tesota code or vocabulary in Accord's API.
 - **Design on merit.** How Tesota or quint-ts solves something is a reference,
   not a template; a Tesota rule is a target to port, not a design to copy.
