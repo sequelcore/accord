@@ -69,10 +69,13 @@ never records acceptance; that stays with the person.
   - **unsupported:** the obligation uses something outside what the compiler
     can check yet.
 - **Example run:** passed or failed.
-- **Strength** of a contract: the body is mutated, and each mutant is
-  rejected (the contract catches it), surviving (it still proves), equivalent
-  (proved to behave the same) or inconclusive. A contract with a surviving
-  mutant is **weak**. These are receipt v3's mutation leaves.
+- **Strength** of a contract: small, plausible mistakes are planted in the
+  body (mutants), and each is **caught** (the contract rules it out),
+  **equivalent** (proved to give the same result for every admitted input,
+  so not a mistake, and dropped), **surviving** (the contract allows it
+  although it behaves differently, shown with an input on which the two
+  differ) or **undecided**. A contract with a surviving mutant is **weak**.
+  Only functions with an `ensures` are mutated.
 - **Weakening:** two revisions of one specification compared: weaker,
   stronger, equivalent, incomparable or undecided. Unlike Tesota's heuristic
   weakening flags, this is decided by the solvers where both revisions are

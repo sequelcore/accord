@@ -78,10 +78,27 @@ Object keys come in no fixed order; arrays keep source order.
 | `.examples[]` | One per `example` that calls the function, in source order |
 | `..text`, `..line` | The example as written, on one line, and its line |
 | `..run` | `passed` or `failed`; with `failed`, `reason` says why |
+| `.strength` | `null`, or how the contract fared against mutants of the body (below) |
 
 Inputs (`witness`, `counterexample`) are arrays of `{"name": ..., "value": ...}`
 in parameter order, with values written as Accord source (`-3`,
 `Light.Amber`).
+
+## Strength
+
+`accord check` also plants mutants in the body of every function with an
+`ensures`: comparisons and boundaries changed (`<` and `<=`, `==` and `!=`,
+a literal by one), connectives swapped (`and` and `or`), conditions
+negated, and in decision tables adjacent rows swapped, a row's result
+changed or a row removed while `otherwise` keeps the table complete. Each
+mutant is checked against the function's own contract; see **strength** in
+the [concepts](concepts.md). At most 64 are tried per function.
+
+The text receipt shows each surviving mutant as `weak`, with the input on
+which the code and the change differ, and a `strength` line per function.
+In JSON, `strength` holds `tried`, `caught`, `equivalent`, `undecided`,
+`not_tried` and `survivors[]`, each with `change`, `inputs`, `original` and
+`mutant`. A weak contract doesn't change standing.
 
 ## The ledger
 

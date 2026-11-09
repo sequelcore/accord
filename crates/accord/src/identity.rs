@@ -204,7 +204,8 @@ impl Unit<'_> {
             .collect()
     }
 
-    fn source_value(&self, value: &str) -> String {
+    /// A normalized value, such as `E0.v1`, in source terms.
+    pub fn source_value(&self, value: &str) -> String {
         let read = || {
             let (owner, variant) = value.strip_prefix('E')?.split_once(".v")?;
             let e = self.enums.get(owner.parse::<usize>().ok()?)?;

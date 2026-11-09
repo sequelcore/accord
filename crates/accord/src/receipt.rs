@@ -4,7 +4,7 @@
 
 use serde_json::{Value, json};
 
-use crate::{ExampleRun, Inputs, Outcome, Refutation, Report, Run, Standing, Verdict};
+use crate::{ExampleRun, Inputs, Outcome, Refutation, Report, Run, Standing, Strength, Verdict};
 
 /// The receipt schema's version.
 pub const VERSION: u32 = 1;
@@ -73,11 +73,45 @@ fn example_text(example: &ExampleRun) -> String {
     }
 }
 
-/// The receipt as text: each obligation and example, then each function's
-/// standing and the file's.
+fn strength_text(strength: &Strength) -> Vec<String> {
+    let mut lines: Vec<String> = strength
+        .survivors
+        .iter()
+        .map(|s| {
+            format!(
+                "weak         {}: {}
+             for {}, the code gives {} and the change gives {}; the contract allows both",
+                strength.function,
+                s.change,
+                values(&s.inputs),
+                s.original,
+                s.mutant
+            )
+        })
+        .collect();
+    let not_tried = if strength.not_tried > 0 {
+        format!(", {} not tried", strength.not_tried)
+    } else {
+        String::new()
+    };
+    lines.push(format!(
+        "strength     {}: {} mutants: {} caught, {} equivalent, {} surviving, {} undecided{not_tried}",
+        strength.function,
+        strength.tried,
+        strength.caught,
+        strength.equivalent,
+        strength.survivors.len(),
+        strength.undecided
+    ));
+    lines
+}
+
+/// The receipt as text: each obligation and example, each contract's
+/// strength when it was judged, then each function's standing and the file's.
 pub fn text(report: &Report) -> String {
     let mut lines: Vec<String> = report.verdicts.iter().map(verdict_text).collect();
     lines.extend(report.examples.iter().map(example_text));
+    lines.extend(report.strength.iter().flat_map(strength_text));
     for definition in &report.definitions {
         lines.push(format!(
             "standing     {}: {}",
@@ -154,6 +188,26 @@ fn example_json(example: &ExampleRun) -> Value {
     }
 }
 
+fn strength_json(strength: &Strength) -> Value {
+    json!({
+        "tried": strength.tried,
+        "caught": strength.caught,
+        "equivalent": strength.equivalent,
+        "undecided": strength.undecided,
+        "not_tried": strength.not_tried,
+        "survivors": strength
+            .survivors
+            .iter()
+            .map(|s| json!({
+                "change": s.change,
+                "inputs": inputs_json(&s.inputs),
+                "original": s.original,
+                "mutant": s.mutant,
+            }))
+            .collect::<Vec<_>>(),
+    })
+}
+
 /// The receipt as JSON, for the file at `file`.
 pub fn json(report: &Report, file: &str) -> String {
     let definitions: Vec<Value> = report
@@ -177,6 +231,11 @@ pub fn json(report: &Report, file: &str) -> String {
                     .filter(|e| e.function == definition.name)
                     .map(example_json)
                     .collect::<Vec<_>>(),
+                "strength": report
+                    .strength
+                    .iter()
+                    .find(|s| s.function == definition.name)
+                    .map(strength_json),
             })
         })
         .collect();

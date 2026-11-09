@@ -6,11 +6,13 @@ mod check;
 mod identity;
 mod interpret;
 mod ledger;
+mod mutation;
 mod obligation;
 pub mod receipt;
 mod solver;
 mod syntax;
 
+pub use mutation::{Strength, Survivor};
 pub use solver::Solvers;
 
 /// Parameter names with the values a solver gave them, in source terms.
@@ -150,6 +152,9 @@ pub struct Report {
     pub definitions: Vec<Definition>,
     /// The file's standing.
     pub standing: Standing,
+    /// Each contract's strength against mutants, when the solvers were asked
+    /// for it; it doesn't change standing.
+    pub strength: Vec<Strength>,
 }
 
 /// A definition's standing from its own evidence.
@@ -251,11 +256,17 @@ pub fn verify(source: &str, solvers: &Solvers) -> Result<Report, Diagnostic> {
         })
         .collect();
     let standing = file_standing(&definitions);
+    let strength = if solvers.mutates() {
+        mutation::strengths(&units, solvers)
+    } else {
+        Vec::new()
+    };
     Ok(Report {
         verdicts,
         examples,
         definitions,
         standing,
+        strength,
     })
 }
 
