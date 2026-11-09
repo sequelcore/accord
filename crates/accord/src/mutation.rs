@@ -79,6 +79,7 @@ fn op_text(op: Op) -> &'static str {
         Op::Le => "<=",
         Op::Gt => ">",
         Op::Ge => ">=",
+        Op::In => "in",
     }
 }
 
@@ -94,7 +95,7 @@ fn swap(op: Op) -> Option<Op> {
         Op::Ne => Op::Eq,
         Op::And => Op::Or,
         Op::Or => Op::And,
-        Op::Implies => return None,
+        Op::Implies | Op::In => return None,
     })
 }
 
@@ -103,7 +104,8 @@ fn line_of(expr: &Expr) -> usize {
         Expr::Name(_, line)
         | Expr::Variant(_, _, line)
         | Expr::Int(_, line)
-        | Expr::Text(_, line) => *line,
+        | Expr::Text(_, line)
+        | Expr::List(_, _, line) => *line,
         Expr::Arith(.., site) | Expr::Neg(_, site) => site.line,
         Expr::Not(inner) => line_of(inner),
         Expr::Binary(_, left, _) | Expr::If(left, _, _) => line_of(left),
@@ -155,6 +157,7 @@ fn mutate_expr(expr: &mut Expr, n: &mut usize) -> Option<Change> {
         }
         Expr::Not(inner) | Expr::Neg(inner, _) => mutate_expr(inner, n),
         Expr::Arith(_, left, right, _) => mutate_expr(left, n).or_else(|| mutate_expr(right, n)),
+        Expr::List(items, ..) => items.iter_mut().find_map(|item| mutate_expr(item, n)),
         Expr::Bool(_) | Expr::Text(..) | Expr::Name(..) | Expr::Variant(..) => None,
     }
 }

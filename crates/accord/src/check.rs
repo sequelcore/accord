@@ -16,12 +16,13 @@ struct Scope<'a> {
     pub spec: bool,
 }
 
-fn type_name(ty: &Type) -> &str {
+fn type_name(ty: &Type) -> String {
     match ty {
-        Type::Bool => "Bool",
-        Type::Int(width) => width.name(),
-        Type::Text => "Text",
-        Type::Enum(name) => name,
+        Type::Bool => "Bool".to_string(),
+        Type::Int(width) => width.name().to_string(),
+        Type::Text => "Text".to_string(),
+        Type::List(element) => format!("List<{}>", type_name(element)),
+        Type::Enum(name) => name.clone(),
     }
 }
 
@@ -37,6 +38,7 @@ impl Scope<'_> {
         match expr {
             Expr::Name(name, _) => name != "result" && self.param(name).is_none(),
             Expr::Int(..) => true,
+            Expr::List(items, ..) => items.iter().all(|item| self.needs_context(item)),
             Expr::Neg(inner, _) => self.needs_context(inner),
             Expr::Arith(_, left, right, _) => self.needs_context(left) && self.needs_context(right),
             _ => false,
@@ -66,6 +68,33 @@ impl Scope<'_> {
         match expr {
             Expr::Bool(_) => Ok(Type::Bool),
             Expr::Text(..) => Ok(Type::Text),
+            Expr::List(items, element, line) => {
+                let known = match expected {
+                    Some(Type::List(t)) => Some((**t).clone()),
+                    _ => None,
+                };
+                let ty = match known {
+                    Some(t) => t,
+                    None => {
+                        let Some(first) = items.iter_mut().find(|i| !self.needs_context(i)) else {
+                            return Err(Diagnostic::new(
+                                *line,
+                                "the type of this list isn't known here",
+                            ));
+                        };
+                        self.infer(first, None)?
+                    }
+                };
+                for item in items.iter_mut() {
+                    self.value(
+                        item,
+                        &ty,
+                        &format!("each element must be a `{}`", type_name(&ty)),
+                    )?;
+                }
+                *element = Some(ty.clone());
+                Ok(Type::List(Box::new(ty)))
+            }
             Expr::Int(value, line) => match expected {
                 Some(Type::Int(width)) if self.spec || *value <= width.max() => {
                     Ok(Type::Int(*width))
@@ -165,8 +194,37 @@ impl Scope<'_> {
                 Ok(Type::Bool)
             }
             Expr::Binary(op, left, right) => {
-                let line = line_of(left);
+                // A `true` or `false` carries no line; the other side does.
+                let line = match line_of(left) {
+                    0 => line_of(right),
+                    line => line,
+                };
                 match op {
+                    Op::In => {
+                        let (element, list) = if self.needs_context(right) {
+                            let element = self.infer(left, None)?;
+                            let list = Type::List(Box::new(element.clone()));
+                            (element, self.infer(right, Some(&list))?)
+                        } else {
+                            let list = self.infer(right, None)?;
+                            let element = match &list {
+                                Type::List(t) => Some((**t).clone()),
+                                _ => None,
+                            };
+                            (self.infer(left, element.as_ref())?, list)
+                        };
+                        if list == Type::List(Box::new(element.clone())) {
+                            Ok(Type::Bool)
+                        } else {
+                            Err(Diagnostic::new(
+                                line,
+                                format!(
+                                    "`in` needs a list of `{}` on its right",
+                                    type_name(&element)
+                                ),
+                            ))
+                        }
+                    }
                     Op::Eq | Op::Ne | Op::Lt | Op::Le | Op::Gt | Op::Ge => {
                         let (l, r) = self.pair(left, right, None)?;
                         let ordered = !matches!(op, Op::Eq | Op::Ne);
@@ -239,7 +297,8 @@ fn line_of(expr: &Expr) -> usize {
         Expr::Name(_, line)
         | Expr::Variant(_, _, line)
         | Expr::Int(_, line)
-        | Expr::Text(_, line) => *line,
+        | Expr::Text(_, line)
+        | Expr::List(_, _, line) => *line,
         Expr::Arith(.., site) | Expr::Neg(_, site) => site.line,
         Expr::Not(inner) => line_of(inner),
         Expr::Binary(_, left, _) | Expr::If(left, _, _) => line_of(left),
@@ -269,6 +328,13 @@ fn check_enums(enums: &[Enum]) -> Result<(), Diagnostic> {
 
 fn check_type(enums: &[Enum], ty: &Type, line: usize) -> Result<(), Diagnostic> {
     match ty {
+        Type::List(element) => match **element {
+            Type::Int(_) | Type::List(_) => Err(Diagnostic::new(
+                line,
+                format!("lists of `{}` aren't supported yet", type_name(element)),
+            )),
+            _ => check_type(enums, element, line),
+        },
         Type::Enum(name) if !enums.iter().any(|e| e.name == *name) => {
             Err(Diagnostic::new(line, format!("unknown type `{name}`")))
         }

@@ -53,7 +53,11 @@ impl Parser<'_> {
             (">", Op::Gt),
             (">=", Op::Ge),
         ];
-        let Some(&(_, op)) = ops.iter().find(|(sym, _)| self.at_sym(sym)) else {
+        let op = if self.at_word("in") {
+            Op::In
+        } else if let Some(&(_, op)) = ops.iter().find(|(sym, _)| self.at_sym(sym)) {
+            op
+        } else {
             return Ok(left);
         };
         self.pos += 1;
@@ -132,6 +136,18 @@ impl Parser<'_> {
             return Ok(Expr::Bool(value));
         }
         let line = self.line();
+        if self.at_sym("[") {
+            self.pos += 1;
+            let mut items = Vec::new();
+            while !self.at_sym("]") {
+                items.push(self.expr()?);
+                if !self.at_sym("]") {
+                    self.expect_sym(",")?;
+                }
+            }
+            self.expect_sym("]")?;
+            return Ok(Expr::List(items, None, line));
+        }
         if let Some(Token::Str(text)) = self.peek() {
             let text = text.clone();
             self.pos += 1;

@@ -1,0 +1,11 @@
+// expect: proved, refuted, failed, passed
+// open: determined
+fn may_change(tool: Text) -> Bool
+    ensures result implies not tool in ["read", "grep", "find", "ls"]
+    ensures not tool in ["read", "grep", "find", "ls"] implies result
+{
+    not tool in ["read", "grep", "find", "ls", "edit"]
+}
+
+example may_change(tool: "edit") == true
+example may_change(tool: "ls") == false

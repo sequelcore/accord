@@ -1,0 +1,7 @@
+// expect: proved
+// open: determined
+fn same(a: List<Bool>, b: List<Bool>) -> Bool
+    ensures result == (a == b)
+{
+    a == b
+}

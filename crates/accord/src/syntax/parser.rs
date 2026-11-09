@@ -115,6 +115,12 @@ impl Parser<'_> {
             "i32" => Type::Int(Width::I32),
             "i64" => Type::Int(Width::I64),
             "Text" => Type::Text,
+            "List" => {
+                self.expect_sym("<")?;
+                let element = self.ty()?;
+                self.expect_sym(">")?;
+                Type::List(Box::new(element))
+            }
             _ => Type::Enum(name),
         })
     }
@@ -292,6 +298,7 @@ pub(super) fn is_keyword(word: &str) -> bool {
             | "intent"
             | "open"
             | "when"
+            | "in"
             | "requires"
             | "ensures"
             | "decide"

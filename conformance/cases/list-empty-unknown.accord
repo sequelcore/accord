@@ -1,0 +1,5 @@
+// expect: error
+fn empty() -> Bool
+{
+    [] == []
+}

@@ -236,50 +236,63 @@ pub(crate) fn parse_answer(output: &str, params: &[String]) -> Answer {
     }
 }
 
-/// The value `get-value` gives `name`, in source terms: a symbol, a number,
-/// or `(- n)` read as `-n`.
-fn value_of(text: &str, name: &str) -> Option<String> {
-    let start = text.find(&format!("({name} "))? + name.len() + 2;
-    let rest = text[start..].trim_start();
-    if let Some(quoted) = rest.strip_prefix('"') {
-        return read_string(quoted);
+/// One SMT-LIB value as `get-value` prints it.
+enum Sexp {
+    Atom(String),
+    /// A string literal's characters, decoded.
+    Str(String),
+    List(Vec<Sexp>),
+}
+
+type Chars<'a> = std::iter::Peekable<std::str::Chars<'a>>;
+
+fn parse_sexp(chars: &mut Chars) -> Option<Sexp> {
+    while chars.peek()?.is_whitespace() {
+        chars.next();
     }
-    let value = if rest.starts_with('(') {
-        let mut depth = 0;
-        let end = rest.find(|c: char| {
-            depth += match c {
-                '(' => 1,
-                ')' => -1,
-                _ => 0,
-            };
-            depth == 0
-        })?;
-        &rest[..=end]
-    } else {
-        &rest[..rest.find([')', ' ', '\n'])?]
-    };
-    match value.strip_prefix("(-").and_then(|v| v.strip_suffix(')')) {
-        Some(magnitude) => Some(format!("-{}", magnitude.trim())),
-        None if value.starts_with('(') => None,
-        None => Some(value.to_string()),
+    match chars.next()? {
+        '(' => {
+            let mut items = Vec::new();
+            loop {
+                while chars.peek()?.is_whitespace() {
+                    chars.next();
+                }
+                if chars.peek() == Some(&')') {
+                    chars.next();
+                    return Some(Sexp::List(items));
+                }
+                items.push(parse_sexp(chars)?);
+            }
+        }
+        '"' => read_string(chars).map(Sexp::Str),
+        first => {
+            let mut atom = String::from(first);
+            while let Some(&c) = chars.peek() {
+                if c.is_whitespace() || c == '(' || c == ')' {
+                    break;
+                }
+                atom.push(c);
+                chars.next();
+            }
+            Some(Sexp::Atom(atom))
+        }
     }
 }
 
-/// An SMT-LIB string literal, after its opening quote, as Accord source:
-/// `""` is a quote, and `\u{...}` or `\uXXXX` a character. Z3 prints a
-/// backslash raw, so a text that itself contains `\u{...}` reads back as the
-/// character it spells; the interpreter's replay then rejects the model, and
-/// the obligation is undecided, never wrongly decided.
-fn read_string(quoted: &str) -> Option<String> {
+/// An SMT-LIB string literal's characters, after its opening quote: `""` is
+/// a quote, and `\u{...}` or `\uXXXX` a character. Z3 prints a backslash
+/// raw, so a text that itself contains `\u{...}` reads back as the character
+/// it spells; the interpreter's replay then rejects the model, and the
+/// obligation is undecided, never wrongly decided.
+fn read_string(chars: &mut Chars) -> Option<String> {
     let mut out = String::new();
-    let mut chars = quoted.chars().peekable();
     loop {
         match chars.next()? {
             '"' if chars.peek() == Some(&'"') => {
                 chars.next();
                 out.push('"');
             }
-            '"' => return Some(format!("\"{out}\"")),
+            '"' => return Some(out),
             '\\' if chars.peek() == Some(&'u') => {
                 chars.next();
                 let hex: String = if chars.peek() == Some(&'{') {
@@ -293,6 +306,45 @@ fn read_string(quoted: &str) -> Option<String> {
             c => out.push(c),
         }
     }
+}
+
+/// A sequence value's elements, in Accord source: `(seq.unit x)`,
+/// `(seq.++ ...)` and `(as seq.empty ...)`.
+fn elements(value: &Sexp) -> Option<Vec<String>> {
+    let Sexp::List(items) = value else {
+        return None;
+    };
+    match items.as_slice() {
+        [Sexp::Atom(f), x] if f == "seq.unit" => Some(vec![source(x)?]),
+        [Sexp::Atom(f), parts @ ..] if f == "seq.++" => {
+            let mut out = Vec::new();
+            for part in parts {
+                out.extend(elements(part)?);
+            }
+            Some(out)
+        }
+        [Sexp::Atom(a), Sexp::Atom(e), _] if a == "as" && e == "seq.empty" => Some(Vec::new()),
+        _ => None,
+    }
+}
+
+/// A value in Accord source: a symbol or number as printed, `(- n)` as `-n`,
+/// a string in quotes, a sequence as a list literal.
+fn source(value: &Sexp) -> Option<String> {
+    match value {
+        Sexp::Atom(atom) => Some(atom.clone()),
+        Sexp::Str(text) => Some(format!("\"{text}\"")),
+        Sexp::List(items) => match items.as_slice() {
+            [Sexp::Atom(minus), Sexp::Atom(n)] if minus == "-" => Some(format!("-{n}")),
+            _ => elements(value).map(|items| format!("[{}]", items.join(", "))),
+        },
+    }
+}
+
+/// The value `get-value` gives `name`, in Accord source.
+fn value_of(text: &str, name: &str) -> Option<String> {
+    let start = text.find(&format!("({name} "))? + name.len() + 2;
+    source(&parse_sexp(&mut text[start..].chars().peekable())?)
 }
 
 /// Two answers become one outcome. Only agreement proves or refutes. A
@@ -514,6 +566,20 @@ mod tests {
                 Answer::Sat(vec![("a".to_string(), "\"x \\\"".to_string())])
             );
         }
+    }
+
+    #[test]
+    fn sequences_read_as_list_literals() {
+        // Both solvers' forms, with a `)` inside a text and an empty list.
+        let output = "sat\n((s (seq.++ (seq.unit \"x)\") (seq.unit \"caf\\u{e9}\")))\n (c (seq.unit E0.v1))\n (e (as seq.empty (Seq String))))\n";
+        assert_eq!(
+            parse_answer(output, &names(&["s", "c", "e"])),
+            Answer::Sat(vec![
+                ("s".to_string(), "[\"x)\", \"café\"]".to_string()),
+                ("c".to_string(), "[E0.v1]".to_string()),
+                ("e".to_string(), "[]".to_string())
+            ])
+        );
     }
 
     #[test]
