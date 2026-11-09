@@ -75,7 +75,15 @@ never records acceptance; that stays with the person.
   so not a mistake, and dropped), **surviving** (the contract allows it
   although it behaves differently, shown with an input on which the two
   differ) or **undecided**. A contract with a surviving mutant is **weak**.
-  Only functions with an `ensures` are mutated.
+  Only functions with an `ensures` are mutated. The mistakes planted are: a
+  comparison or logical operator swapped (`<` and `<=`, `>` and `>=`, `==`
+  and `!=`, `and` and `or`); an integer literal moved by one, never below
+  zero; a condition negated; and, in a decision table, two adjacent rows
+  swapped, a row's `Bool` or enum result replaced, or a row removed where
+  `otherwise` keeps the table complete. Nothing else is mutated: not `in`,
+  arithmetic operators, texts or lists, so a contract's strength says
+  nothing about those parts of a body. At most 64 mutants are tried per
+  function; the rest are counted as not tried.
 - **Weakening:** two revisions of one contract compared: weaker, stronger,
   equivalent, incomparable or undecided, decided by the solvers. A weaker
   contract accepts fewer inputs or promises less, and is reported with what
