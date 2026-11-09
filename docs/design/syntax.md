@@ -128,7 +128,7 @@ condition can never be the first to hold.
 | --- | --- |
 | Logic | `and`, `or`, `not`; in `requires` and `ensures`, also `implies` |
 | Comparison | `==`, `!=`, `<`, `<=`, `>`, `>=` |
-| Arithmetic | `+`, `-`, `*`, and `-` before a value; `/` and `%`, with a zero divisor an obligation, are planned but not compiled: how they round is not yet decided |
+| Arithmetic | `+`, `-`, `*`, and `-` before a value; `/` and `%` truncate toward zero (`-7 / 2 == -3`, `-7 % 2 == -1`), in code and in specifications, with a zero divisor and `MIN / -1` obligations. `/` and `%` aren't compiled yet |
 | Choice | `if condition { a } else { b }`, always with `else` |
 | Call | `name(label: value, …)`; labels are required when the function has more than one parameter |
 
