@@ -20,6 +20,10 @@ each term means.
 - **Grow by the roadmap's target.** Add only what the current stage's target
   needs; the next Tesota rule to port decides the next construct.
 - **Independent of Tesota.** No Tesota code or vocabulary in Accord's API.
+- **Design on merit.** How Tesota or quint-ts solves something is a reference,
+  not a template; a Tesota rule is a target to port, not a design to copy.
+  Weigh each design choice against comparable tools and where their users
+  struggle, with the relevant design skills, and choose the clearest design.
 - **No releases yet.** Publishing a package or a release, and announcing
   one, are the maintainers' decisions.
 
