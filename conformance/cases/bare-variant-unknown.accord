@@ -1,0 +1,8 @@
+// expect: error
+enum Light { Red, Amber, Green }
+
+fn red_is_red() -> Bool
+    ensures result
+{
+    Red == Red
+}

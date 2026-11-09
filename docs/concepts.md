@@ -54,10 +54,15 @@ never records acceptance; that stays with the person.
   and its specification that must hold: a postcondition on one path, the
   absence of overflow in one addition, a precondition at one call. Some come
   from the specification; others are implicit in the language.
+- **Polarity** of an obligation: **universal** when it must hold for every
+  admitted input, as a postcondition must, or **existential** when it needs
+  some admitted input, as a decision table's row needs one that reaches it.
 - **Outcome** of an obligation, one of:
-  - **proved:** both solvers proved it;
-  - **refuted:** a solver found a **counterexample**, concrete inputs on
-    which it fails, reported in source terms;
+  - **proved:** both solvers proved it. An existential obligation is proved
+    by a **witness**, an input for which it holds, reported in source terms;
+  - **refuted:** the solvers found a **counterexample**, concrete inputs on
+    which it fails, reported in source terms; or, for an existential
+    obligation, both proved that no input exists;
   - **undecided:** no proof and no counterexample, with a reason: a timeout,
     an unknown answer, or the solvers disagreeing (which is also raised as
     an alarm);

@@ -5,7 +5,8 @@ use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
 
-use crate::Outcome;
+use crate::obligation::Polarity;
+use crate::{Outcome, Refutation};
 
 /// The two solvers every obligation goes to.
 #[derive(Clone, Debug)]
@@ -18,9 +19,9 @@ pub struct Solvers {
 /// What one solver said about one obligation.
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) enum Answer {
-    /// The clause can fail; the values are the parameters that make it fail.
+    /// The script's assertions can hold, with the parameters' values.
     Sat(Vec<(String, String)>),
-    /// The clause holds.
+    /// They can't.
     Unsat,
     /// No answer, with the reason.
     Unknown(String),
@@ -44,7 +45,7 @@ impl Solvers {
         self
     }
 
-    pub(crate) fn decide(&self, script: &str, params: &[String]) -> Outcome {
+    pub(crate) fn decide(&self, script: &str, params: &[String], polarity: Polarity) -> Outcome {
         let ms = self.timeout.as_millis().max(1);
         let z3 = run(
             &self.z3,
@@ -60,7 +61,7 @@ impl Solvers {
             self.timeout,
             params,
         );
-        combine(&z3, &cvc5)
+        combine(&z3, &cvc5, polarity)
     }
 }
 
@@ -160,20 +161,31 @@ fn value_of(text: &str, name: &str) -> Option<String> {
     Some(text[start..end].trim().to_string())
 }
 
-/// Two answers become one outcome. Only agreement proves or refutes.
-pub(crate) fn combine(z3: &Answer, cvc5: &Answer) -> Outcome {
-    match (z3, cvc5) {
-        (Answer::Unsat, Answer::Unsat) => Outcome::Proved,
-        (Answer::Sat(values), Answer::Sat(_)) => Outcome::Refuted {
-            counterexample: values.clone(),
+/// Two answers become one outcome. Only agreement proves or refutes. A
+/// universal obligation's script asserts that it fails, so `unsat` proves it;
+/// an existential one's asserts the input it needs, so `sat` proves it.
+pub(crate) fn combine(z3: &Answer, cvc5: &Answer, polarity: Polarity) -> Outcome {
+    match (z3, cvc5, polarity) {
+        (Answer::Unsat, Answer::Unsat, Polarity::Universal) => Outcome::Proved { witness: None },
+        (Answer::Unsat, Answer::Unsat, Polarity::Existential) => Outcome::Refuted {
+            evidence: Refutation::NoSuchInput,
         },
-        (Answer::Sat(_), Answer::Unsat) | (Answer::Unsat, Answer::Sat(_)) => Outcome::Undecided {
-            reason: "the solvers disagree: one proved it and the other refuted it".to_string(),
+        (Answer::Sat(values), Answer::Sat(_), Polarity::Universal) => Outcome::Refuted {
+            evidence: Refutation::Counterexample(values.clone()),
         },
-        (Answer::Unknown(reason), _) => Outcome::Undecided {
+        (Answer::Sat(values), Answer::Sat(_), Polarity::Existential) => Outcome::Proved {
+            witness: Some(values.clone()),
+        },
+        (Answer::Sat(_), Answer::Unsat, _) | (Answer::Unsat, Answer::Sat(_), _) => {
+            Outcome::Undecided {
+                reason: "the solvers disagree: one found an input and the other proved none exists"
+                    .to_string(),
+            }
+        }
+        (Answer::Unknown(reason), _, _) => Outcome::Undecided {
             reason: format!("Z3: {reason}"),
         },
-        (_, Answer::Unknown(reason)) => Outcome::Undecided {
+        (_, Answer::Unknown(reason), _) => Outcome::Undecided {
             reason: format!("cvc5: {reason}"),
         },
     }
@@ -182,7 +194,8 @@ pub(crate) fn combine(z3: &Answer, cvc5: &Answer) -> Outcome {
 #[cfg(test)]
 mod tests {
     use super::{Answer, Solvers, combine, parse_answer};
-    use crate::Outcome;
+    use crate::obligation::Polarity::{Existential, Universal};
+    use crate::{Outcome, Refutation};
     use std::path::PathBuf;
     use std::time::Duration;
 
@@ -191,15 +204,42 @@ mod tests {
     }
 
     #[test]
-    fn only_two_unsat_answers_prove() {
-        assert_eq!(combine(&Answer::Unsat, &Answer::Unsat), Outcome::Proved);
+    fn only_two_unsat_answers_prove_a_universal_obligation() {
+        assert_eq!(
+            combine(&Answer::Unsat, &Answer::Unsat, Universal),
+            Outcome::Proved { witness: None }
+        );
+        let unknown = Answer::Unknown("ran out of time".to_string());
+        for polarity in [Universal, Existential] {
+            assert!(matches!(
+                combine(&Answer::Unsat, &unknown, polarity),
+                Outcome::Undecided { .. }
+            ));
+            assert!(matches!(
+                combine(&unknown, &Answer::Unsat, polarity),
+                Outcome::Undecided { .. }
+            ));
+        }
+    }
+
+    #[test]
+    fn an_existential_obligation_is_proved_by_a_witness_and_refuted_by_two_unsat() {
+        let sat = Answer::Sat(vec![("a".to_string(), "true".to_string())]);
+        assert_eq!(
+            combine(&sat, &sat, Existential),
+            Outcome::Proved {
+                witness: Some(vec![("a".to_string(), "true".to_string())])
+            }
+        );
+        assert_eq!(
+            combine(&Answer::Unsat, &Answer::Unsat, Existential),
+            Outcome::Refuted {
+                evidence: Refutation::NoSuchInput
+            }
+        );
         let unknown = Answer::Unknown("ran out of time".to_string());
         assert!(matches!(
-            combine(&Answer::Unsat, &unknown),
-            Outcome::Undecided { .. }
-        ));
-        assert!(matches!(
-            combine(&unknown, &Answer::Unsat),
+            combine(&sat, &unknown, Existential),
             Outcome::Undecided { .. }
         ));
     }
@@ -207,14 +247,16 @@ mod tests {
     #[test]
     fn disagreement_is_undecided() {
         let sat = Answer::Sat(vec![("a".to_string(), "true".to_string())]);
-        assert!(matches!(
-            combine(&sat, &Answer::Unsat),
-            Outcome::Undecided { .. }
-        ));
-        assert!(matches!(
-            combine(&Answer::Unsat, &sat),
-            Outcome::Undecided { .. }
-        ));
+        for polarity in [Universal, Existential] {
+            assert!(matches!(
+                combine(&sat, &Answer::Unsat, polarity),
+                Outcome::Undecided { .. }
+            ));
+            assert!(matches!(
+                combine(&Answer::Unsat, &sat, polarity),
+                Outcome::Undecided { .. }
+            ));
+        }
     }
 
     #[test]
@@ -245,16 +287,18 @@ mod tests {
     }
 
     #[test]
-    fn a_missing_solver_never_proves() {
+    fn a_missing_solver_never_decides() {
         let solvers = Solvers {
             z3: PathBuf::from("no-such-solver-z3"),
             cvc5: PathBuf::from("no-such-solver-cvc5"),
             timeout: Duration::from_secs(1),
         };
         let script = "(set-logic QF_UF)\n(assert false)\n(check-sat)\n";
-        assert!(matches!(
-            solvers.decide(script, &[]),
-            Outcome::Undecided { .. }
-        ));
+        for polarity in [Universal, Existential] {
+            assert!(matches!(
+                solvers.decide(script, &[], polarity),
+                Outcome::Undecided { .. }
+            ));
+        }
     }
 }

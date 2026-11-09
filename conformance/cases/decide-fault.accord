@@ -1,0 +1,9 @@
+// expect: proved, refuted, proved, proved
+enum Light { Red, Amber, Green }
+
+fn next(light: Light) -> Light
+    ensures result != light
+decide {
+    | light == Red   => Green
+    | light == Green => Amber
+}

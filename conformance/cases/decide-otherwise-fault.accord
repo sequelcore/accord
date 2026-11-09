@@ -1,0 +1,9 @@
+// expect: proved, proved, proved, refuted
+enum Light { Red, Amber, Green }
+
+fn must_stop(light: Light) -> Bool
+decide {
+    | light == Green => false
+    | light != Green => true
+    | otherwise      => true
+}

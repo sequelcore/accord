@@ -1,0 +1,8 @@
+// expect: proved
+enum Light { Red, Amber, Green }
+
+fn red_is_red() -> Bool
+    ensures result
+{
+    Light.Red == Light.Red
+}

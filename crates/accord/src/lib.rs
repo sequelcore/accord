@@ -8,6 +8,9 @@ mod syntax;
 
 pub use solver::Solvers;
 
+/// Parameter names with the values a solver gave them, in source terms.
+pub type Inputs = Vec<(String, String)>;
+
 /// A reason a file was rejected before any obligation was generated.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Diagnostic {
@@ -30,11 +33,15 @@ impl Diagnostic {
 #[derive(Clone, Debug, PartialEq)]
 pub enum Outcome {
     /// Both solvers proved it.
-    Proved,
-    /// Both solvers found inputs on which it fails; these are one solver's.
+    Proved {
+        /// For an obligation that some input exists, such as one reaching a
+        /// decision table's row: one solver's input that does.
+        witness: Option<Inputs>,
+    },
+    /// Both solvers established that it fails.
     Refuted {
-        /// Each parameter's name and the value that makes the obligation fail.
-        counterexample: Vec<(String, String)>,
+        /// How it fails.
+        evidence: Refutation,
     },
     /// No proof and no agreed counterexample.
     Undecided {
@@ -46,6 +53,15 @@ pub enum Outcome {
         /// What isn't supported.
         reason: String,
     },
+}
+
+/// What shows that an obligation fails.
+#[derive(Clone, Debug, PartialEq)]
+pub enum Refutation {
+    /// Inputs on which it fails, from one solver.
+    Counterexample(Inputs),
+    /// It needs some input, and both solvers proved that none exists.
+    NoSuchInput,
 }
 
 /// The outcome of one obligation, with where it comes from.
@@ -63,15 +79,16 @@ pub struct Verdict {
 
 /// Parses and checks `source`, then decides every obligation in it.
 ///
-/// Returns one verdict per `ensures`, in source order, or the diagnostic
-/// that rejected the file.
+/// Returns one verdict per obligation, in source order: each `ensures`,
+/// then for a decision table its coverage and each row's reachability. Or
+/// the diagnostic that rejected the file.
 pub fn verify(source: &str, solvers: &Solvers) -> Result<Vec<Verdict>, Diagnostic> {
-    let functions = syntax::parse(source)?;
-    check::check(&functions)?;
-    Ok(obligation::obligations(&functions)
+    let mut program = syntax::parse(source)?;
+    check::check(&mut program)?;
+    Ok(obligation::obligations(&program)
         .into_iter()
         .map(|o| Verdict {
-            outcome: solvers.decide(&o.script, &o.params),
+            outcome: solvers.decide(&o.script, &o.params, o.polarity),
             function: o.function,
             clause: o.clause,
             line: o.line,

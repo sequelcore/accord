@@ -1,0 +1,323 @@
+//! The parser: tokens to a [`Program`].
+
+use super::token::{Token, tokenize};
+use super::{Body, Clause, ClauseKind, Enum, Expr, Function, Op, Program, Row, Type};
+use crate::Diagnostic;
+
+struct Parser<'a> {
+    source: Vec<&'a str>,
+    tokens: Vec<(Token, usize, usize)>,
+    pos: usize,
+}
+
+impl Parser<'_> {
+    fn line(&self) -> usize {
+        self.tokens
+            .get(self.pos)
+            .or(self.tokens.last())
+            .map_or(1, |t| t.1)
+    }
+
+    fn peek(&self) -> Option<&Token> {
+        self.tokens.get(self.pos).map(|t| &t.0)
+    }
+
+    fn at_word(&self, word: &str) -> bool {
+        matches!(self.peek(), Some(Token::Word(w)) if w == word)
+    }
+
+    fn at_sym(&self, sym: &str) -> bool {
+        matches!(self.peek(), Some(Token::Sym(s)) if *s == sym)
+    }
+
+    fn error<T>(&self, message: impl Into<String>) -> Result<T, Diagnostic> {
+        Err(Diagnostic::new(self.line(), message))
+    }
+
+    fn expect_sym(&mut self, sym: &str) -> Result<(), Diagnostic> {
+        if self.at_sym(sym) {
+            self.pos += 1;
+            Ok(())
+        } else {
+            self.error(format!("expected `{sym}`"))
+        }
+    }
+
+    fn expect_word(&mut self, word: &str) -> Result<(), Diagnostic> {
+        if self.at_word(word) {
+            self.pos += 1;
+            Ok(())
+        } else {
+            self.error(format!("expected `{word}`"))
+        }
+    }
+
+    fn name(&mut self) -> Result<String, Diagnostic> {
+        match self.peek() {
+            Some(Token::Word(w)) if !is_keyword(w) => {
+                let w = w.clone();
+                self.pos += 1;
+                Ok(w)
+            }
+            _ => self.error("expected a name"),
+        }
+    }
+
+    /// The source text from the current token to the end of its line,
+    /// without a trailing comment, with the token's line.
+    fn rest_of_line(&self) -> (String, usize) {
+        let (line, column) = (self.tokens[self.pos].1, self.tokens[self.pos].2);
+        let text = self.source[line - 1][column..]
+            .split("//")
+            .next()
+            .unwrap_or_default()
+            .trim();
+        (text.to_string(), line)
+    }
+
+    fn ty(&mut self) -> Result<Type, Diagnostic> {
+        let name = self.name()?;
+        Ok(match name.as_str() {
+            "Bool" => Type::Bool,
+            _ => Type::Enum(name),
+        })
+    }
+
+    fn enumeration(&mut self) -> Result<Enum, Diagnostic> {
+        let line = self.line();
+        self.expect_word("enum")?;
+        let name = self.name()?;
+        self.expect_sym("{")?;
+        let mut variants = Vec::new();
+        while !self.at_sym("}") {
+            variants.push(self.name()?);
+            if !self.at_sym("}") {
+                self.expect_sym(",")?;
+            }
+        }
+        self.expect_sym("}")?;
+        if variants.is_empty() {
+            return Err(Diagnostic::new(line, format!("`{name}` has no variants")));
+        }
+        Ok(Enum {
+            name,
+            variants,
+            line,
+        })
+    }
+
+    fn function(&mut self) -> Result<Function, Diagnostic> {
+        let line = self.line();
+        self.expect_word("fn")?;
+        let name = self.name()?;
+        self.expect_sym("(")?;
+        let mut params = Vec::new();
+        while !self.at_sym(")") {
+            let param = self.name()?;
+            self.expect_sym(":")?;
+            params.push((param, self.ty()?));
+            if !self.at_sym(")") {
+                self.expect_sym(",")?;
+            }
+        }
+        self.expect_sym(")")?;
+        self.expect_sym("->")?;
+        let ret = self.ty()?;
+        let mut clauses = Vec::new();
+        while self.at_word("requires") || self.at_word("ensures") {
+            let kind = if self.at_word("requires") {
+                ClauseKind::Requires
+            } else {
+                ClauseKind::Ensures
+            };
+            let (text, line) = self.rest_of_line();
+            self.pos += 1;
+            let expr = self.expr()?;
+            clauses.push(Clause {
+                kind,
+                expr,
+                text,
+                line,
+            });
+        }
+        let body = if self.at_word("decide") {
+            self.decide()?
+        } else {
+            self.expect_sym("{")?;
+            let body = self.expr()?;
+            self.expect_sym("}")?;
+            Body::Expr(body)
+        };
+        Ok(Function {
+            name,
+            line,
+            params,
+            ret,
+            clauses,
+            body,
+        })
+    }
+
+    fn decide(&mut self) -> Result<Body, Diagnostic> {
+        let line = self.line();
+        self.expect_word("decide")?;
+        self.expect_sym("{")?;
+        let mut rows: Vec<Row> = Vec::new();
+        while self.at_sym("|") {
+            if rows.last().is_some_and(|row| row.condition.is_none()) {
+                return self.error("`otherwise` must be the last row");
+            }
+            let (text, row_line) = self.rest_of_line();
+            self.pos += 1;
+            let condition = if self.at_word("otherwise") {
+                self.pos += 1;
+                None
+            } else {
+                Some(self.expr()?)
+            };
+            self.expect_sym("=>")?;
+            rows.push(Row {
+                condition,
+                result: self.expr()?,
+                text,
+                line: row_line,
+            });
+        }
+        if rows.is_empty() {
+            return self.error("expected a row starting with `|`");
+        }
+        self.expect_sym("}")?;
+        Ok(Body::Decide(rows, line))
+    }
+
+    fn expr(&mut self) -> Result<Expr, Diagnostic> {
+        let left = self.or()?;
+        if self.at_word("implies") {
+            self.pos += 1;
+            let right = self.expr()?;
+            return Ok(Expr::Binary(Op::Implies, Box::new(left), Box::new(right)));
+        }
+        Ok(left)
+    }
+
+    fn or(&mut self) -> Result<Expr, Diagnostic> {
+        let mut left = self.and()?;
+        while self.at_word("or") {
+            self.pos += 1;
+            left = Expr::Binary(Op::Or, Box::new(left), Box::new(self.and()?));
+        }
+        Ok(left)
+    }
+
+    fn and(&mut self) -> Result<Expr, Diagnostic> {
+        let mut left = self.not()?;
+        while self.at_word("and") {
+            self.pos += 1;
+            left = Expr::Binary(Op::And, Box::new(left), Box::new(self.not()?));
+        }
+        Ok(left)
+    }
+
+    fn not(&mut self) -> Result<Expr, Diagnostic> {
+        if self.at_word("not") {
+            self.pos += 1;
+            return Ok(Expr::Not(Box::new(self.not()?)));
+        }
+        self.comparison()
+    }
+
+    fn comparison(&mut self) -> Result<Expr, Diagnostic> {
+        let left = self.primary()?;
+        let op = if self.at_sym("==") {
+            Op::Eq
+        } else if self.at_sym("!=") {
+            Op::Ne
+        } else {
+            return Ok(left);
+        };
+        self.pos += 1;
+        Ok(Expr::Binary(op, Box::new(left), Box::new(self.primary()?)))
+    }
+
+    fn primary(&mut self) -> Result<Expr, Diagnostic> {
+        if self.at_sym("(") {
+            self.pos += 1;
+            let inner = self.expr()?;
+            self.expect_sym(")")?;
+            return Ok(inner);
+        }
+        if self.at_word("if") {
+            self.pos += 1;
+            let condition = self.expr()?;
+            self.expect_sym("{")?;
+            let then = self.expr()?;
+            self.expect_sym("}")?;
+            self.expect_word("else")?;
+            self.expect_sym("{")?;
+            let otherwise = self.expr()?;
+            self.expect_sym("}")?;
+            return Ok(Expr::If(
+                Box::new(condition),
+                Box::new(then),
+                Box::new(otherwise),
+            ));
+        }
+        if self.at_word("true") || self.at_word("false") {
+            let value = self.at_word("true");
+            self.pos += 1;
+            return Ok(Expr::Bool(value));
+        }
+        let line = self.line();
+        if self.at_word("result") {
+            self.pos += 1;
+            return Ok(Expr::Name("result".to_string(), line));
+        }
+        let name = self.name()?;
+        if self.at_sym(".") {
+            self.pos += 1;
+            return Ok(Expr::Variant(name, self.name()?, line));
+        }
+        Ok(Expr::Name(name, line))
+    }
+}
+
+fn is_keyword(word: &str) -> bool {
+    matches!(
+        word,
+        "fn" | "enum"
+            | "requires"
+            | "ensures"
+            | "decide"
+            | "otherwise"
+            | "if"
+            | "else"
+            | "true"
+            | "false"
+            | "and"
+            | "or"
+            | "not"
+            | "implies"
+            | "result"
+    )
+}
+
+/// Parses every enum and function in `source`.
+pub(crate) fn parse(source: &str) -> Result<Program, Diagnostic> {
+    let mut parser = Parser {
+        source: source.lines().collect(),
+        tokens: tokenize(source)?,
+        pos: 0,
+    };
+    let mut program = Program {
+        enums: Vec::new(),
+        functions: Vec::new(),
+    };
+    while parser.peek().is_some() {
+        if parser.at_word("enum") {
+            program.enums.push(parser.enumeration()?);
+        } else {
+            program.functions.push(parser.function()?);
+        }
+    }
+    Ok(program)
+}
