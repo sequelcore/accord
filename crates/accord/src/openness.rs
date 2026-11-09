@@ -39,7 +39,7 @@ pub struct Determinacy {
     pub function: String,
     /// Whether its contract determines its result where no freedom is declared.
     pub openness: Openness,
-    /// Each `open when` declared, as written: freedoms a person accepted.
+    /// Each `open when` declared, as written; this does not record approval.
     pub free: Vec<String>,
 }
 

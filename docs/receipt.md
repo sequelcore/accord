@@ -1,178 +1,207 @@
-# The receipt
+# The receipt and review view
 
-**Status:** version 1, unstable. The format may change in any version until
-Accord's first release; the `receipt` field says which version a receipt
-follows. The [concepts](concepts.md) define each term.
+**Status: version 2, unstable until the first release.** `accord check <file or
+folder>` produces a per-function terminal review view. Add `--json` for the
+same facts as a structured record with stable diagnostic codes. Both report
+only checks actually performed; neither records human approval.
 
-`accord check <file>` writes the receipt as text, and `accord check <file>
---json` as JSON. Given a folder instead, it checks the folder as one program
-([syntax](design/syntax.md#files-and-folders)) and names each definition's
-file. Both carry the same record: every obligation's outcome,
-every example's run, each function's standing and the file's.
+[Concepts](concepts.md) defines the terms. The
+[human readability check](design/stage-7-review/README.md) contains generated
+packets for the whole gate rule and Cedar. Human acceptance is separate from
+compiler and material checks. [E2](design/e2-human-review/README.md) remains a
+draft, not a registered or completed experiment.
 
-## Exit code
+## What each function shows
 
-| Code | Standing of the file |
+The view contains its signature, used enum variants, unchecked intent, and every
+specification clause as written, including requires and declared freedoms.
+It then shows every obligation, example run, open-case result, mutation result,
+and an explicit list of what was not proved. A missing intent, absent examples,
+no postcondition, or an analysis that did not run is explicit.
+
+The signature and clauses describe the admitted domain and guarantees without
+requiring the implementation body. Text describes row reachability as an
+existential check, with a concrete input when proved, rather than printing the
+row's implementation. JSON retains the source clause for precise diagnostics.
+An overflow finding or surviving mutant can still contain the relevant operation
+or change: those are evidence, not a complete body listing.
+
+Intent is neither evidence nor approval. A contradictory intent does not refute
+a contract; a function with only intent and no checked obligations or examples
+is unverified. A declared freedom is not silently described as accepted by a
+person. Determined means one permitted result outside declared freedoms; it does
+not establish that the result is intended.
+
+## Exit code and streams
+
+| Code | Meaning |
 | --- | --- |
-| 0 | verified |
-| 1 | failed: an obligation was refuted or an example failed |
-| 3 | incomplete or unverified: nothing failed, but something wasn't proved, or nothing was checked |
-| 2 | a usage error |
-| 4 | the file was rejected or couldn't be read, or the solvers couldn't be found; no receipt |
+| 0 | Checked program is verified |
+| 1 | Checked program failed: a refuted obligation or failed example |
+| 3 | Checked program is incomplete or unverified |
+| 2 | Usage error; usage text on stderr, no result |
+| 4 | Source rejected, input unreadable, or solver unavailable; no proof standing |
 
-## JSON, version 1
+In JSON mode a parsed check command always emits one result document on stdout,
+including pre-check errors. Those errors have null standing and no definitions;
+they are not failed proof attempts. In text mode pre-check errors go to stderr
+with an ACC code. A crash, interrupted command, empty output, or unreadable JSON
+must never be accepted as verified.
 
-Object keys come in no fixed order; arrays keep source order.
+## JSON version 2
 
-```json
-{
-  "receipt": 1,
-  "accord": "0.0.0",
-  "file": "conformance/cases/example-requires-fault.accord",
-  "standing": "failed",
-  "definitions": [
-    {
-      "name": "count",
-      "intent": null,
-      "kind": "function",
-      "hash": "98d964c8…",
-      "standing": "failed",
-      "obligations": [
-        {
-          "clause": "ensures result == (n > 0)",
-          "line": 4,
-          "key": "2e0445ed…",
-          "reused": false,
-          "outcome": "proved"
-        }
-      ],
-      "examples": [
-        {
-          "text": "example count(n: -1) == true",
-          "line": 9,
-          "run": "failed",
-          "reason": "the call breaks `requires n >= 0`"
-        }
-      ]
-    }
-  ]
-}
-```
+Object keys have no fixed order; arrays keep source order. This replaces receipt
+version 1; there is no legacy-format switch. `accord diff` retains its separately
+versioned [comparison format](diff.md).
 
 | Field | Meaning |
 | --- | --- |
-| `receipt` | The schema version: `1` |
-| `accord` | The compiler's version |
-| `file` | The file as given on the command line |
-| `standing` | The file's: `verified`, `incomplete`, `failed` or `unverified` |
-| `definitions[]` | One per function, in source order |
-| `.name`, `.kind` | The function's name; `kind` is `function` |
-| `.intent` | The declared purpose as unchecked text, or `null` when absent; it is never evidence or approval |
-| `.file` | The file it's declared in, when a folder was checked; otherwise `null` |
-| `.hash` | SHA-256 of the normalized function: its identity, which no rename changes |
-| `.standing` | The function's, from its own obligations and examples |
-| `.obligations[]` | One per obligation, in source order |
-| `..clause`, `..line` | The obligation as written and its line |
-| `..key` | SHA-256 of the obligation's SMT-LIB script: exactly what was checked |
-| `..reused` | `true` when the outcome came from the ledger instead of the solvers |
-| `..outcome` | `proved`, `refuted`, `undecided` or `unsupported` |
-| `..witness` | With `proved`, for an obligation that needs some input: that input |
-| `..counterexample` | With `refuted`: inputs on which it fails |
-| `..no_such_input` | With `refuted`, `true` when the obligation needs some input and both solvers proved none exists |
-| `..reason` | With `undecided` or `unsupported`: why |
-| `.examples[]` | One per `example` that calls the function, in source order |
-| `..text`, `..line` | The example as written, on one line, and its line |
-| `..run` | `passed` or `failed`; with `failed`, `reason` says why |
-| `.strength` | `null`, or how the contract fared against mutants of the body (below) |
-| `.openness` | `null` without an `ensures`; otherwise `{"determined": true}`, `{"open": {"inputs", "results", "code"}}` or `{"undecided": reason}` (below) |
+| `receipt` | Schema version, now 2 |
+| `accord` | Compiler package version |
+| `file` | Input path as passed to check |
+| `status` | checked, rejected, or unavailable |
+| `standing` | verified, failed, incomplete, unverified; null before a check exists |
+| `definitions[]` | Each checked function, in source order |
+| `diagnostics[]` | Conditions requiring attention, pointing to canonical evidence |
 
-Inputs (`witness`, `counterexample`) are arrays of `{"name": ..., "value": ...}`
-in parameter order, with values written as Accord source (`-3`,
-`Light.Amber`).
+Each definition has these fields:
 
-## Intent
+| Field | Meaning |
+| --- | --- |
+| `name`, `kind` | Function name and function kind |
+| `file`, `line` | Source file within a folder, or null for a single file; 1-based declaration line |
+| `signature` | Function name, labeled parameters, and result type; no body |
+| `parameters[]` | Parameter name and structured type |
+| `result_type` | Structured result type |
+| `types[]` | Used enums, each with name and source variants |
+| `intent` | Unchecked declared purpose, or null |
+| `specification[]` | Each source clause, with text and 1-based line |
+| `hash` | SHA-256 of normalized checked semantics; names and intent do not affect it |
+| `review_hash` | SHA-256 of this definition's review facts, excluding cache-use markers |
+| `standing` | The function's standing, independent of other functions |
+| `obligations[]` | Every proof obligation with its outcome |
+| `examples[]` | Every declared example with its execution result |
+| `openness` | Open-case search result and all declared freedoms; null if no ensures |
+| `strength` | Mutation result; null when not run |
+| `not_proved[]` | Limits, each with a stable kind and explanatory message |
 
-Each function's declared purpose is reported as unchecked text:
+An obligation carries `kind` (postcondition, coverage, row_reachability, or
+overflow), `polarity` (existential for row reachability, otherwise universal),
+`clause`, `line`, `key`, `reused`, and `outcome`. Its key hashes the exact
+normalized SMT-LIB script. Outcomes are proved, refuted, undecided, or unsupported.
+Proved existential checks carry `witness`; refuted universal checks carry
+`counterexample`; refuted existential checks carry `no_such_input: true`.
+Undecided and unsupported outcomes carry a human explanation in `reason`.
+An agent routes undecided checks as unresolved regardless of that prose;
+ACC0003 does not promise that a timeout retry will succeed.
 
-```text
-intent       flag (unchecked): Returns true.
-```
+Examples carry `text`, `line`, and `run` (passed or failed), with `reason` when
+failed. Passing an example proves no universal property.
 
-Without a declaration the text says `not declared`, and JSON has `"intent": null`.
-An intent is neither evidence nor approval. It does not affect standing: a
-function with only intent and no checked obligation or example is unverified.
-A contradictory intent does not refute a contract; deciding whether the
-contract expresses the intent remains a person's task.
+### Typed witness values
 
-Changing intent updates the report without changing the normalized definition
-hash or its proof keys. Current proof evidence can be reused; the new text is
-always read from the current source, never from the evidence ledger.
+Inputs in witnesses, counterexamples, open cases, and mutants have a parameter
+`name`, structured `type`, decoded `value`, exact `source` spelling, and `valid`.
+Result values use the same shape without name. Types are:
 
-## Open cases
+- `{"kind":"bool"}`: value is a JSON Boolean.
+- `{"kind":"integer","width":"i32"}` or i64: value is an exact decimal string,
+  avoiding loss in clients with floating-point JSON numbers.
+- `{"kind":"text"}`: value is a JSON string without Accord quotes.
+- `{"kind":"enum","name":"Light"}`: value is a variant name; declared variants
+  are in the definition's types inventory.
+- `{"kind":"list","element":{"kind":"text"}}`: value is a JSON array of
+  decoded element values, including an empty array.
 
-For every function with an `ensures`, the solvers search for an **open
-case**: an admitted input for which the contract allows two different
-results. Any implementation that picks either one proves, so the proof
-doesn't pin down what the function does there. A case found is replayed by
-the interpreter, which checks that both results meet the contract and that
-they differ, and reports what the code gives. The text receipt shows it as
+Consumers can act on decoded data without parsing Accord prose or literals.
+`source` supports reproducing a case; it is not the decoded value. If a manually
+constructed report cannot be decoded, valid is false and value is null; never
+accept that record as usable witness evidence. Normal compiler-produced witnesses
+have been replayed by the interpreter before they are reported.
 
-```text
-open         f: for n = 0, the contract allows both true and false (the code gives false)
-```
+### Open cases and freedoms
 
-An input an `open when` covers is a permitted freedom, not an open case.
-Every freedom declared is listed, as `free         f: open when n > 0` in
-text and as `free` (the clauses as written) in JSON `openness`, so an
-accepted freedom is never silent.
+`openness` is one of these shapes:
 
-An open case, or a search that didn't settle, makes the function
-**incomplete**, not failed: nothing is wrong yet, and whether the freedom is
-intended is a person's decision.
+- `{"determined":true,"free":[...]}`: no ambiguity found outside freedoms.
+- `{"open":{"inputs":[...],"results":[..., ...],"implementation":...},"free":[...]}`:
+  one admitted input and two permitted results, plus the implementation's result.
+- `{"undecided":"explanation","free":[...]}`: the search did not settle.
 
-## Strength
+Every free entry is an exact `open when` clause. Open cases and undecided searches
+make standing incomplete. No ensures means null, not determined. A domain enum
+variant named Unknown is unrelated to an undecided solver outcome.
 
-`accord check` also plants mutants in the body of every function with an
-`ensures`: comparisons and boundaries changed (`<` and `<=`, `==` and `!=`,
-a literal by one), connectives swapped (`and` and `or`), conditions
-negated, and in decision tables adjacent rows swapped, a row's result
-changed or a row removed while `otherwise` keeps the table complete. Each
-mutant is checked against the function's own contract; see **strength** in
-the [concepts](concepts.md). At most 64 are tried per function.
+### Mutation and unproved claims
 
-The text receipt shows each surviving mutant as `weak`, with the input on
-which the code and the change differ, and a `strength` line per function.
-In JSON, `strength` holds `tried`, `caught`, `equivalent`, `undecided`,
-`not_tried` and `survivors[]`, each with `change`, `inputs`, `original` and
-`mutant`. A weak contract doesn't change standing.
+`strength` contains `tried`, `caught`, `equivalent`, `undecided`, `not_tried`, and
+`survivors[]`. Each survivor has `change`, typed `inputs`, `original`, and `mutant`.
+At most 64 mutants are tried per function. Equivalent mutants are proved to
+behave the same on admitted inputs. A survivor changes behavior while meeting
+the contract; it warns about contract strength but does not change standing.
 
-## The ledger
+Mutation requires ensures, enabled mutation analysis, and proved original
+obligations. An invalid or unresolved baseline is not a basis for a contract-
+strength claim. Null means not run, not a perfect score. Even no survivors means
+only the finite reported mutation sample was checked.
 
-`accord check` keeps a ledger in `.accord/` beside the file it checks: a
-local cache, not meant to be committed. An obligation whose script was
-already decided by the same Z3, cvc5 and compiler build is **reused**, not
-decided again; the text receipt marks it `[reused]` and its summary counts
-them. A changed body or contract changes its scripts, and an enum change
-changes the scripts of the functions that use it, so exactly those are
-decided again; a rename changes no script.
+`not_proved` always identifies intent alignment, surrounding-system integration,
+and trusted compiler components as outside this proof. It also lists applicable
+limits such as excluded inputs, absent examples, missing postconditions,
+refuted/undecided/unsupported obligations, failed examples, open cases, declared
+freedoms, unrun or incomplete mutation analysis, and surviving mutants. These
+are scope statements, not additional solver proofs or approvals.
 
-Only `proved` and `refuted` are stored. An undecided obligation is decided
-again on every run, and an entry that can't be read is decided again, never
-trusted. Examples always run. Deleting `.accord/` loses nothing but time.
+## Stable diagnostics
 
-## Standing
+Every diagnostic has `code`, `action`, `authority: compiler`, severity, source
+location, and an `evidence` JSON pointer. Checked findings also name the function
+and definition hash. Follow the pointer into the same result for the exact
+clause, typed witness, counts, or reason; there is no second evidence ledger.
+Pre-check errors instead have a message and null evidence; line is null when
+there is no source location. Lines are 1-based; columns are not invented.
 
-A function is **failed** if an obligation is refuted or an example fails;
-otherwise **incomplete** if an obligation is undecided or unsupported, or its
-contract has an open case or its search didn't settle;
-otherwise **verified** if it has any obligation or example; otherwise
-**unverified**. The file is failed if any function is, verified only if every
-function is, unverified if none has evidence, and incomplete otherwise.
+| Code | Condition | Action |
+| --- | --- | --- |
+| ACC0001 | Source rejected before obligations | repair_source |
+| ACC0002 | Obligation refuted | inspect_counterexample |
+| ACC0003 | Obligation undecided, including disagreement or rejected replay | inspect_solver |
+| ACC0004 | Obligation unsupported | report_unsupported |
+| ACC0005 | Example failed | inspect_example |
+| ACC0006 | Undeclared open case | review_specification |
+| ACC0007 | Non-equivalent mutant survives | review_specification |
+| ACC0008 | Mutants undecided or untried | inspect_strength_limits |
+| ACC0009 | Required solver unavailable | repair_environment |
+| ACC0010 | Open-case search undecided | inspect_solver |
+| ACC0011 | Input cannot be read | repair_environment |
+| ACC0012 | No checked evidence for a function or program | add_checks |
 
-## Not in version 1
+Numbers identify conditions, never source lines, hashes, or particular solvers.
+They are never reassigned. Prose may change. ACC0004 supports the public Outcome
+state; the current source checker rejects unsupported constructs before producing
+such an obligation. Its projection is tested, not advertised as a supported
+language construct. Surviving-mutant and incomplete-mutation findings are warnings;
+other findings require attention but do not redefine proof standing as failed.
 
-The [concepts](concepts.md) describe a receipt that also carries the solver
-versions, assumptions, opinions kept apart, and what wasn't checked. None of
-these exist in the compiler yet; each joins the receipt when it does. Stale
-evidence never appears: a key that no longer matches is simply not found, and
-its obligation is decided again.
+A routing hint is not authority to weaken a specification, accept a freedom,
+approve intent, or retry until a proof passes. Agents must require status checked
+and standing verified, inspect warnings and limits, and reject unknown schema
+versions or unknown codes before automatic acceptance. Empty diagnostics alone
+is not proof of anything. Human acceptance remains a separate decision.
+
+## Cache and freshness
+
+The ledger in `.accord/` caches only proved and refuted outcomes, keyed by the
+normalized script and compiler/solver builds. An unreadable or nonmatching entry
+is recomputed; undecided checks run again. Examples always execute. Deleting
+the ledger costs time only.
+
+Changing intent updates the report without invalidating proof evidence, since
+prose has no checked semantics. A saved review needs a separate identity:
+review_hash binds current intent, signature, enum inventory, clauses, locations,
+examples, outcomes, witnesses, strength, and limits. Cache-use markers are
+excluded so an unchanged review does not become different merely through reuse.
+Compare the current review_hash before relying on an older packet; it records
+no approval or acceptance and cannot validate a packet against source by itself.
+Solver versions are not embedded in this receipt; the compiler components remain
+trusted, and model opinions and assumption approvals are not stored.

@@ -3,6 +3,7 @@
 //! runs its examples.
 
 mod check;
+mod diagnostic;
 pub mod diff;
 mod identity;
 mod interpret;
@@ -14,9 +15,11 @@ pub mod receipt;
 mod solver;
 mod syntax;
 
+pub use diagnostic::DiagnosticCode;
 pub use mutation::{Strength, Survivor};
 pub use openness::{Determinacy, Openness};
 pub use solver::Solvers;
+pub use syntax::{Type, Width};
 
 /// Parameter names with the values a solver gave them, in source terms.
 pub type Inputs = Vec<(String, String)>;
@@ -24,6 +27,8 @@ pub type Inputs = Vec<(String, String)>;
 /// A reason a file was rejected before any obligation was generated.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Diagnostic {
+    /// The stable machine condition.
+    pub code: DiagnosticCode,
     /// The file the problem is in, for a folder of files; `None` for one file.
     pub file: Option<String>,
     /// The 1-based line the problem is on.
@@ -35,6 +40,7 @@ pub struct Diagnostic {
 impl Diagnostic {
     pub(crate) fn new(line: usize, message: impl Into<String>) -> Diagnostic {
         Diagnostic {
+            code: DiagnosticCode::SourceRejected,
             file: None,
             line,
             message: message.into(),
@@ -86,9 +92,36 @@ pub enum Refutation {
     NoSuchInput,
 }
 
+/// The property an obligation checks, independent of its wording.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum ObligationKind {
+    /// The implementation meets an ensures clause.
+    Postcondition,
+    /// Every admitted input reaches a decision row.
+    Coverage,
+    /// Some admitted input reaches this row first.
+    RowReachability,
+    /// An executable arithmetic operation stays within its type.
+    Overflow,
+}
+
+impl ObligationKind {
+    /// Stable machine name of the property.
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::Postcondition => "postcondition",
+            Self::Coverage => "coverage",
+            Self::RowReachability => "row_reachability",
+            Self::Overflow => "overflow",
+        }
+    }
+}
+
 /// The outcome of one obligation, with where it comes from.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Verdict {
+    /// What was checked; row reachability is existential, all others universal.
+    pub kind: ObligationKind,
     /// The function the obligation belongs to.
     pub function: String,
     /// The clause as written in the source.
@@ -153,6 +186,16 @@ pub struct Definition {
     pub name: String,
     /// Its declared purpose in unchecked natural language, when present.
     pub intent: Option<String>,
+    /// The declaration's 1-based line.
+    pub line: usize,
+    /// Parameter names and types, in declaration order.
+    pub params: Vec<(String, Type)>,
+    /// The result's type.
+    pub result_type: Type,
+    /// Source lines and text of every specification clause, including requires.
+    pub specification: Vec<(usize, String)>,
+    /// Enums used by this function, with their source variants.
+    pub enums: Vec<(String, Vec<String>)>,
     /// The file it's declared in, when a folder was checked.
     pub file: Option<String>,
     /// The hash of the normalized function.
@@ -293,6 +336,12 @@ fn report(
                 interpret::replay(&o, model)
             });
             verdicts.push(Verdict {
+                kind: match o.claim {
+                    obligation::Claim::Ensures(_) => ObligationKind::Postcondition,
+                    obligation::Claim::Covered => ObligationKind::Coverage,
+                    obligation::Claim::Reaches(_) => ObligationKind::RowReachability,
+                    obligation::Claim::InRange { .. } => ObligationKind::Overflow,
+                },
                 outcome: unit.source_outcome(outcome),
                 function: unit.source.name.clone(),
                 key: identity::hash(&o.script),
@@ -329,6 +378,16 @@ fn report(
         .map(|unit| Definition {
             name: unit.source.name.clone(),
             intent: unit.source.intent.clone(),
+            line: unit.source.line,
+            params: unit.source.params.clone(),
+            result_type: unit.source.ret.clone(),
+            specification: unit
+                .source
+                .clauses
+                .iter()
+                .map(|c| (c.line, c.text.clone()))
+                .collect(),
+            enums: unit.source_enums(),
             file: file_of(unit.source.file),
             hash: unit.hash.clone(),
             standing: standing_of(
@@ -343,7 +402,16 @@ fn report(
         .collect();
     let standing = file_standing(&definitions);
     let strength = if solvers.mutates() {
-        mutation::strengths(&units, solvers)
+        let proved_units: Vec<_> = units
+            .into_iter()
+            .filter(|unit| {
+                verdicts
+                    .iter()
+                    .filter(|v| v.function == unit.source.name)
+                    .all(|v| matches!(v.outcome, Outcome::Proved { .. }))
+            })
+            .collect();
+        mutation::strengths(&proved_units, solvers)
     } else {
         Vec::new()
     };
@@ -365,6 +433,7 @@ mod tests {
 
     fn verdict(outcome: Outcome) -> Verdict {
         Verdict {
+            kind: super::ObligationKind::Postcondition,
             function: "f".to_string(),
             clause: "ensures result".to_string(),
             line: 1,
@@ -429,6 +498,11 @@ mod tests {
                 .iter()
                 .map(|&standing| Definition {
                     intent: None,
+                    line: 1,
+                    params: Vec::new(),
+                    result_type: super::Type::Bool,
+                    specification: Vec::new(),
+                    enums: Vec::new(),
                     name: "f".to_string(),
                     file: None,
                     hash: String::new(),

@@ -4,7 +4,7 @@ use std::process::ExitCode;
 
 use std::path::Path;
 
-use accord::{Solvers, Standing, diff, receipt, verify, verify_folder};
+use accord::{Diagnostic, DiagnosticCode, Solvers, Standing, diff, receipt, verify, verify_folder};
 
 const USAGE: &str = "usage: accord check <file or folder> [--json]\n       accord diff <old> <new> [--json]    (either file may be `-` for stdin)\n       accord --version";
 
@@ -62,8 +62,16 @@ fn check(path: &str, as_json: bool) -> ExitCode {
     let sources = match sources {
         Ok(sources) => sources,
         Err(error) => {
-            eprintln!("{path}: {error}");
-            return ExitCode::from(4);
+            return check_error(
+                path,
+                as_json,
+                Diagnostic {
+                    code: DiagnosticCode::InputUnavailable,
+                    file: None,
+                    line: 0,
+                    message: error.to_string(),
+                },
+            );
         }
     };
     // The ledger sits beside what's checked, as a cache nobody commits.
@@ -76,8 +84,16 @@ fn check(path: &str, as_json: bool) -> ExitCode {
     let solvers = match Solvers::from_env() {
         Ok(solvers) => solvers.with_ledger(&ledger).with_mutation(),
         Err(message) => {
-            eprintln!("{message}");
-            return ExitCode::from(4);
+            return check_error(
+                path,
+                as_json,
+                Diagnostic {
+                    code: DiagnosticCode::SolverUnavailable,
+                    file: None,
+                    line: 0,
+                    message,
+                },
+            );
         }
     };
     let checked = if target.is_dir() {
@@ -88,12 +104,7 @@ fn check(path: &str, as_json: bool) -> ExitCode {
     let report = match checked {
         Ok(report) => report,
         Err(diagnostic) => {
-            let place = match &diagnostic.file {
-                Some(file) => target.join(file).display().to_string(),
-                None => path.to_string(),
-            };
-            eprintln!("{place}:{}: {}", diagnostic.line, diagnostic.message);
-            return ExitCode::from(4);
+            return check_error(path, as_json, diagnostic);
         }
     };
     if as_json {
@@ -106,6 +117,32 @@ fn check(path: &str, as_json: bool) -> ExitCode {
         Standing::Failed => ExitCode::from(1),
         Standing::Incomplete | Standing::Unverified => ExitCode::from(3),
     }
+}
+
+fn check_error(path: &str, as_json: bool, diagnostic: Diagnostic) -> ExitCode {
+    if as_json {
+        println!("{}", receipt::rejection(&diagnostic, path));
+    } else {
+        let place = diagnostic.file.as_ref().map_or_else(
+            || path.to_string(),
+            |file| Path::new(path).join(file).display().to_string(),
+        );
+        if diagnostic.line == 0 {
+            eprintln!(
+                "{place}: {} [{}]",
+                diagnostic.message,
+                diagnostic.code.name()
+            );
+        } else {
+            eprintln!(
+                "{place}:{}: {} [{}]",
+                diagnostic.line,
+                diagnostic.message,
+                diagnostic.code.name()
+            );
+        }
+    }
+    ExitCode::from(4)
 }
 
 /// A file's text, or stdin's for `-`.

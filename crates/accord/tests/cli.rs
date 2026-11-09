@@ -69,7 +69,7 @@ fn check_json_writes_the_versioned_receipt() {
     );
     let receipt: serde_json::Value =
         serde_json::from_slice(&output.stdout).expect("the receipt is JSON");
-    assert_eq!(receipt["receipt"], 1);
+    assert_eq!(receipt["receipt"], 2);
     assert_eq!(receipt["standing"], "failed");
     let larger = &receipt["definitions"][0];
     assert_eq!(larger["name"], "larger");

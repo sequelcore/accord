@@ -31,6 +31,16 @@ fn a_solver_timeout_is_undecided_never_proved() {
     };
     println!("{reason} after {elapsed:?}");
     assert!(reason.contains("time"), "{reason}");
+    let receipt: serde_json::Value =
+        serde_json::from_str(&accord::receipt::json(&report, "timeout.accord")).expect("JSON");
+    assert_eq!(receipt["standing"], "incomplete");
+    assert!(
+        receipt["diagnostics"]
+            .as_array()
+            .expect("diagnostics")
+            .iter()
+            .any(|d| d["code"] == "ACC0003")
+    );
     // Each solver gets the limit once, with time to start and stop.
     assert!(elapsed < limit * 2 + Duration::from_secs(3), "{elapsed:?}");
 }
