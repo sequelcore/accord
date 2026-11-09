@@ -197,7 +197,9 @@ fn decide_term(rows: &[Row]) -> String {
     })
 }
 
-fn obligations_of<'a>(function: &'a Function, datatypes: &str) -> Vec<Obligation<'a>> {
+/// What every script about `function` starts with: the enums it uses, its
+/// parameters within their ranges, and its `requires` assumed.
+fn prelude(function: &Function, datatypes: &str) -> String {
     let mut prelude = format!("(set-option :produce-models true)\n(set-logic ALL)\n{datatypes}");
     for (name, ty) in &function.params {
         prelude += &format!("(declare-const {name} {})\n", sort(ty));
@@ -212,16 +214,109 @@ fn obligations_of<'a>(function: &'a Function, datatypes: &str) -> Vec<Obligation
     {
         prelude += &format!("(assert {})\n", term(&clause.expr));
     }
+    prelude
+}
+
+/// A script's ending: check, then the values of `names`, then why an
+/// `unknown` was unknown. Asked last, so its error after `sat` never precedes
+/// the values.
+fn ending(names: &[String]) -> String {
+    let values = if names.is_empty() {
+        String::new()
+    } else {
+        format!("(get-value ({}))\n", names.join(" "))
+    };
+    format!("(check-sat)\n{values}(get-info :reason-unknown)\n")
+}
+
+/// A body's value as a term, and for a decision table the condition that some
+/// row matches.
+fn value(function: &Function) -> (String, Option<String>) {
+    match &function.body {
+        Body::Expr(body) => (term(body), None),
+        Body::Decide(rows, _) => (
+            decide_term(rows),
+            Some(all("or", rows.iter().map(condition).collect(), "false")),
+        ),
+    }
+}
+
+/// The two scripts that judge a mutant of `original` against its contract.
+/// `survives` asserts that the mutant breaks some `ensures`, so `unsat` means
+/// the contract can't tell it apart. `differs` asserts an admitted input on
+/// which the two give different results, `r0` and `r1`, so `unsat` means the
+/// mutant is equivalent. Both use `original`'s parameters and `requires`.
+pub(crate) fn mutant_scripts(
+    original: &Function,
+    mutant: &Function,
+    datatypes: &str,
+) -> (String, String) {
+    let prelude = prelude(original, datatypes);
+    let params: Vec<String> = original.params.iter().map(|(n, _)| n.clone()).collect();
+    let ret = sort(&original.ret);
+    let (theirs, their_cover) = value(mutant);
+    let (ours, our_cover) = value(original);
+    let ensures: Vec<String> = original
+        .clauses
+        .iter()
+        .filter(|c| c.kind == ClauseKind::Ensures)
+        .map(|c| term(&c.expr))
+        .collect();
+    let mut breaks = vec![
+        format!("(= result {theirs})"),
+        format!("(not {})", all("and", ensures, "true")),
+    ];
+    breaks.extend(their_cover.clone());
+    let survives = format!(
+        "{prelude}(declare-const result {ret})\n(assert {})\n{}",
+        all("and", breaks, "true"),
+        ending(&params)
+    );
+    let mut apart = vec![
+        format!("(= r0 {ours})"),
+        format!("(= r1 {theirs})"),
+        "(not (= r0 r1))".to_string(),
+    ];
+    apart.extend(our_cover);
+    apart.extend(their_cover);
+    let mut named = params.clone();
+    named.extend(["r0".to_string(), "r1".to_string()]);
+    let differs = format!(
+        "{prelude}(declare-const r0 {ret})\n(declare-const r1 {ret})\n(assert {})\n{}",
+        all("and", apart, "true"),
+        ending(&named)
+    );
+    (survives, differs)
+}
+
+/// The SMT-LIB declarations of a program's enums.
+pub(crate) fn datatypes(program: &Program) -> String {
+    program
+        .enums
+        .iter()
+        .map(|e| {
+            let constructors: Vec<String> = e
+                .variants
+                .iter()
+                .map(|v| format!("({}.{v})", e.name))
+                .collect();
+            format!(
+                "(declare-datatype {} ({}))\n",
+                e.name,
+                constructors.join(" ")
+            )
+        })
+        .collect()
+}
+
+fn obligations_of<'a>(function: &'a Function, datatypes: &str) -> Vec<Obligation<'a>> {
+    let prelude = prelude(function, datatypes);
     let params: Vec<String> = function
         .params
         .iter()
         .map(|(name, _)| name.clone())
         .collect();
-    let values = if params.is_empty() {
-        String::new()
-    } else {
-        format!("(get-value ({}))\n", params.join(" "))
-    };
+    let end = ending(&params);
     let obligation = |clause: &str,
                       line: usize,
                       polarity: Polarity,
@@ -234,18 +329,15 @@ fn obligations_of<'a>(function: &'a Function, datatypes: &str) -> Vec<Obligation
         params: params.clone(),
         polarity,
         claim,
-        // Asked last, so its error after `sat` never precedes the values.
-        script: format!(
-            "{prelude}{declare}(assert {assertion})\n(check-sat)\n{values}(get-info :reason-unknown)\n"
-        ),
+        script: format!("{prelude}{declare}(assert {assertion})\n{end}"),
     };
     let result = format!("(declare-const result {})\n", sort(&function.ret));
 
-    let (body, rows) = match &function.body {
-        Body::Expr(body) => (term(body), None),
-        Body::Decide(rows, line) => (decide_term(rows), Some((rows, *line))),
+    let (body, covered) = value(function);
+    let rows = match &function.body {
+        Body::Expr(_) => None,
+        Body::Decide(rows, line) => Some((rows, *line)),
     };
-    let covered = rows.map(|(rows, _)| all("or", rows.iter().map(condition).collect(), "false"));
     let mut out = Vec::new();
     let mut ops = Vec::new();
     if let Body::Expr(body) = &function.body {
@@ -334,22 +426,7 @@ fn obligations_of<'a>(function: &'a Function, datatypes: &str) -> Vec<Obligation
 /// can be the first to hold; and that each arithmetic operation in code stays
 /// in its type's range.
 pub(crate) fn obligations(program: &Program) -> Vec<Obligation<'_>> {
-    let datatypes: String = program
-        .enums
-        .iter()
-        .map(|e| {
-            let constructors: Vec<String> = e
-                .variants
-                .iter()
-                .map(|v| format!("({}.{v})", e.name))
-                .collect();
-            format!(
-                "(declare-datatype {} ({}))\n",
-                e.name,
-                constructors.join(" ")
-            )
-        })
-        .collect();
+    let datatypes = datatypes(program);
     program
         .functions
         .iter()

@@ -234,8 +234,9 @@ fn read(value: &str, ty: &Type) -> Option<Value> {
 /// Replays a solver's model of an obligation's script: `Ok` when the inputs
 /// do what the solver says they do (break a universal claim, or satisfy an
 /// existential one), otherwise why they don't.
-pub(crate) fn replay(obligation: &Obligation, inputs: &Inputs) -> Result<(), String> {
-    let function = obligation.function;
+/// A solver's values for `function`'s parameters, read as values, provided
+/// every `requires` holds of them.
+pub(crate) fn admitted(function: &Function, inputs: &Inputs) -> Result<Names, String> {
     let names = function
         .params
         .iter()
@@ -253,6 +254,44 @@ pub(crate) fn replay(obligation: &Obligation, inputs: &Inputs) -> Result<(), Str
     if let Some(clause) = broken_requires(function, &names)? {
         return Err(format!("it breaks `{clause}`"));
     }
+    Ok(names)
+}
+
+/// Parameter names with their values.
+pub(crate) type Names = Vec<(String, Value)>;
+
+/// `function`'s result for `names`, with mathematical integers.
+pub(crate) fn result(function: &Function, names: &Names) -> Result<Value, String> {
+    let env = Env {
+        names,
+        result: None,
+        mode: Mode::Math,
+    };
+    body(function, &env)
+}
+
+/// Whether every `ensures` of `contract` holds of `result` for `names`.
+pub(crate) fn meets(contract: &Function, names: &Names, result: &Value) -> Result<bool, String> {
+    let env = Env {
+        names,
+        result: Some(result),
+        mode: Mode::Math,
+    };
+    for clause in contract
+        .clauses
+        .iter()
+        .filter(|c| c.kind == ClauseKind::Ensures)
+    {
+        if !env.boolean(&clause.expr)? {
+            return Ok(false);
+        }
+    }
+    Ok(true)
+}
+
+pub(crate) fn replay(obligation: &Obligation, inputs: &Inputs) -> Result<(), String> {
+    let function = obligation.function;
+    let names = admitted(function, inputs)?;
     let env = Env {
         names: &names,
         result: None,

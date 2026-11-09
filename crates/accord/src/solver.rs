@@ -16,6 +16,7 @@ pub struct Solvers {
     cvc5: PathBuf,
     timeout: Duration,
     ledger: Option<Ledger>,
+    mutate: bool,
 }
 
 /// What one solver said about one obligation.
@@ -38,6 +39,7 @@ impl Solvers {
             cvc5: locate("ACCORD_CVC5", "cvc5")?,
             timeout: Duration::from_secs(10),
             ledger: None,
+            mutate: false,
         })
     }
 
@@ -54,6 +56,18 @@ impl Solvers {
     pub fn with_ledger(mut self, dir: &std::path::Path) -> Solvers {
         self.ledger = Ledger::open(dir, &self.z3, &self.cvc5);
         self
+    }
+
+    /// The same solvers, also judging each function's contract against
+    /// mutants of its body.
+    #[must_use]
+    pub fn with_mutation(mut self) -> Solvers {
+        self.mutate = true;
+        self
+    }
+
+    pub(crate) fn mutates(&self) -> bool {
+        self.mutate
     }
 
     /// Both solvers' answers, combined, and whether they came from the
@@ -461,6 +475,7 @@ mod tests {
             cvc5: PathBuf::from("no-such-solver-cvc5"),
             timeout: Duration::from_secs(1),
             ledger: None,
+            mutate: false,
         };
         let script = "(set-logic QF_UF)\n(assert false)\n(check-sat)\n";
         for polarity in [Universal, Existential] {

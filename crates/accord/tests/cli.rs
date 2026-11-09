@@ -81,6 +81,12 @@ fn check_json_writes_the_versioned_receipt() {
     assert_eq!(larger["examples"][0]["run"], "failed");
     assert_eq!(larger["examples"][0]["reason"], "it gives 5, not 2");
     assert_eq!(larger["examples"][1]["run"], "passed");
+    // Both `ensures` together pin the result, so no mutant survives.
+    assert!(larger["strength"]["tried"].as_u64() > Some(0), "{larger}");
+    assert_eq!(
+        larger["strength"]["survivors"].as_array().map(Vec::len),
+        Some(0)
+    );
 }
 
 #[test]

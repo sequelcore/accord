@@ -41,7 +41,7 @@ fn check(path: &str, as_json: bool) -> ExitCode {
         .unwrap_or(std::path::Path::new(""))
         .join(".accord");
     let solvers = match Solvers::from_env() {
-        Ok(solvers) => solvers.with_ledger(&ledger),
+        Ok(solvers) => solvers.with_ledger(&ledger).with_mutation(),
         Err(message) => {
             eprintln!("{message}");
             return ExitCode::from(4);
