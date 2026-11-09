@@ -4,7 +4,7 @@
 use std::fs;
 use std::path::PathBuf;
 
-use accord::{Outcome, Refutation, Run, Solvers, verify};
+use accord::{Openness, Outcome, Refutation, Run, Solvers, verify};
 
 fn cases() -> Vec<PathBuf> {
     let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../conformance/cases");
@@ -28,6 +28,26 @@ fn expected(source: &str) -> Vec<String> {
         .collect()
 }
 
+/// The optional `// open:` line on line 2: each contract's openness, in source
+/// order, for the functions with an `ensures`.
+fn expected_openness(source: &str) -> Option<Vec<String>> {
+    let line = source.lines().nth(1)?;
+    let list = line.strip_prefix("// open:")?;
+    Some(
+        list.split(',')
+            .map(|item| item.trim().to_string())
+            .collect(),
+    )
+}
+
+fn openness_kind(openness: &Openness) -> &'static str {
+    match openness {
+        Openness::Determined => "determined",
+        Openness::Open { .. } => "open",
+        Openness::Undecided { .. } => "undecided",
+    }
+}
+
 fn kind(outcome: &Outcome) -> &'static str {
     match outcome {
         Outcome::Proved { .. } => "proved",
@@ -45,7 +65,8 @@ fn every_case_gives_its_declared_outcomes() {
     for path in cases() {
         let source = fs::read_to_string(&path).expect("readable case");
         let want = expected(&source);
-        let got: Vec<String> = match verify(&source, &solvers) {
+        let report = verify(&source, &solvers);
+        let got: Vec<String> = match &report {
             Ok(report) => report
                 .verdicts
                 .iter()
@@ -65,6 +86,19 @@ fn every_case_gives_its_declared_outcomes() {
                 "{}: expected {want:?}, got {got:?}",
                 path.display()
             ));
+        }
+        if let (Some(want), Ok(report)) = (expected_openness(&source), &report) {
+            let got: Vec<String> = report
+                .openness
+                .iter()
+                .map(|d| openness_kind(&d.openness).to_string())
+                .collect();
+            if got != want {
+                failures.push(format!(
+                    "{}: expected openness {want:?}, got {got:?}",
+                    path.display()
+                ));
+            }
         }
     }
     assert!(

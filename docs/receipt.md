@@ -79,10 +79,28 @@ Object keys come in no fixed order; arrays keep source order.
 | `..text`, `..line` | The example as written, on one line, and its line |
 | `..run` | `passed` or `failed`; with `failed`, `reason` says why |
 | `.strength` | `null`, or how the contract fared against mutants of the body (below) |
+| `.openness` | `null` without an `ensures`; otherwise `{"determined": true}`, `{"open": {"inputs", "results", "code"}}` or `{"undecided": reason}` (below) |
 
 Inputs (`witness`, `counterexample`) are arrays of `{"name": ..., "value": ...}`
 in parameter order, with values written as Accord source (`-3`,
 `Light.Amber`).
+
+## Open cases
+
+For every function with an `ensures`, the solvers search for an **open
+case**: an admitted input for which the contract allows two different
+results. Any implementation that picks either one proves, so the proof
+doesn't pin down what the function does there. A case found is replayed by
+the interpreter, which checks that both results meet the contract and that
+they differ, and reports what the code gives. The text receipt shows it as
+
+```text
+open         f: for n = 0, the contract allows both true and false (the code gives false)
+```
+
+An open case, or a search that didn't settle, makes the function
+**incomplete**, not failed: nothing is wrong yet, and whether the freedom is
+intended is a person's decision.
 
 ## Strength
 
@@ -117,7 +135,8 @@ trusted. Examples always run. Deleting `.accord/` loses nothing but time.
 ## Standing
 
 A function is **failed** if an obligation is refuted or an example fails;
-otherwise **incomplete** if an obligation is undecided or unsupported;
+otherwise **incomplete** if an obligation is undecided or unsupported, or its
+contract has an open case or its search didn't settle;
 otherwise **verified** if it has any obligation or example; otherwise
 **unverified**. The file is failed if any function is, verified only if every
 function is, unverified if none has evidence, and incomplete otherwise.

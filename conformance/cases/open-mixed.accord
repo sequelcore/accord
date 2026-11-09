@@ -1,0 +1,13 @@
+// expect: proved, proved
+// open: determined
+fn same(a: Bool) -> Bool
+{
+    a
+}
+
+fn both(a: Bool, b: Bool) -> Bool
+    ensures result implies a and b
+    ensures a and b implies result
+{
+    a and b
+}

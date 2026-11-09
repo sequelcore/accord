@@ -8,6 +8,10 @@ compiler code that produces it:
 // expect: proved, refuted
 ```
 
+A case may add an `// open:` line as its second line: the openness of each
+function with an `ensures`, in source order, as `determined`, `open` or
+`undecided`. Without it, openness isn't compared.
+
 `proved`, `refuted`, `undecided` and `unsupported` are obligation outcomes
 ([concepts](../docs/concepts.md)); `passed` and `failed` are example runs,
 listed after every obligation, in source order; `error` means the file must
