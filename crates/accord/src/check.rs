@@ -342,52 +342,95 @@ fn check_type(enums: &[Enum], ty: &Type, line: usize) -> Result<(), Diagnostic> 
     }
 }
 
+/// Every function's name once across the folder.
+fn check_names(program: &Program) -> Result<(), Diagnostic> {
+    for (index, f) in program.functions.iter().enumerate() {
+        if program.functions[..index].iter().any(|o| o.name == f.name) {
+            return Err(Diagnostic::new(
+                f.line,
+                format!("`{}` is declared more than once", f.name),
+            ));
+        }
+    }
+    Ok(())
+}
+
 /// Checks names and types in every function and example, and resolves bare
-/// variants.
-pub(crate) fn check(program: &mut Program) -> Result<(), Diagnostic> {
-    check_enums(&program.enums)?;
+/// variants. A diagnostic's line is in the file of the declaration it names,
+/// which `files` gives by index.
+pub(crate) fn check(program: &mut Program, files: &[String]) -> Result<(), Diagnostic> {
+    let name = |file: usize| files.get(file).cloned().unwrap_or_default();
+    let enum_file = |line: usize, p: &Program| {
+        p.enums
+            .iter()
+            .find(|e| e.line == line)
+            .map_or(0, |e| e.file)
+    };
+    check_enums(&program.enums).map_err(|d| {
+        let file = enum_file(d.line, program);
+        d.in_file(&name(file))
+    })?;
+    check_names(program).map_err(|d| {
+        let file = program
+            .functions
+            .iter()
+            .rev()
+            .find(|f| f.line == d.line)
+            .map_or(0, |f| f.file);
+        d.in_file(&name(file))
+    })?;
     let enums = &program.enums;
     for function in &mut program.functions {
-        for (_, ty) in &function.params {
-            check_type(enums, ty, function.line)?;
-        }
-        check_type(enums, &function.ret, function.line)?;
-        for clause in &mut function.clauses {
-            let scope = Scope {
-                enums,
-                params: &function.params,
-                result: (clause.kind == ClauseKind::Ensures).then_some(&function.ret),
-                spec: true,
-            };
-            if scope.infer(&mut clause.expr, Some(&Type::Bool))? != Type::Bool {
-                return Err(Diagnostic::new(
-                    clause.line,
-                    "a clause must be a `Bool` condition",
-                ));
-            }
-        }
-        let scope = Scope {
-            enums,
-            params: &function.params,
-            result: None,
-            spec: false,
-        };
-        let message = "the body's type isn't the function's return type";
-        match &mut function.body {
-            Body::Expr(body) => scope.value(body, &function.ret, message)?,
-            Body::Decide(rows, _) => {
-                for row in rows {
-                    if let Some(condition) = &mut row.condition {
-                        scope.condition(condition)?;
-                    }
-                    scope.value(&mut row.result, &function.ret, message)?;
-                }
-            }
-        }
+        let file = name(function.file);
+        check_function(enums, function).map_err(|d| d.in_file(&file))?;
     }
     let functions = &program.functions;
     for example in &mut program.examples {
-        example::check(enums, functions, example)?;
+        let file = name(example.file);
+        example::check(enums, functions, example).map_err(|d| d.in_file(&file))?;
+    }
+    Ok(())
+}
+
+fn check_function(
+    enums: &[Enum],
+    function: &mut crate::syntax::Function,
+) -> Result<(), Diagnostic> {
+    for (_, ty) in &function.params {
+        check_type(enums, ty, function.line)?;
+    }
+    check_type(enums, &function.ret, function.line)?;
+    for clause in &mut function.clauses {
+        let scope = Scope {
+            enums,
+            params: &function.params,
+            result: (clause.kind == ClauseKind::Ensures).then_some(&function.ret),
+            spec: true,
+        };
+        if scope.infer(&mut clause.expr, Some(&Type::Bool))? != Type::Bool {
+            return Err(Diagnostic::new(
+                clause.line,
+                "a clause must be a `Bool` condition",
+            ));
+        }
+    }
+    let scope = Scope {
+        enums,
+        params: &function.params,
+        result: None,
+        spec: false,
+    };
+    let message = "the body's type isn't the function's return type";
+    match &mut function.body {
+        Body::Expr(body) => scope.value(body, &function.ret, message)?,
+        Body::Decide(rows, _) => {
+            for row in rows {
+                if let Some(condition) = &mut row.condition {
+                    scope.condition(condition)?;
+                }
+                scope.value(&mut row.result, &function.ret, message)?;
+            }
+        }
     }
     Ok(())
 }

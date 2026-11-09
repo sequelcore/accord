@@ -136,6 +136,8 @@ pub(crate) enum Body {
 pub(crate) struct Function {
     pub name: String,
     pub line: usize,
+    /// The index of the file it was declared in, within its folder.
+    pub file: usize,
     pub params: Vec<(String, Type)>,
     pub ret: Type,
     pub clauses: Vec<Clause>,
@@ -147,6 +149,7 @@ pub(crate) struct Enum {
     pub name: String,
     pub variants: Vec<String>,
     pub line: usize,
+    pub file: usize,
 }
 
 /// `example name(label: value, ...) == value`: a concrete call and the
@@ -154,6 +157,7 @@ pub(crate) struct Enum {
 #[derive(Clone, Debug)]
 pub(crate) struct Example {
     pub function: String,
+    pub file: usize,
     pub args: Vec<(Option<String>, Expr)>,
     pub expected: Expr,
     pub text: String,

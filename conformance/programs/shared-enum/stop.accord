@@ -1,0 +1,9 @@
+// expect: proved, passed
+// open: determined
+fn must_stop(light: Light) -> Bool
+    ensures result == (light != Green)
+{
+    light != Green
+}
+
+example must_stop(light: Light.Amber) == true

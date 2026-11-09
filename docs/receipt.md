@@ -5,7 +5,9 @@ Accord's first release; the `receipt` field says which version a receipt
 follows. The [concepts](concepts.md) define each term.
 
 `accord check <file>` writes the receipt as text, and `accord check <file>
---json` as JSON. Both carry the same record: every obligation's outcome,
+--json` as JSON. Given a folder instead, it checks the folder as one program
+([syntax](design/syntax.md#files-and-folders)) and names each definition's
+file. Both carry the same record: every obligation's outcome,
 every example's run, each function's standing and the file's.
 
 ## Exit code
@@ -64,6 +66,7 @@ Object keys come in no fixed order; arrays keep source order.
 | `standing` | The file's: `verified`, `incomplete`, `failed` or `unverified` |
 | `definitions[]` | One per function, in source order |
 | `.name`, `.kind` | The function's name; `kind` is `function` |
+| `.file` | The file it's declared in, when a folder was checked; otherwise `null` |
 | `.hash` | SHA-256 of the normalized function: its identity, which no rename changes |
 | `.standing` | The function's, from its own obligations and examples |
 | `.obligations[]` | One per obligation, in source order |

@@ -244,7 +244,7 @@ fn compare(old: &Unit, new: &Unit, solvers: &Solvers) -> Change {
 
 fn parse(source: &str, side: Side) -> Result<syntax::Program, (Side, Diagnostic)> {
     let mut program = syntax::parse(source).map_err(|d| (side, d))?;
-    check::check(&mut program).map_err(|d| (side, d))?;
+    check::check(&mut program, &[]).map_err(|d| (side, d))?;
     Ok(program)
 }
 

@@ -39,7 +39,8 @@ counterexample is replayed by the interpreter.
 A loosening is reported as the input the new contract no longer accepts, or
 as an input and a result the new contract allows and the old one ruled out.
 Functions are matched by name; parameters are compared by position, so
-renaming one changes nothing. Only contracts are compared: a decision table's
+renaming one changes nothing. `diff` compares two files, each on its own: a
+file that uses declarations from its folder can't be compared yet. Only contracts are compared: a decision table's
 behaviour is the body, and a change to it changes the function's
 [identity](concepts.md), not its contract.
 

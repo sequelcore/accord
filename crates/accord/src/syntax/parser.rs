@@ -145,6 +145,7 @@ impl Parser<'_> {
             name,
             variants,
             line,
+            file: 0,
         })
     }
 
@@ -206,6 +207,7 @@ impl Parser<'_> {
         Ok(Function {
             name,
             line,
+            file: 0,
             params,
             ret,
             clauses,
@@ -249,6 +251,7 @@ impl Parser<'_> {
         };
         Ok(Example {
             function,
+            file: 0,
             args,
             expected,
             text,

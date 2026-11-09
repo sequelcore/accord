@@ -25,6 +25,23 @@ fn expected(source: &str) -> Vec<String> {
         .expect("a case starts with an `// expect:` line");
     list.split(',')
         .map(|item| item.trim().to_string())
+        .filter(|item| !item.is_empty())
+        .collect()
+}
+
+/// Each obligation's outcome, then each example's run, in source order.
+fn outcomes(report: &accord::Report) -> Vec<String> {
+    report
+        .verdicts
+        .iter()
+        .map(|r| kind(&r.outcome).to_string())
+        .chain(report.examples.iter().map(|e| {
+            match e.run {
+                Run::Passed => "passed",
+                Run::Failed { .. } => "failed",
+            }
+            .to_string()
+        }))
         .collect()
 }
 
@@ -67,18 +84,7 @@ fn every_case_gives_its_declared_outcomes() {
         let want = expected(&source);
         let report = verify(&source, &solvers);
         let got: Vec<String> = match &report {
-            Ok(report) => report
-                .verdicts
-                .iter()
-                .map(|r| kind(&r.outcome).to_string())
-                .chain(report.examples.iter().map(|e| {
-                    match e.run {
-                        Run::Passed => "passed",
-                        Run::Failed { .. } => "failed",
-                    }
-                    .to_string()
-                }))
-                .collect(),
+            Ok(report) => outcomes(report),
             Err(_) => vec!["error".to_string()],
         };
         if got != want {
@@ -131,4 +137,69 @@ fn every_refutation_names_a_value_for_each_parameter() {
             }
         }
     }
+}
+
+/// Each folder in `conformance/programs` is one program: every file in it is
+/// checked with the others' declarations in view, against its own lines.
+#[test]
+fn every_program_gives_its_declared_outcomes() {
+    let solvers =
+        Solvers::from_env().expect("Z3 and cvc5 are available (see conformance/README.md)");
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../conformance/programs");
+    let mut folders: Vec<PathBuf> = fs::read_dir(&root)
+        .expect("conformance/programs exists")
+        .map(|entry| entry.expect("readable entry").path())
+        .filter(|path| path.is_dir())
+        .collect();
+    folders.sort();
+    assert!(!folders.is_empty(), "no conformance programs found");
+    let mut failures = Vec::new();
+    for folder in folders {
+        let mut files: Vec<(String, String)> = fs::read_dir(&folder)
+            .expect("readable folder")
+            .map(|entry| entry.expect("readable entry").path())
+            .filter(|path| path.extension().is_some_and(|ext| ext == "accord"))
+            .map(|path| {
+                let name = path
+                    .file_name()
+                    .expect("a name")
+                    .to_string_lossy()
+                    .into_owned();
+                (name, fs::read_to_string(&path).expect("readable file"))
+            })
+            .collect();
+        files.sort();
+        for (name, source) in &files {
+            let want = expected(source);
+            let report = accord::verify_folder(&files, Some(name), &solvers);
+            let got: Vec<String> = match &report {
+                Ok(report) => outcomes(report),
+                Err(_) => vec!["error".to_string()],
+            };
+            if got != want {
+                failures.push(format!(
+                    "{}/{name}: expected {want:?}, got {got:?}",
+                    folder.display()
+                ));
+            }
+            if let (Some(want), Ok(report)) = (expected_openness(source), &report) {
+                let got: Vec<String> = report
+                    .openness
+                    .iter()
+                    .map(|d| openness_kind(&d.openness).to_string())
+                    .collect();
+                if got != want {
+                    failures.push(format!(
+                        "{}/{name}: expected openness {want:?}, got {got:?}",
+                        folder.display()
+                    ));
+                }
+            }
+        }
+    }
+    assert!(
+        failures.is_empty(),
+        "conformance failures:\n{}",
+        failures.join("\n")
+    );
 }

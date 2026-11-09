@@ -1,0 +1,5 @@
+// expect: error
+fn same(a: Bool) -> Bool
+{
+    a
+}

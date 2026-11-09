@@ -163,6 +163,15 @@ condition can never be the first to hold.
 Blocks are expressions: the last expression is the block's value. There is no
 `return`: an early exit is a decision table.
 
+## Files and folders
+
+A file is a program on its own. A folder is one program too: every `.accord`
+file directly in it sees every other's declarations, with no import syntax,
+and a name declared in two of them is an error. A subfolder is a program of
+its own. `accord check <file>` checks the file alone; `accord check
+<folder>` checks the folder, and reports each definition with its file. A
+file that uses a declaration from its folder is checked through its folder.
+
 ## Names and layout
 
 - Functions, parameters and values are `snake_case`; types and variants are
