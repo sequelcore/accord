@@ -1,0 +1,6 @@
+fn largest(a: i64, b: i64, c: i64) -> i64
+    ensures result >= a and result >= b and result >= c
+    ensures result == a or result == b or result == c
+{
+    if a >= b and a >= c { a } else { if b >= c { b } else { c } }
+}

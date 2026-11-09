@@ -1,0 +1,9 @@
+fn clamp(value: i64, low: i64, high: i64) -> i64
+    requires low <= high
+    ensures low <= result and result <= high
+    ensures low <= value and value <= high implies result == value
+    ensures value < low implies result == low
+    ensures value > high implies result == high
+{
+    if value < low { low } else { if value > high { high } else { value } }
+}

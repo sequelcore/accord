@@ -64,7 +64,7 @@ Each is registered, with its measure and success rule, before any run.
 | [Comprehension check](docs/design/comprehension-check/README.md) | Do people and models who have never seen Accord explain its snippets correctly without a reference? | Stage 1 |
 | [E1. Mechanical open cases](docs/design/e1-open-cases/README.md) | Does the solver find the ambiguities that asking an agent finds, or more? | Stage 5 |
 | [E2. Human review](docs/design/e2-human-review/README.md) | Do reviewers find more intent errors per minute with the review view than with code or specifications alone? | Stage 7; draft, not registered or run |
-| E3. Agents writing Accord | Is verified success with Accord comparable to TypeScript with LemmaScript on the same rules? | Stage 6 |
+| [E3. Agents writing Accord](docs/design/e3-agents-writing/README.md) | Is verified success with Accord comparable to TypeScript with LemmaScript on the same rules? | Stage 7; registered, not run |
 | [E4. Fixing a failed proof](docs/design/fix-experiment/README.md) | Can a developer who has never seen Accord turn a failed check into a verified fix that keeps the intent? | First public alpha; again on a later public version with the review view (stage 7) |
 
 ## Trust
