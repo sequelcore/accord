@@ -1,0 +1,74 @@
+// expect: proved, proved, refuted, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, passed, passed, passed, passed, passed
+// open: determined, determined, determined, determined, determined
+// Tesota's gate-rule (src/verification/gate-rule.ts at dev 4ef9b191). Each
+// equivalence is two `implies`, and `exists(k, sent[k] === failure)` is
+// `failure in sent`. Tesota's commandVerdict calls gateVerdict; Accord has no
+// calls between functions yet, so command_verdict states that table itself.
+// ProofOutcome is declared beside it, in proof-outcome.accord.
+
+/// What the gate does with one changed file's proof when a run is about to settle.
+pub enum GateVerdict { Proved, SendBack, NoProgress, Operator }
+
+/// A selected design check requires verification even when no tool may have changed files.
+fn verification_required(changed: Bool, selected: Bool) -> Bool
+    ensures result implies changed or selected
+    ensures changed or selected implies result
+{
+    changed or selected
+}
+
+/// A started tool may change files unless it is a trusted reader or runs read-only.
+fn tool_may_change_files(tool_name: Text, native_question: Bool, read_only: Bool) -> Bool
+    ensures result implies not native_question and not read_only and not tool_name in ["read", "grep", "find", "ls", "update_tasks"]
+    ensures not native_question and not read_only and not tool_name in ["read", "grep", "find", "ls", "update_tasks"] implies result
+{
+    not native_question and not read_only and not tool_name in ["read", "grep", "find", "ls"]
+}
+
+fn gate_verdict(outcome: ProofOutcome, failure: Text, sent: List<Text>) -> GateVerdict
+    ensures result == Proved implies outcome == Passed
+    ensures outcome == Passed implies result == Proved
+    ensures result == SendBack implies (outcome == Failed or outcome == Vacuous) and not failure in sent
+    ensures (outcome == Failed or outcome == Vacuous) and not failure in sent implies result == SendBack
+    ensures result == NoProgress implies (outcome == Failed or outcome == Vacuous) and failure in sent
+    ensures (outcome == Failed or outcome == Vacuous) and failure in sent implies result == NoProgress
+    ensures result == Operator implies outcome == NotStarted or outcome == TimedOut or outcome == Cancelled
+    ensures outcome == NotStarted or outcome == TimedOut or outcome == Cancelled implies result == Operator
+decide {
+    | outcome == Passed                        => Proved
+    | outcome != Failed and outcome != Vacuous => Operator
+    | failure in sent                          => NoProgress
+    | otherwise                                => SendBack
+}
+
+/// A command's failure the base already had is the operator's, never sent back.
+fn command_verdict(outcome: ProofOutcome, failure: Text, sent: List<Text>, preexisting: Bool) -> GateVerdict
+    ensures result == Proved implies outcome == Passed
+    ensures outcome == Passed implies result == Proved
+    ensures result == SendBack implies not (preexisting and outcome == Failed) and (outcome == Failed or outcome == Vacuous) and not failure in sent
+    ensures not (preexisting and outcome == Failed) and (outcome == Failed or outcome == Vacuous) and not failure in sent implies result == SendBack
+    ensures result == NoProgress implies not (preexisting and outcome == Failed) and (outcome == Failed or outcome == Vacuous) and failure in sent
+    ensures not (preexisting and outcome == Failed) and (outcome == Failed or outcome == Vacuous) and failure in sent implies result == NoProgress
+    ensures result == Operator implies (preexisting and outcome == Failed) or outcome == NotStarted or outcome == TimedOut or outcome == Cancelled
+    ensures (preexisting and outcome == Failed) or outcome == NotStarted or outcome == TimedOut or outcome == Cancelled implies result == Operator
+decide {
+    | preexisting and outcome == Failed        => Operator
+    | outcome == Passed                        => Proved
+    | outcome != Failed and outcome != Vacuous => Operator
+    | failure in sent                          => NoProgress
+    | otherwise                                => SendBack
+}
+
+/// Whether the run continues: while some file goes back to the agent.
+fn keeps_working(verdicts: List<GateVerdict>) -> Bool
+    ensures result implies SendBack in verdicts
+    ensures SendBack in verdicts implies result
+{
+    GateVerdict.SendBack in verdicts
+}
+
+example gate_verdict(outcome: Failed, failure: "exit 1", sent: []) == SendBack
+example gate_verdict(outcome: Failed, failure: "exit 1", sent: ["exit 1"]) == NoProgress
+example command_verdict(outcome: Failed, failure: "exit 1", sent: [], preexisting: true) == Operator
+example keeps_working(verdicts: [Proved, SendBack]) == true
+example tool_may_change_files(tool_name: "ls", native_question: false, read_only: false) == false
