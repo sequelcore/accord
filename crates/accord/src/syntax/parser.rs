@@ -166,14 +166,18 @@ impl Parser<'_> {
         self.expect_sym(")")?;
         self.expect_sym("->")?;
         let ret = self.ty()?;
-        if self.at_word("intent") {
-            // An intent is for people: nothing checks it, so nothing keeps it.
+        let intent = if self.at_word("intent") {
             self.pos += 1;
-            match self.peek() {
-                Some(Token::Str(_)) => self.pos += 1,
+            match self.peek().cloned() {
+                Some(Token::Str(text)) => {
+                    self.pos += 1;
+                    Some(text)
+                }
                 _ => return self.error("expected the intent as a string"),
             }
-        }
+        } else {
+            None
+        };
         let mut clauses = Vec::new();
         while self.at_word("requires") || self.at_word("ensures") || self.at_word("open") {
             let kind = if self.at_word("requires") {
@@ -206,6 +210,7 @@ impl Parser<'_> {
         };
         Ok(Function {
             name,
+            intent,
             line,
             file: 0,
             params,

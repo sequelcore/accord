@@ -46,8 +46,8 @@ Taken on 2026-11-07:
 | 4. Contract strength | Mutation of function bodies; proved weakening between two revisions of a specification (`accord diff`) | Planted weakenings detected, strengthenings not flagged; `weakening-rule` and `mutation-rule` ported | Done ([#26](https://github.com/sequelcore/accord/issues/26)): `conformance/cases/weakening.accord`, `mutation.accord` and their faults; `crates/accord/tests/diff.rs` |
 | 5. Open cases | For each specification, a search for one input with two permitted outputs; `open` declarations; no verified result while an undecided `open` applies | Experiment E1 registered and run | Done ([#27](https://github.com/sequelcore/accord/issues/27)): E1 run; [result](docs/design/e1-open-cases/README.md#result-of-the-run-2026-11-09) |
 | 6. Data | `Text`, `List<T>` with `in` (no quantifiers), and a folder as one program: what `gate-rule` needs | `gate-rule` ported and proved | Done ([#33](https://github.com/sequelcore/accord/issues/33)): `conformance/programs/tesota/`, with text, lists and a folder as one program; records, sum types and `match` moved to the stage that needs them |
-| 7. Intents and the review view | `intent` declarations; the human view (intent, specification, examples, counterexamples, open cases, surviving mutants, what wasn't proved); the agent view as structured diagnostics | The review of `gate-rule` is readable without its code | |
-| 8. TypeScript output | Accord compiled to a TypeScript module | Tesota's own tests pass with the generated rule in place of the original | |
+| 7. Intents and the review view | `intent` declarations; the human view (intent, specification, examples, counterexamples, open cases, surviving mutants, what wasn't proved); the agent view as structured diagnostics | The review of `gate-rule` and an outside-domain rule is readable without their code | In progress ([#46](https://github.com/sequelcore/accord/issues/46)): [gate and Cedar packets](docs/design/stage-7-review/README.md) await human review; E2 remains draft |
+| 8. TypeScript output | Accord compiled to a TypeScript module | Tesota's own tests pass with the generated rule in place of the original | Planned ([#47](https://github.com/sequelcore/accord/issues/47)) |
 | 9. State machines | `machine` declarations, invariants, explicit-state model checking, planted faults | A Tesota design model ported, its faults detected | |
 | 10. `verdict-rule` | What the largest rule needs | Ported and proved | |
 
@@ -63,7 +63,7 @@ Each is registered, with its measure and success rule, before any run.
 | --- | --- | --- |
 | [Comprehension check](docs/design/comprehension-check/README.md) | Do people and models who have never seen Accord explain its snippets correctly without a reference? | Stage 1 |
 | [E1. Mechanical open cases](docs/design/e1-open-cases/README.md) | Does the solver find the ambiguities that asking an agent finds, or more? | Stage 5 |
-| E2. Human review | Do reviewers find more intent errors per minute with the review view than with code or specifications alone? | Stage 7; designed from stage 2 |
+| [E2. Human review](docs/design/e2-human-review/README.md) | Do reviewers find more intent errors per minute with the review view than with code or specifications alone? | Stage 7; draft, not registered or run |
 | E3. Agents writing Accord | Is verified success with Accord comparable to TypeScript with LemmaScript on the same rules? | Stage 6 |
 | [E4. Fixing a failed proof](docs/design/fix-experiment/README.md) | Can a developer who has never seen Accord turn a failed check into a verified fix that keeps the intent? | First public alpha; again on a later public version with the review view (stage 7) |
 

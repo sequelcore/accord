@@ -1,0 +1,20 @@
+enum ProofOutcome { Passed, Failed, Vacuous, TimedOut, Cancelled, NotStarted }
+enum GateVerdict { Proved, SendBack, NoProgress, Operator }
+
+fn gate_verdict(outcome: ProofOutcome, failure: Text, sent: List<Text>) -> GateVerdict
+    intent "Accept a passed proof; send a failed or vacuous proof back once per failure; identify repetition as no progress; ask the operator about interrupted or unstarted work."
+    ensures outcome == Passed implies result == Proved
+    ensures result == SendBack implies (outcome == Failed or outcome == Vacuous) and not failure in sent
+    ensures (outcome == Failed or outcome == Vacuous) and not failure in sent implies result == SendBack
+    ensures result == NoProgress implies (outcome == Failed or outcome == Vacuous) and failure in sent
+    ensures (outcome == Failed or outcome == Vacuous) and failure in sent implies result == NoProgress
+    ensures result == Operator implies outcome == NotStarted or outcome == TimedOut or outcome == Cancelled
+decide {
+    | outcome == Passed                        => Proved
+    | outcome != Failed and outcome != Vacuous => Operator
+    | failure in sent                          => NoProgress
+    | otherwise                                => SendBack
+}
+
+example gate_verdict(outcome: Failed, failure: "exit 1", sent: []) == SendBack
+example gate_verdict(outcome: Failed, failure: "exit 1", sent: ["exit 1"]) == NoProgress

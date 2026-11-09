@@ -2,7 +2,10 @@
 //! agents. Both carry the same record. The JSON schema is documented in
 //! `docs/receipt.md`; it is versioned and may change until the first release.
 
-use serde_json::{Value, json};
+mod diagnostics;
+mod json;
+mod review;
+pub use json::{json, rejection};
 
 use crate::{
     Determinacy, ExampleRun, Inputs, Openness, Outcome, Refutation, Report, Run, Standing,
@@ -10,7 +13,7 @@ use crate::{
 };
 
 /// The receipt schema's version.
-pub const VERSION: u32 = 1;
+pub const VERSION: u32 = 2;
 
 impl Standing {
     /// The standing's name, as the receipt writes it.
@@ -37,9 +40,14 @@ fn values(inputs: &Inputs) -> String {
 
 fn verdict_text(verdict: &Verdict) -> String {
     let reused = if verdict.reused { "  [reused]" } else { "" };
+    let clause = if verdict.kind == crate::ObligationKind::RowReachability {
+        "some admitted input reaches this row first (existential)"
+    } else {
+        &verdict.clause
+    };
     let place = format!(
         "{} (line {}): {}{reused}",
-        verdict.function, verdict.line, verdict.clause
+        verdict.function, verdict.line, clause
     );
     match &verdict.outcome {
         Outcome::Proved { witness: None } => format!("proved       {place}"),
@@ -146,19 +154,103 @@ fn openness_text(d: &Determinacy) -> Vec<String> {
 /// contract's strength when it was judged, then each function's standing and
 /// the file's.
 pub fn text(report: &Report) -> String {
-    let mut lines: Vec<String> = report.verdicts.iter().map(verdict_text).collect();
-    lines.extend(report.examples.iter().map(example_text));
-    lines.extend(report.openness.iter().flat_map(openness_text));
-    lines.extend(report.strength.iter().flat_map(strength_text));
+    let mut lines = Vec::new();
     for definition in &report.definitions {
         let file = definition
             .file
             .as_ref()
             .map_or(String::new(), |f| format!(" ({f})"));
         lines.push(format!(
+            "function     {}{file}",
+            review::signature(definition)
+        ));
+        let metadata = json::definition_json(report, definition);
+        lines.push(format!(
+            "review_hash  {}",
+            metadata["review_hash"].as_str().unwrap_or_default()
+        ));
+        for (name, variants) in &definition.enums {
+            lines.push(format!(
+                "type         enum {name} {{ {} }}",
+                variants.join(", ")
+            ));
+        }
+        lines.push(match &definition.intent {
+            Some(intent) => format!(
+                "intent       {}{file} (unchecked): {intent}",
+                definition.name
+            ),
+            None => format!("intent       {}{file}: not declared", definition.name),
+        });
+        if definition.specification.is_empty() {
+            lines.push("specification none declared".to_string());
+        }
+        for (line, clause) in &definition.specification {
+            lines.push(format!("specification line {line}: {clause}"));
+        }
+        let verdicts: Vec<_> = report
+            .verdicts
+            .iter()
+            .filter(|v| v.function == definition.name)
+            .collect();
+        lines.extend(verdicts.iter().map(|v| verdict_text(v)));
+        if !verdicts
+            .iter()
+            .any(|v| matches!(v.outcome, Outcome::Refuted { .. }))
+        {
+            lines.push("counterexamples none reported (this alone is not a proof)".to_string());
+        }
+        let examples: Vec<_> = report
+            .examples
+            .iter()
+            .filter(|e| e.function == definition.name)
+            .collect();
+        if examples.is_empty() {
+            lines.push("examples     none declared".to_string());
+        }
+        lines.extend(examples.into_iter().map(example_text));
+        match report
+            .openness
+            .iter()
+            .find(|o| o.function == definition.name)
+        {
+            Some(o) => {
+                lines.extend(openness_text(o));
+                if matches!(o.openness, Openness::Determined) {
+                    lines.push(
+                        "open_cases   none outside declared freedoms (search settled)".to_string(),
+                    );
+                }
+                if o.free.is_empty() {
+                    lines.push("freedoms     none declared".to_string());
+                }
+            }
+            None => lines.push("open_cases   not searched (no ensures)".to_string()),
+        }
+        match report
+            .strength
+            .iter()
+            .find(|s| s.function == definition.name)
+        {
+            Some(s) => lines.extend(strength_text(s)),
+            None => lines.push("strength     not run".to_string()),
+        }
+        for (kind, message) in review::limits(report, definition) {
+            lines.push(format!("not_proved   {kind}: {message}"));
+        }
+        lines.push(format!(
             "standing     {}{file}: {}",
             definition.name,
             definition.standing.name()
+        ));
+    }
+    for finding in diagnostics::findings(report) {
+        lines.push(format!(
+            "diagnostic   {} {}: {} ({})",
+            finding["code"].as_str().unwrap_or_default(),
+            finding["function"].as_str().unwrap_or_default(),
+            finding["action"].as_str().unwrap_or_default(),
+            finding["evidence"].as_str().unwrap_or_default()
         ));
     }
     let proved = report
@@ -184,142 +276,4 @@ pub fn text(report: &Report) -> String {
         report.examples.len()
     ));
     lines.join("\n")
-}
-
-fn inputs_json(inputs: &Inputs) -> Value {
-    inputs
-        .iter()
-        .map(|(name, value)| json!({ "name": name, "value": value }))
-        .collect()
-}
-
-fn verdict_json(verdict: &Verdict) -> Value {
-    let mut out = json!({
-        "clause": verdict.clause,
-        "line": verdict.line,
-        "key": verdict.key,
-        "reused": verdict.reused,
-    });
-    let fields = match &verdict.outcome {
-        Outcome::Proved { witness } => {
-            let mut fields = json!({ "outcome": "proved" });
-            if let Some(inputs) = witness {
-                fields["witness"] = inputs_json(inputs);
-            }
-            fields
-        }
-        Outcome::Refuted {
-            evidence: Refutation::Counterexample(inputs),
-        } => json!({ "outcome": "refuted", "counterexample": inputs_json(inputs) }),
-        Outcome::Refuted {
-            evidence: Refutation::NoSuchInput,
-        } => json!({ "outcome": "refuted", "no_such_input": true }),
-        Outcome::Undecided { reason } => json!({ "outcome": "undecided", "reason": reason }),
-        Outcome::Unsupported { reason } => json!({ "outcome": "unsupported", "reason": reason }),
-    };
-    if let (Some(out), Some(fields)) = (out.as_object_mut(), fields.as_object()) {
-        out.extend(fields.clone());
-    }
-    out
-}
-
-fn example_json(example: &ExampleRun) -> Value {
-    match &example.run {
-        Run::Passed => json!({ "text": example.text, "line": example.line, "run": "passed" }),
-        Run::Failed { reason } => json!({
-            "text": example.text,
-            "line": example.line,
-            "run": "failed",
-            "reason": reason,
-        }),
-    }
-}
-
-fn openness_json(openness: &Openness) -> Value {
-    match openness {
-        Openness::Determined => json!({ "determined": true }),
-        Openness::Open {
-            inputs,
-            results,
-            code,
-        } => json!({
-            "open": {
-                "inputs": inputs_json(inputs),
-                "results": [results.0, results.1],
-                "code": code,
-            }
-        }),
-        Openness::Undecided { reason } => json!({ "undecided": reason }),
-    }
-}
-
-fn strength_json(strength: &Strength) -> Value {
-    json!({
-        "tried": strength.tried,
-        "caught": strength.caught,
-        "equivalent": strength.equivalent,
-        "undecided": strength.undecided,
-        "not_tried": strength.not_tried,
-        "survivors": strength
-            .survivors
-            .iter()
-            .map(|s| json!({
-                "change": s.change,
-                "inputs": inputs_json(&s.inputs),
-                "original": s.original,
-                "mutant": s.mutant,
-            }))
-            .collect::<Vec<_>>(),
-    })
-}
-
-/// The receipt as JSON, for the file at `file`.
-pub fn json(report: &Report, file: &str) -> String {
-    let definitions: Vec<Value> = report
-        .definitions
-        .iter()
-        .map(|definition| {
-            json!({
-                "name": definition.name,
-                "file": definition.file,
-                "kind": "function",
-                "hash": definition.hash,
-                "standing": definition.standing.name(),
-                "obligations": report
-                    .verdicts
-                    .iter()
-                    .filter(|v| v.definition == definition.hash && v.function == definition.name)
-                    .map(verdict_json)
-                    .collect::<Vec<_>>(),
-                "examples": report
-                    .examples
-                    .iter()
-                    .filter(|e| e.function == definition.name)
-                    .map(example_json)
-                    .collect::<Vec<_>>(),
-                "strength": report
-                    .strength
-                    .iter()
-                    .find(|s| s.function == definition.name)
-                    .map(strength_json),
-                "openness": report
-                    .openness
-                    .iter()
-                    .find(|d| d.function == definition.name)
-                    .map(|d| {
-                        let mut value = openness_json(&d.openness);
-                        value["free"] = json!(d.free);
-                        value
-                    }),
-            })
-        })
-        .collect();
-    let receipt = json!({
-        "receipt": VERSION,
-        "accord": env!("CARGO_PKG_VERSION"),
-        "file": file,
-        "standing": report.standing.name(),
-        "definitions": definitions,
-    });
-    serde_json::to_string_pretty(&receipt).unwrap_or_default()
 }

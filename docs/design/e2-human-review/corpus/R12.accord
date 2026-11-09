@@ -1,0 +1,32 @@
+// Copyright Cedar Contributors
+// SPDX-License-Identifier: Apache-2.0
+// Modified Boolean port of Cedar PartialResponse::decision at
+// 5af7b8cd78e4e0da3ae23f1715023fff8e62941d; see conformance/programs/cedar/NOTICE
+// and LICENSE-APACHE at the repository root.
+enum PartialDecision { Deny, Allow, Unknown }
+
+fn partial_decision(
+    satisfied_forbid: Bool,
+    satisfied_permit: Bool,
+    residual_permit: Bool,
+    residual_forbid: Bool,
+) -> PartialDecision
+    intent "Deny on a satisfied forbid or no possible permit; allow on a satisfied permit with no possible forbid; otherwise keep the decision unknown."
+    ensures result == Deny implies satisfied_forbid or (not satisfied_permit and not residual_permit)
+    ensures satisfied_forbid or (not satisfied_permit and not residual_permit) implies result == Deny
+    ensures not satisfied_forbid and satisfied_permit and not residual_forbid implies result == Allow
+    ensures result == Unknown implies not satisfied_forbid and (satisfied_permit or residual_permit) and (residual_forbid or not satisfied_permit)
+    open when not satisfied_forbid and (satisfied_permit or residual_permit) and (residual_forbid or not satisfied_permit)
+decide {
+    | satisfied_forbid                                                   => Deny
+    | not satisfied_permit and not residual_permit                        => Deny
+    | residual_forbid                                                    => Unknown
+    | not satisfied_permit and residual_permit                            => Unknown
+    | otherwise                                                          => Allow
+}
+
+example partial_decision(satisfied_forbid: true, satisfied_permit: false, residual_permit: false, residual_forbid: false) == Deny
+example partial_decision(satisfied_forbid: false, satisfied_permit: false, residual_permit: false, residual_forbid: true) == Deny
+example partial_decision(satisfied_forbid: false, satisfied_permit: false, residual_permit: true, residual_forbid: false) == Unknown
+example partial_decision(satisfied_forbid: false, satisfied_permit: true, residual_permit: false, residual_forbid: false) == Allow
+example partial_decision(satisfied_forbid: false, satisfied_permit: true, residual_permit: true, residual_forbid: false) == Allow

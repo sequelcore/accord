@@ -58,6 +58,40 @@ fn reuse(report: &Report) -> Vec<(String, Vec<bool>)> {
         .collect()
 }
 
+#[test]
+fn an_intent_change_updates_the_report_but_reuses_the_proof() {
+    let dir = std::env::temp_dir().join(format!("accord-intent-{}", std::process::id()));
+    std::fs::create_dir(&dir).expect("new isolated ledger");
+    let solvers = Solvers::from_env()
+        .expect("Z3 and cvc5 are available (see conformance/README.md)")
+        .with_ledger(&dir);
+    let original = "fn flag() -> Bool
+    intent \"Returns false.\"
+    ensures result
+{ true }
+";
+    let first = verify(original, &solvers).expect("first check");
+    assert!(all(&first, false));
+    assert_eq!(
+        first.definitions[0].intent.as_deref(),
+        Some("Returns false.")
+    );
+
+    let edited = original.replace("Returns false.", "Returns true.");
+    let second = verify(&edited, &solvers).expect("intent edit checks");
+    assert_eq!(
+        second.definitions[0].intent.as_deref(),
+        Some("Returns true.")
+    );
+    assert_eq!(first.definitions[0].hash, second.definitions[0].hash);
+    assert_eq!(first.standing, second.standing);
+    assert!(all(&second, true), "prose changes no proof obligation");
+    let text = accord::receipt::text(&second);
+    assert!(text.contains("(unchecked): Returns true."));
+    assert!(!text.contains("Returns false."));
+    std::fs::remove_dir_all(&dir).expect("remove this test's ledger");
+}
+
 fn all(report: &Report, reused: bool) -> bool {
     !report.verdicts.is_empty() && report.verdicts.iter().all(|v| v.reused == reused)
 }

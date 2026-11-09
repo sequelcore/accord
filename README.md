@@ -19,6 +19,12 @@ changes. Nothing undecided is reported as proved. The
 [concepts](docs/concepts.md) define each term, and the
 [background](docs/design/background.md) says where the design comes from.
 
+`accord check <file or folder>` presents each function for review, with its
+unchecked intent, complete specification, evidence, and proof limits. Add
+`--json` for structured diagnostics with stable codes. The
+[receipt reference](docs/receipt.md) describes both views; the
+[readability packets](docs/design/stage-7-review/README.md) await human review.
+
 ## License
 
 Licensed under either of

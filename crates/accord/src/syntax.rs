@@ -8,10 +8,14 @@ mod token;
 
 pub(crate) use parser::parse;
 
+/// A type supported by Accord's checked functions.
 #[derive(Clone, Debug, PartialEq)]
-pub(crate) enum Type {
+pub enum Type {
+    /// A Boolean.
     Bool,
+    /// A signed fixed-width integer.
     Int(Width),
+    /// A sequence of characters.
     Text,
     /// A list whose elements have this type.
     List(Box<Type>),
@@ -21,12 +25,15 @@ pub(crate) enum Type {
 
 /// A signed integer type's width.
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub(crate) enum Width {
+pub enum Width {
+    /// A signed 32-bit integer.
     I32,
+    /// A signed 64-bit integer.
     I64,
 }
 
 impl Width {
+    /// The Accord spelling.
     pub fn name(self) -> &'static str {
         match self {
             Width::I32 => "i32",
@@ -34,6 +41,7 @@ impl Width {
         }
     }
 
+    /// The smallest representable value.
     pub fn min(self) -> i128 {
         match self {
             Width::I32 => i128::from(i32::MIN),
@@ -41,10 +49,24 @@ impl Width {
         }
     }
 
+    /// The largest representable value.
     pub fn max(self) -> i128 {
         match self {
             Width::I32 => i128::from(i32::MAX),
             Width::I64 => i128::from(i64::MAX),
+        }
+    }
+}
+
+impl Type {
+    /// The type as written in a function signature.
+    pub fn name(&self) -> String {
+        match self {
+            Self::Bool => "Bool".to_string(),
+            Self::Int(width) => width.name().to_string(),
+            Self::Text => "Text".to_string(),
+            Self::List(element) => format!("List<{}>", element.name()),
+            Self::Enum(name) => name.clone(),
         }
     }
 }
@@ -135,6 +157,7 @@ pub(crate) enum Body {
 #[derive(Clone, Debug)]
 pub(crate) struct Function {
     pub name: String,
+    pub intent: Option<String>,
     pub line: usize,
     /// The index of the file it was declared in, within its folder.
     pub file: usize,

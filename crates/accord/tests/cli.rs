@@ -69,7 +69,7 @@ fn check_json_writes_the_versioned_receipt() {
     );
     let receipt: serde_json::Value =
         serde_json::from_slice(&output.stdout).expect("the receipt is JSON");
-    assert_eq!(receipt["receipt"], 1);
+    assert_eq!(receipt["receipt"], 2);
     assert_eq!(receipt["standing"], "failed");
     let larger = &receipt["definitions"][0];
     assert_eq!(larger["name"], "larger");
@@ -86,6 +86,40 @@ fn check_json_writes_the_versioned_receipt() {
     assert_eq!(
         larger["strength"]["survivors"].as_array().map(Vec::len),
         Some(0)
+    );
+}
+
+#[test]
+fn check_reports_intent_as_unchecked_and_does_not_count_it_as_evidence() {
+    let output = accord(&["check", &case("intent"), "--json"]);
+    assert_eq!(output.status.code(), Some(3));
+    let receipt: serde_json::Value =
+        serde_json::from_slice(&output.stdout).expect("the receipt is JSON");
+    let definitions = receipt["definitions"].as_array().expect("definitions");
+    assert_eq!(definitions[0]["intent"], "Returns false.");
+    assert_eq!(definitions[0]["standing"], "verified");
+    assert_eq!(
+        definitions[1]["intent"],
+        "This statement has not been checked."
+    );
+    assert_eq!(definitions[1]["standing"], "unverified");
+    assert!(definitions[1]["obligations"].as_array().unwrap().is_empty());
+    assert!(definitions[2].get("intent").is_some_and(|v| v.is_null()));
+
+    let text = accord(&["check", &case("intent")]);
+    assert_eq!(text.status.code(), Some(3));
+    let text = String::from_utf8(text.stdout).expect("text receipt");
+    assert!(
+        text.contains("intent       verified_flag (unchecked): Returns false."),
+        "{text}"
+    );
+    assert!(
+        text.contains("intent       intent_only (unchecked): This statement has not been checked."),
+        "{text}"
+    );
+    assert!(
+        text.contains("intent       without_intent: not declared"),
+        "{text}"
     );
 }
 

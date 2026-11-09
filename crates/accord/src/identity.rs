@@ -10,6 +10,7 @@
 
 use sha2::{Digest, Sha256};
 
+use crate::interpret::{self, Value};
 use crate::syntax::{Body, Enum, Expr, Function, Program, Type};
 use crate::{Inputs, Outcome, Refutation};
 
@@ -199,30 +200,72 @@ pub(crate) fn units(program: &Program) -> Vec<Unit<'_>> {
 }
 
 impl Unit<'_> {
+    /// Source names and variants of the enums this unit uses.
+    pub fn source_enums(&self) -> Vec<(String, Vec<String>)> {
+        self.enums
+            .iter()
+            .map(|e| (e.name.clone(), e.variants.clone()))
+            .collect()
+    }
+
     /// A solver's inputs for the normalized function, in source terms.
     pub fn source_inputs(&self, inputs: &Inputs) -> Inputs {
         inputs
             .iter()
             .map(|(name, value)| {
-                let name = name
-                    .strip_prefix('p')
-                    .and_then(|i| i.parse::<usize>().ok())
+                let index = name.strip_prefix('p').and_then(|i| i.parse::<usize>().ok());
+                let source_name = index
                     .and_then(|i| self.source.params.get(i))
                     .map_or(name.clone(), |(source, _)| source.clone());
-                (name, self.source_value(value))
+                let source_value = self
+                    .program
+                    .functions
+                    .first()
+                    .and_then(|f| index.and_then(|i| f.params.get(i)))
+                    .map_or_else(
+                        || value.clone(),
+                        |(_, ty)| self.source_typed_value(value, ty),
+                    );
+                (source_name, source_value)
             })
             .collect()
     }
 
     /// A normalized value, such as `E0.v1`, in source terms.
     pub fn source_value(&self, value: &str) -> String {
-        let read = || {
-            let (owner, variant) = value.strip_prefix('E')?.split_once(".v")?;
-            let e = self.enums.get(owner.parse::<usize>().ok()?)?;
-            let name = e.variants.get(variant.parse::<usize>().ok()?)?;
-            Some(format!("{}.{name}", e.name))
-        };
-        read().unwrap_or_else(|| value.to_string())
+        self.program.functions.first().map_or_else(
+            || value.to_string(),
+            |f| self.source_typed_value(value, &f.ret),
+        )
+    }
+
+    fn source_typed_value(&self, value: &str, ty: &Type) -> String {
+        interpret::read(value, ty)
+            .map_or_else(|| value.to_string(), |v| self.source_value_tree(v).source())
+    }
+
+    fn source_value_tree(&self, value: Value) -> Value {
+        match value {
+            Value::List(items) => Value::List(
+                items
+                    .into_iter()
+                    .map(|v| self.source_value_tree(v))
+                    .collect(),
+            ),
+            Value::Variant(owner, variant) => {
+                let source = (|| {
+                    let e = self
+                        .enums
+                        .get(owner.strip_prefix('E')?.parse::<usize>().ok()?)?;
+                    let name = e
+                        .variants
+                        .get(variant.strip_prefix('v')?.parse::<usize>().ok()?)?;
+                    Some(Value::Variant(e.name.clone(), name.clone()))
+                })();
+                source.unwrap_or(Value::Variant(owner, variant))
+            }
+            other => other,
+        }
     }
 
     /// An outcome about the normalized function, in source terms.
