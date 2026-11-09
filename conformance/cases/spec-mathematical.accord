@@ -1,0 +1,7 @@
+// expect: proved, proved
+fn grows(a: i32) -> Bool
+    requires a < 2147483647
+    ensures result
+{
+    a + 1 > a
+}

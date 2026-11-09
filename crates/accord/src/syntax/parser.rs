@@ -1,40 +1,40 @@
 //! The parser: tokens to a [`Program`].
 
 use super::token::{Token, tokenize};
-use super::{Body, Clause, ClauseKind, Enum, Expr, Function, Op, Program, Row, Type};
+use super::{Body, Clause, ClauseKind, Enum, Function, Program, Row, Site, Type, Width};
 use crate::Diagnostic;
 
-struct Parser<'a> {
-    source: Vec<&'a str>,
-    tokens: Vec<(Token, usize, usize)>,
-    pos: usize,
+pub(super) struct Parser<'a> {
+    pub(super) source: Vec<&'a str>,
+    pub(super) tokens: Vec<(Token, usize, usize)>,
+    pub(super) pos: usize,
 }
 
 impl Parser<'_> {
-    fn line(&self) -> usize {
+    pub(super) fn line(&self) -> usize {
         self.tokens
             .get(self.pos)
             .or(self.tokens.last())
             .map_or(1, |t| t.1)
     }
 
-    fn peek(&self) -> Option<&Token> {
+    pub(super) fn peek(&self) -> Option<&Token> {
         self.tokens.get(self.pos).map(|t| &t.0)
     }
 
-    fn at_word(&self, word: &str) -> bool {
+    pub(super) fn at_word(&self, word: &str) -> bool {
         matches!(self.peek(), Some(Token::Word(w)) if w == word)
     }
 
-    fn at_sym(&self, sym: &str) -> bool {
+    pub(super) fn at_sym(&self, sym: &str) -> bool {
         matches!(self.peek(), Some(Token::Sym(s)) if *s == sym)
     }
 
-    fn error<T>(&self, message: impl Into<String>) -> Result<T, Diagnostic> {
+    pub(super) fn error<T>(&self, message: impl Into<String>) -> Result<T, Diagnostic> {
         Err(Diagnostic::new(self.line(), message))
     }
 
-    fn expect_sym(&mut self, sym: &str) -> Result<(), Diagnostic> {
+    pub(super) fn expect_sym(&mut self, sym: &str) -> Result<(), Diagnostic> {
         if self.at_sym(sym) {
             self.pos += 1;
             Ok(())
@@ -43,7 +43,7 @@ impl Parser<'_> {
         }
     }
 
-    fn expect_word(&mut self, word: &str) -> Result<(), Diagnostic> {
+    pub(super) fn expect_word(&mut self, word: &str) -> Result<(), Diagnostic> {
         if self.at_word(word) {
             self.pos += 1;
             Ok(())
@@ -52,7 +52,7 @@ impl Parser<'_> {
         }
     }
 
-    fn name(&mut self) -> Result<String, Diagnostic> {
+    pub(super) fn name(&mut self) -> Result<String, Diagnostic> {
         match self.peek() {
             Some(Token::Word(w)) if !is_keyword(w) => {
                 let w = w.clone();
@@ -75,10 +75,43 @@ impl Parser<'_> {
         (text.to_string(), line)
     }
 
+    /// The source text of tokens `start..self.pos`, as written when they are
+    /// on one line.
+    fn text_since(&self, start: usize) -> String {
+        let tokens = &self.tokens[start..self.pos];
+        let len = |token: &Token| match token {
+            Token::Word(w) => w.len(),
+            Token::Sym(s) => s.len(),
+        };
+        match (tokens.first(), tokens.last()) {
+            (Some(first), Some(last)) if first.1 == last.1 => {
+                self.source[first.1 - 1][first.2..last.2 + len(&last.0)].to_string()
+            }
+            _ => tokens
+                .iter()
+                .map(|t| match &t.0 {
+                    Token::Word(w) => w.clone(),
+                    Token::Sym(s) => (*s).to_string(),
+                })
+                .collect::<Vec<_>>()
+                .join(" "),
+        }
+    }
+
+    pub(super) fn site(&self, start: usize) -> Site {
+        Site {
+            width: None,
+            text: self.text_since(start),
+            line: self.tokens[start].1,
+        }
+    }
+
     fn ty(&mut self) -> Result<Type, Diagnostic> {
         let name = self.name()?;
         Ok(match name.as_str() {
             "Bool" => Type::Bool,
+            "i32" => Type::Int(Width::I32),
+            "i64" => Type::Int(Width::I64),
             _ => Type::Enum(name),
         })
     }
@@ -189,99 +222,9 @@ impl Parser<'_> {
         self.expect_sym("}")?;
         Ok(Body::Decide(rows, line))
     }
-
-    fn expr(&mut self) -> Result<Expr, Diagnostic> {
-        let left = self.or()?;
-        if self.at_word("implies") {
-            self.pos += 1;
-            let right = self.expr()?;
-            return Ok(Expr::Binary(Op::Implies, Box::new(left), Box::new(right)));
-        }
-        Ok(left)
-    }
-
-    fn or(&mut self) -> Result<Expr, Diagnostic> {
-        let mut left = self.and()?;
-        while self.at_word("or") {
-            self.pos += 1;
-            left = Expr::Binary(Op::Or, Box::new(left), Box::new(self.and()?));
-        }
-        Ok(left)
-    }
-
-    fn and(&mut self) -> Result<Expr, Diagnostic> {
-        let mut left = self.not()?;
-        while self.at_word("and") {
-            self.pos += 1;
-            left = Expr::Binary(Op::And, Box::new(left), Box::new(self.not()?));
-        }
-        Ok(left)
-    }
-
-    fn not(&mut self) -> Result<Expr, Diagnostic> {
-        if self.at_word("not") {
-            self.pos += 1;
-            return Ok(Expr::Not(Box::new(self.not()?)));
-        }
-        self.comparison()
-    }
-
-    fn comparison(&mut self) -> Result<Expr, Diagnostic> {
-        let left = self.primary()?;
-        let op = if self.at_sym("==") {
-            Op::Eq
-        } else if self.at_sym("!=") {
-            Op::Ne
-        } else {
-            return Ok(left);
-        };
-        self.pos += 1;
-        Ok(Expr::Binary(op, Box::new(left), Box::new(self.primary()?)))
-    }
-
-    fn primary(&mut self) -> Result<Expr, Diagnostic> {
-        if self.at_sym("(") {
-            self.pos += 1;
-            let inner = self.expr()?;
-            self.expect_sym(")")?;
-            return Ok(inner);
-        }
-        if self.at_word("if") {
-            self.pos += 1;
-            let condition = self.expr()?;
-            self.expect_sym("{")?;
-            let then = self.expr()?;
-            self.expect_sym("}")?;
-            self.expect_word("else")?;
-            self.expect_sym("{")?;
-            let otherwise = self.expr()?;
-            self.expect_sym("}")?;
-            return Ok(Expr::If(
-                Box::new(condition),
-                Box::new(then),
-                Box::new(otherwise),
-            ));
-        }
-        if self.at_word("true") || self.at_word("false") {
-            let value = self.at_word("true");
-            self.pos += 1;
-            return Ok(Expr::Bool(value));
-        }
-        let line = self.line();
-        if self.at_word("result") {
-            self.pos += 1;
-            return Ok(Expr::Name("result".to_string(), line));
-        }
-        let name = self.name()?;
-        if self.at_sym(".") {
-            self.pos += 1;
-            return Ok(Expr::Variant(name, self.name()?, line));
-        }
-        Ok(Expr::Name(name, line))
-    }
 }
 
-fn is_keyword(word: &str) -> bool {
+pub(super) fn is_keyword(word: &str) -> bool {
     matches!(
         word,
         "fn" | "enum"

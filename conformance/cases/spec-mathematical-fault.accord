@@ -1,0 +1,6 @@
+// expect: proved, refuted
+fn grows(a: i32) -> Bool
+    ensures result
+{
+    a + 1 > a
+}

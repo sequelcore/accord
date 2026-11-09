@@ -1,0 +1,5 @@
+// expect: error
+fn big(a: i32) -> Bool
+{
+    a < 3000000000
+}

@@ -1,5 +1,6 @@
 //! Name and type checks that run before any obligation is generated. They
-//! also resolve each bare variant to its enum, which needs the expected type.
+//! also resolve what needs the expected type: each bare variant's enum, and
+//! the width of each integer literal and arithmetic operation.
 
 use crate::Diagnostic;
 use crate::syntax::{Body, ClauseKind, Enum, Expr, Op, Program, Type};
@@ -8,6 +9,17 @@ struct Scope<'a> {
     enums: &'a [Enum],
     params: &'a [(String, Type)],
     result: Option<&'a Type>,
+    /// In `requires` and `ensures`, integers are mathematical: a literal
+    /// needn't fit its type.
+    spec: bool,
+}
+
+fn type_name(ty: &Type) -> &str {
+    match ty {
+        Type::Bool => "Bool",
+        Type::Int(width) => width.name(),
+        Type::Enum(name) => name,
+    }
 }
 
 impl Scope<'_> {
@@ -15,15 +27,96 @@ impl Scope<'_> {
         self.params.iter().find(|(n, _)| n == name).map(|(_, t)| t)
     }
 
-    /// A name that can only be a variant: not `result` and not a parameter.
-    fn is_bare_variant(&self, expr: &Expr) -> bool {
-        matches!(expr, Expr::Name(name, _) if name != "result" && self.param(name).is_none())
+    /// Whether `expr` takes its type from its context: a bare variant (a name
+    /// that isn't `result` or a parameter), an integer literal, or arithmetic
+    /// made only of those.
+    fn needs_context(&self, expr: &Expr) -> bool {
+        match expr {
+            Expr::Name(name, _) => name != "result" && self.param(name).is_none(),
+            Expr::Int(..) => true,
+            Expr::Neg(inner, _) => self.needs_context(inner),
+            Expr::Arith(_, left, right, _) => self.needs_context(left) && self.needs_context(right),
+            _ => false,
+        }
+    }
+
+    /// The types of two operands that must agree, inferring the one that
+    /// needs its context second.
+    fn pair(
+        &self,
+        left: &mut Expr,
+        right: &mut Expr,
+        expected: Option<&Type>,
+    ) -> Result<(Type, Type), Diagnostic> {
+        if self.needs_context(left) {
+            let r = self.infer(right, expected)?;
+            Ok((self.infer(left, Some(&r))?, r))
+        } else {
+            let l = self.infer(left, expected)?;
+            let r = self.infer(right, Some(&l))?;
+            Ok((l, r))
+        }
     }
 
     /// The type of `expr`, given the type its context expects, if known.
     fn infer(&self, expr: &mut Expr, expected: Option<&Type>) -> Result<Type, Diagnostic> {
         match expr {
             Expr::Bool(_) => Ok(Type::Bool),
+            Expr::Int(value, line) => match expected {
+                Some(Type::Int(width)) if self.spec || *value <= width.max() => {
+                    Ok(Type::Int(*width))
+                }
+                Some(Type::Int(width)) => Err(Diagnostic::new(
+                    *line,
+                    format!("`{value}` doesn't fit `{}`", width.name()),
+                )),
+                Some(other) => Err(Diagnostic::new(
+                    *line,
+                    format!(
+                        "`{value}` is an integer, but a `{}` is needed here",
+                        type_name(other)
+                    ),
+                )),
+                None => Err(Diagnostic::new(
+                    *line,
+                    format!("the type of `{value}` isn't known here"),
+                )),
+            },
+            Expr::Neg(inner, site) => {
+                let ty = match (inner.as_mut(), expected) {
+                    // The literal after `-` may be one past the largest value.
+                    (Expr::Int(value, line), Some(Type::Int(width))) => {
+                        if !self.spec && -*value < width.min() {
+                            return Err(Diagnostic::new(
+                                *line,
+                                format!("`-{value}` doesn't fit `{}`", width.name()),
+                            ));
+                        }
+                        Type::Int(*width)
+                    }
+                    (inner, _) => self.infer(inner, expected)?,
+                };
+                match ty {
+                    Type::Int(width) => {
+                        site.width = Some(width);
+                        Ok(ty)
+                    }
+                    other => Err(Diagnostic::new(
+                        site.line,
+                        format!("`-` needs an integer, not a `{}`", type_name(&other)),
+                    )),
+                }
+            }
+            Expr::Arith(_, left, right, site) => match self.pair(left, right, expected)? {
+                (Type::Int(l), Type::Int(r)) if l == r => {
+                    site.width = Some(l);
+                    Ok(Type::Int(l))
+                }
+                _ => Err(Diagnostic::new(
+                    site.line,
+                    format!("both sides of `{}` need the same integer type", site.text),
+                )),
+            },
             Expr::Name(name, line) => {
                 if name == "result" {
                     return self.result.cloned().ok_or_else(|| {
@@ -70,23 +163,18 @@ impl Scope<'_> {
             Expr::Binary(op, left, right) => {
                 let line = line_of(left);
                 match op {
-                    Op::Eq | Op::Ne => {
-                        // A bare variant takes its type from the other side.
-                        let (l, r) = if self.is_bare_variant(left) {
-                            let r = self.infer(right, None)?;
-                            (self.infer(left, Some(&r))?, r)
-                        } else {
-                            let l = self.infer(left, None)?;
-                            let r = self.infer(right, Some(&l))?;
-                            (l, r)
-                        };
-                        if l == r {
-                            Ok(Type::Bool)
-                        } else {
+                    Op::Eq | Op::Ne | Op::Lt | Op::Le | Op::Gt | Op::Ge => {
+                        let (l, r) = self.pair(left, right, None)?;
+                        let ordered = !matches!(op, Op::Eq | Op::Ne);
+                        if l != r {
                             Err(Diagnostic::new(
                                 line,
                                 "both sides of a comparison need the same type",
                             ))
+                        } else if ordered && !matches!(l, Type::Int(_)) {
+                            Err(Diagnostic::new(line, "only integers can be ordered"))
+                        } else {
+                            Ok(Type::Bool)
                         }
                     }
                     Op::And | Op::Or | Op::Implies => {
@@ -121,7 +209,7 @@ impl Scope<'_> {
     fn condition(&self, expr: &mut Expr) -> Result<(), Diagnostic> {
         match self.infer(expr, Some(&Type::Bool))? {
             Type::Bool => Ok(()),
-            Type::Enum(_) => Err(Diagnostic::new(
+            _ => Err(Diagnostic::new(
                 line_of(expr),
                 "expected a `Bool` condition",
             )),
@@ -139,7 +227,8 @@ impl Scope<'_> {
 
 fn line_of(expr: &Expr) -> usize {
     match expr {
-        Expr::Name(_, line) | Expr::Variant(_, _, line) => *line,
+        Expr::Name(_, line) | Expr::Variant(_, _, line) | Expr::Int(_, line) => *line,
+        Expr::Arith(.., site) | Expr::Neg(_, site) => site.line,
         Expr::Not(inner) => line_of(inner),
         Expr::Binary(_, left, _) | Expr::If(left, _, _) => line_of(left),
         Expr::Bool(_) => 0,
@@ -189,6 +278,7 @@ pub(crate) fn check(program: &mut Program) -> Result<(), Diagnostic> {
                 enums,
                 params: &function.params,
                 result: (clause.kind == ClauseKind::Ensures).then_some(&function.ret),
+                spec: true,
             };
             if scope.infer(&mut clause.expr, Some(&Type::Bool))? != Type::Bool {
                 return Err(Diagnostic::new(
@@ -201,6 +291,7 @@ pub(crate) fn check(program: &mut Program) -> Result<(), Diagnostic> {
             enums,
             params: &function.params,
             result: None,
+            spec: false,
         };
         let message = "the body's type isn't the function's return type";
         match &mut function.body {

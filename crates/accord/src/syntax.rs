@@ -1,7 +1,8 @@
 //! The syntax tree for the subset Accord compiles today: enums, and functions
-//! over `Bool` and enums with `requires`, `ensures` and a body that is an
-//! expression or a decision table.
+//! over `Bool`, fixed-width integers and enums with `requires`, `ensures` and
+//! a body that is an expression or a decision table.
 
+mod expr;
 mod parser;
 mod token;
 
@@ -10,8 +11,39 @@ pub(crate) use parser::parse;
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) enum Type {
     Bool,
+    Int(Width),
     /// An enum, by name.
     Enum(String),
+}
+
+/// A signed integer type's width.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) enum Width {
+    I32,
+    I64,
+}
+
+impl Width {
+    pub fn name(self) -> &'static str {
+        match self {
+            Width::I32 => "i32",
+            Width::I64 => "i64",
+        }
+    }
+
+    pub fn min(self) -> i128 {
+        match self {
+            Width::I32 => i128::from(i32::MIN),
+            Width::I64 => i128::from(i64::MIN),
+        }
+    }
+
+    pub fn max(self) -> i128 {
+        match self {
+            Width::I32 => i128::from(i32::MAX),
+            Width::I64 => i128::from(i64::MAX),
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -21,17 +53,41 @@ pub(crate) enum Op {
     Implies,
     Eq,
     Ne,
+    Lt,
+    Le,
+    Gt,
+    Ge,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) enum Arith {
+    Add,
+    Sub,
+    Mul,
+}
+
+/// Where an arithmetic operation is and what it is, for its overflow
+/// obligation. The checker sets `width`; the parser leaves it `None`.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct Site {
+    pub width: Option<Width>,
+    pub text: String,
+    pub line: usize,
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) enum Expr {
     Bool(bool),
+    /// A non-negative integer literal; `-` before it is a negation.
+    Int(i128, usize),
     /// A parameter, `result`, or a bare variant until the checker resolves it.
     Name(String, usize),
     /// A variant of the named enum: written qualified, or resolved by the checker.
     Variant(String, String, usize),
     Not(Box<Expr>),
     Binary(Op, Box<Expr>, Box<Expr>),
+    Arith(Arith, Box<Expr>, Box<Expr>, Site),
+    Neg(Box<Expr>, Site),
     If(Box<Expr>, Box<Expr>, Box<Expr>),
 }
 

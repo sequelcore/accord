@@ -1,0 +1,5 @@
+// expect: error
+fn smaller(a: i32, b: i64) -> Bool
+{
+    a < b
+}

@@ -155,10 +155,30 @@ pub(crate) fn parse_answer(output: &str, params: &[String]) -> Answer {
     }
 }
 
+/// The value `get-value` gives `name`, in source terms: a symbol, a number,
+/// or `(- n)` read as `-n`.
 fn value_of(text: &str, name: &str) -> Option<String> {
     let start = text.find(&format!("({name} "))? + name.len() + 2;
-    let end = text[start..].find(')')? + start;
-    Some(text[start..end].trim().to_string())
+    let rest = text[start..].trim_start();
+    let value = if rest.starts_with('(') {
+        let mut depth = 0;
+        let end = rest.find(|c: char| {
+            depth += match c {
+                '(' => 1,
+                ')' => -1,
+                _ => 0,
+            };
+            depth == 0
+        })?;
+        &rest[..=end]
+    } else {
+        &rest[..rest.find([')', ' ', '\n'])?]
+    };
+    match value.strip_prefix("(-").and_then(|v| v.strip_suffix(')')) {
+        Some(magnitude) => Some(format!("-{}", magnitude.trim())),
+        None if value.starts_with('(') => None,
+        None => Some(value.to_string()),
+    }
 }
 
 /// Two answers become one outcome. Only agreement proves or refutes. A
@@ -284,6 +304,17 @@ mod tests {
             parse_answer("sat\n((a true))\n", &names(&["a", "b"])),
             Answer::Unknown(_)
         ));
+    }
+
+    #[test]
+    fn negative_values_read_as_source() {
+        assert_eq!(
+            parse_answer("sat\n((a (- 2147483648))\n (b 7))\n", &names(&["a", "b"])),
+            Answer::Sat(vec![
+                ("a".to_string(), "-2147483648".to_string()),
+                ("b".to_string(), "7".to_string())
+            ])
+        );
     }
 
     #[test]

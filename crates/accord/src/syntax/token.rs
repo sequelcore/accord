@@ -8,9 +8,10 @@ pub(super) enum Token {
     Sym(&'static str),
 }
 
-/// Longer symbols first, so `->` and `=>` aren't read as two symbols.
-const SYMBOLS: [&str; 12] = [
-    "->", "=>", "==", "!=", "(", ")", "{", "}", ":", ",", ".", "|",
+/// Longer symbols first, so `->`, `<=` and the like aren't read as two.
+const SYMBOLS: [&str; 19] = [
+    "->", "=>", "==", "!=", "<=", ">=", "<", ">", "+", "-", "*", "(", ")", "{", "}", ":", ",", ".",
+    "|",
 ];
 
 pub(super) fn tokenize(source: &str) -> Result<Vec<(Token, usize, usize)>, Diagnostic> {
@@ -32,10 +33,12 @@ pub(super) fn tokenize(source: &str) -> Result<Vec<(Token, usize, usize)>, Diagn
                 .unwrap_or(rest.len());
             if len == 0 {
                 let found = rest.chars().next().unwrap_or(' ');
-                return Err(Diagnostic::new(
-                    line,
-                    format!("unexpected character `{found}`"),
-                ));
+                let message = if matches!(found, '/' | '%') {
+                    format!("`{found}` isn't supported yet")
+                } else {
+                    format!("unexpected character `{found}`")
+                };
+                return Err(Diagnostic::new(line, message));
             }
             tokens.push((Token::Word(rest[..len].to_string()), line, at));
             rest = &rest[len..];
