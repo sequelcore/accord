@@ -19,7 +19,9 @@ inputs, surrounding systems, or an unresolved authorization decision. Score
 against the [maintainer key](answer-key.md) only after answering; record answers,
 packet hashes, score, and unclear wording before claiming the gate passed.
 This one-person acceptance check cannot establish general usability or an E2
-effect. Its reviewer is ineligible for E2.
+effect. Its reviewer is ineligible for E2. This repository is public: if anyone
+other than the owner performs the check, record the answers and score here
+without their name or anything that identifies them.
 
 The packets are generated from actual `accord check` output by
 `../e2-human-review/materials.py`; only cache-use markers are removed. Their
