@@ -1,0 +1,37 @@
+// expect: proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, passed, passed, passed, passed, passed
+// Tesota's mutation-rule (src/verification/mutation-rule.ts at dev 4ef9b191). Its
+// `ProofOutcome` comes from proof-outcome-rule; Accord has no imports, so it is
+// repeated here, and identity is structural, so it is the same type.
+/// How one proof of a file ended.
+enum ProofOutcome { Passed, Failed, Vacuous, TimedOut, Cancelled, NotStarted }
+
+/// What one mutant's proof says about the contract it was proved under.
+enum MutantFinding { Rejected, Survived, Inconclusive }
+
+fn mutant_finding(outcome: ProofOutcome) -> MutantFinding
+    ensures result == Rejected implies outcome == Failed
+    ensures outcome == Failed implies result == Rejected
+    ensures result == Survived implies outcome == Passed
+    ensures outcome == Passed implies result == Survived
+    ensures result == Inconclusive implies outcome != Failed and outcome != Passed
+    ensures outcome != Failed and outcome != Passed implies result == Inconclusive
+decide {
+    | outcome == Failed => Rejected
+    | outcome == Passed => Survived
+    | otherwise         => Inconclusive
+}
+
+/// Whether a surviving mutant is dropped as equivalent: only a proof that
+/// passed drops it.
+fn equivalent_mutant(outcome: ProofOutcome) -> Bool
+    ensures result implies outcome == Passed
+    ensures outcome == Passed implies result
+{
+    outcome == Passed
+}
+
+example mutant_finding(Failed) == Rejected
+example mutant_finding(Passed) == Survived
+example mutant_finding(TimedOut) == Inconclusive
+example equivalent_mutant(Passed) == true
+example equivalent_mutant(Vacuous) == false

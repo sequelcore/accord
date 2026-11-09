@@ -95,9 +95,14 @@ fn strength_text(strength: &Strength) -> Vec<String> {
         String::new()
     };
     lines.push(format!(
-        "strength     {}: {} mutants: {} caught, {} equivalent, {} surviving, {} undecided{not_tried}",
+        "strength     {}: {} {}: {} caught, {} equivalent, {} surviving, {} undecided{not_tried}",
         strength.function,
         strength.tried,
+        if strength.tried == 1 {
+            "mutant"
+        } else {
+            "mutants"
+        },
         strength.caught,
         strength.equivalent,
         strength.survivors.len(),
