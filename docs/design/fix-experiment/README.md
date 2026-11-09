@@ -1,8 +1,15 @@
 # E4. Fixing a failed proof
 
-**Status:** registered on 2026-11-08, before any run. The tasks are built at
-the end of stage 2, before the first run, from the compiler output of that
-time. The [roadmap](../../../ROADMAP.md) lists it with the other experiments.
+**Status:** registered on 2026-11-08, before any run. The first run moved on
+2026-11-08, before any run, from the end of stage 2 to Accord's first public
+alpha: the output it measures changes before then, and an alpha leaves room to
+act on the result. The tasks are built just before that run, from the
+compiler output of that version. The [roadmap](../../../ROADMAP.md) lists it
+with the other experiments.
+
+Before then, a pilot with one or two people may run on the current output to
+catch the worst messages. A pilot isn't scored against the pass mark and
+doesn't count as a run.
 
 ## Question
 
@@ -52,13 +59,13 @@ the failure a verifier invites.
 
 ## Pass mark
 
-For the run at the end of stage 2:
+For the first run, on the first public alpha:
 
 - at least **70%** of all task attempts solved;
 - every task solved by at least **half** of the participants, so no kind of
   failure is systematically unfixable from the output;
 - no more than **10%** of verified fixes dishonest.
 
-The second run, at stage 7, uses new participants and the review view on the
-same tasks. It passes when the solved rate doesn't fall and the median time to
+The second run, on a later public version with the review view (stage 7),
+uses new participants on the same tasks. It passes when the solved rate doesn't fall and the median time to
 a solved task falls. The pass marks don't change after a run.
