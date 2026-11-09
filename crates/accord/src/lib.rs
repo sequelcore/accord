@@ -3,6 +3,7 @@
 //! runs its examples.
 
 mod check;
+mod identity;
 mod interpret;
 mod obligation;
 mod solver;
@@ -77,6 +78,11 @@ pub struct Verdict {
     pub line: usize,
     /// What the solvers established.
     pub outcome: Outcome,
+    /// The hash of exactly what was checked: the obligation's script, written
+    /// from the normalized function, so no rename changes it.
+    pub key: String,
+    /// The hash of the normalized function the obligation belongs to.
+    pub definition: String,
 }
 
 /// Whether an example gave its result when run.
@@ -122,17 +128,23 @@ pub struct Report {
 pub fn verify(source: &str, solvers: &Solvers) -> Result<Report, Diagnostic> {
     let mut program = syntax::parse(source)?;
     check::check(&mut program)?;
-    let verdicts = obligation::obligations(&program)
-        .into_iter()
-        .map(|o| Verdict {
-            outcome: solvers.decide(&o.script, &o.params, o.polarity, |model| {
+    let units = identity::units(&program);
+    let mut verdicts = Vec::new();
+    for unit in &units {
+        for o in obligation::obligations(&unit.program) {
+            let outcome = solvers.decide(&o.script, &o.params, o.polarity, |model| {
                 interpret::replay(&o, model)
-            }),
-            function: o.function.name.clone(),
-            clause: o.clause,
-            line: o.line,
-        })
-        .collect();
+            });
+            verdicts.push(Verdict {
+                outcome: unit.source_outcome(outcome),
+                function: unit.source.name.clone(),
+                key: identity::hash(&o.script),
+                definition: unit.hash.clone(),
+                clause: o.clause,
+                line: o.line,
+            });
+        }
+    }
     let examples = program
         .examples
         .iter()

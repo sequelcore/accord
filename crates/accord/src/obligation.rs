@@ -68,7 +68,7 @@ fn sort(ty: &Type) -> &str {
     }
 }
 
-fn term(expr: &Expr) -> String {
+pub(crate) fn term(expr: &Expr) -> String {
     match expr {
         Expr::Bool(value) => value.to_string(),
         Expr::Int(value, _) => number(*value),
