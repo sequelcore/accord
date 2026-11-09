@@ -62,7 +62,7 @@ Each is registered, with its measure and success rule, before any run.
 | E1. Mechanical open cases | Does the solver find the ambiguities that asking an agent finds, or more? | Stage 5 |
 | E2. Human review | Do reviewers find more intent errors per minute with the review view than with code or specifications alone? | Stage 7; designed from stage 2 |
 | E3. Agents writing Accord | Is verified success with Accord comparable to TypeScript with LemmaScript on the same rules? | Stage 6 |
-| [E4. Fixing a failed proof](docs/design/fix-experiment/README.md) | Can a developer who has never seen Accord turn a failed check into a verified fix that keeps the intent? | End of stage 2; again at stage 7 with the review view |
+| [E4. Fixing a failed proof](docs/design/fix-experiment/README.md) | Can a developer who has never seen Accord turn a failed check into a verified fix that keeps the intent? | First public alpha; again on a later public version with the review view (stage 7) |
 
 ## Trust
 
