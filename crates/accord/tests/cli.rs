@@ -47,12 +47,52 @@ fn check_exits_0_when_every_obligation_is_proved() {
         "{}",
         String::from_utf8_lossy(&output.stderr)
     );
+    let stdout = String::from_utf8_lossy(&output.stdout);
     assert_eq!(
-        String::from_utf8_lossy(&output.stdout)
-            .matches("proved")
-            .count(),
+        stdout.lines().filter(|l| l.starts_with("proved")).count(),
         2
     );
+    assert!(
+        stdout.contains("standing     the file: verified"),
+        "{stdout}"
+    );
+}
+
+#[test]
+fn check_json_writes_the_versioned_receipt() {
+    let output = accord(&["check", &case("example-fault"), "--json"]);
+    assert_eq!(
+        output.status.code(),
+        Some(1),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let receipt: serde_json::Value =
+        serde_json::from_slice(&output.stdout).expect("the receipt is JSON");
+    assert_eq!(receipt["receipt"], 1);
+    assert_eq!(receipt["standing"], "failed");
+    let larger = &receipt["definitions"][0];
+    assert_eq!(larger["name"], "larger");
+    assert_eq!(larger["standing"], "failed");
+    assert_eq!(larger["hash"].as_str().map(str::len), Some(64));
+    let obligations = larger["obligations"].as_array().expect("obligations");
+    assert_eq!(obligations.len(), 2);
+    assert!(obligations.iter().all(|o| o["outcome"] == "proved"));
+    assert_eq!(larger["examples"][0]["run"], "failed");
+    assert_eq!(larger["examples"][0]["reason"], "it gives 5, not 2");
+    assert_eq!(larger["examples"][1]["run"], "passed");
+}
+
+#[test]
+fn check_exits_3_when_nothing_is_checked() {
+    let dir = std::env::temp_dir().join(format!("accord-cli-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).expect("a temporary folder");
+    let file = dir.join("nothing.accord");
+    std::fs::write(&file, "fn same(a: Bool) -> Bool\n{\n    a\n}\n").expect("written");
+    let output = accord(&["check", &file.to_string_lossy()]);
+    let _ = std::fs::remove_dir_all(&dir);
+    assert_eq!(output.status.code(), Some(3));
+    assert!(String::from_utf8_lossy(&output.stdout).contains("unverified"));
 }
 
 #[test]

@@ -120,3 +120,4 @@ meant: that is the intent's question, answered by approval.
 The **receipt** is the compiler's report of one check: every piece of
 evidence, every opinion it was given, kept apart, the standing, and what was
 not checked. It is the same record as text for people and as JSON for agents.
+[The receipt](receipt.md) documents what the compiler writes today.
