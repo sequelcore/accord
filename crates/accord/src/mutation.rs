@@ -100,7 +100,10 @@ fn swap(op: Op) -> Option<Op> {
 
 fn line_of(expr: &Expr) -> usize {
     match expr {
-        Expr::Name(_, line) | Expr::Variant(_, _, line) | Expr::Int(_, line) => *line,
+        Expr::Name(_, line)
+        | Expr::Variant(_, _, line)
+        | Expr::Int(_, line)
+        | Expr::Text(_, line) => *line,
         Expr::Arith(.., site) | Expr::Neg(_, site) => site.line,
         Expr::Not(inner) => line_of(inner),
         Expr::Binary(_, left, _) | Expr::If(left, _, _) => line_of(left),
@@ -152,7 +155,7 @@ fn mutate_expr(expr: &mut Expr, n: &mut usize) -> Option<Change> {
         }
         Expr::Not(inner) | Expr::Neg(inner, _) => mutate_expr(inner, n),
         Expr::Arith(_, left, right, _) => mutate_expr(left, n).or_else(|| mutate_expr(right, n)),
-        Expr::Bool(_) | Expr::Name(..) | Expr::Variant(..) => None,
+        Expr::Bool(_) | Expr::Text(..) | Expr::Name(..) | Expr::Variant(..) => None,
     }
 }
 

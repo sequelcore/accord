@@ -7,6 +7,7 @@ pub(crate) fn sort(ty: &Type) -> &str {
     match ty {
         Type::Bool => "Bool",
         Type::Int(_) => "Int",
+        Type::Text => "String",
         Type::Enum(name) => name,
     }
 }
@@ -14,6 +15,7 @@ pub(crate) fn term(expr: &Expr) -> String {
     match expr {
         Expr::Bool(value) => value.to_string(),
         Expr::Int(value, _) => number(*value),
+        Expr::Text(text, _) => string(text),
         Expr::Name(name, _) => name.clone(),
         Expr::Variant(owner, name, _) => format!("{owner}.{name}"),
         Expr::Not(inner) => format!("(not {})", term(inner)),
@@ -50,6 +52,23 @@ pub(crate) fn term(expr: &Expr) -> String {
         }
     }
 }
+/// A text as an SMT-LIB string literal. SMT-LIB reads `\u{...}` in a
+/// literal as an escape, so a backslash, and every character outside
+/// printable ASCII, is written as one; the text means the same to the
+/// solvers as to the program.
+fn string(text: &str) -> String {
+    let mut out = String::from("\"");
+    for c in text.chars() {
+        match c {
+            '"' => out.push_str("\"\""),
+            ' '..='~' if c != '\\' => out.push(c),
+            _ => out.push_str(&format!("\\u{{{:x}}}", c as u32)),
+        }
+    }
+    out.push('"');
+    out
+}
+
 fn number(value: i128) -> String {
     if value < 0 {
         format!("(- {})", value.unsigned_abs())

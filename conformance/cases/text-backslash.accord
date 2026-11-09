@@ -1,0 +1,11 @@
+// expect: proved, proved, passed, passed
+// open: determined
+fn is_path(name: Text) -> Bool
+    ensures result == (name == "a\u{41}")
+    ensures name == "a\u{41}" implies name != "aA"
+{
+    name == "a\u{41}"
+}
+
+example is_path(name: "a\u{41}") == true
+example is_path(name: "aA") == false

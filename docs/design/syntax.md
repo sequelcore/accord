@@ -124,6 +124,10 @@ condition can never be the first to hold.
 ## Types and values
 
 - `Bool`: `true`, `false`.
+- `Text`: a sequence of characters, written in double quotes (`"read"`). A
+  literal ends at the next `"` on its line and has no escapes, so it can't
+  contain `"`; any other character, accented or not, stands for itself.
+  Texts are compared with `==` and `!=` and have no other operations yet.
 - `i32`, `i64`: signed integers of that width. Arithmetic that could leave the
   range is an obligation; the program can't overflow. The obligation holds
   under the conditions that make the operation run: only the branch of an
@@ -144,7 +148,7 @@ condition can never be the first to hold.
 | Kind | Forms |
 | --- | --- |
 | Logic | `and`, `or`, `not`; in `requires` and `ensures`, also `implies` |
-| Comparison | `==`, `!=`, `<`, `<=`, `>`, `>=` |
+| Comparison | `==`, `!=` on any type; `<`, `<=`, `>`, `>=` on integers |
 | Arithmetic | `+`, `-`, `*`, and `-` before a value; `/` and `%` truncate toward zero (`-7 / 2 == -3`, `-7 % 2 == -1`), in code and in specifications, with a zero divisor and `MIN / -1` obligations. `/` and `%` aren't compiled yet |
 | Choice | `if condition { a } else { b }`, always with `else` |
 | Call | `name(label: value, …)`; labels are required when the function has more than one parameter |

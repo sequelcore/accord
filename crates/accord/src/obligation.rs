@@ -104,7 +104,7 @@ fn overflows<'a>(expr: &'a Expr, guards: &[Guard<'a>], out: &mut Vec<Overflow<'a
             overflows(then, &[guards, &[guard(true)]].concat(), out);
             overflows(otherwise, &[guards, &[guard(false)]].concat(), out);
         }
-        Expr::Bool(_) | Expr::Int(..) | Expr::Name(..) | Expr::Variant(..) => {}
+        Expr::Bool(_) | Expr::Int(..) | Expr::Text(..) | Expr::Name(..) | Expr::Variant(..) => {}
     }
 }
 fn obligations_of<'a>(function: &'a Function, datatypes: &str) -> Vec<Obligation<'a>> {

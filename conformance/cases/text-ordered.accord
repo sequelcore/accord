@@ -1,0 +1,5 @@
+// expect: error
+fn before(tool: Text) -> Bool
+{
+    tool < "read"
+}
