@@ -143,6 +143,23 @@ example); and, for Accord, whether the final contract determines the result
    the result. Transcripts have the operator's local paths and user name
    replaced by placeholders.
 
+## Pilot (2026-11-09)
+
+Run after registration, excluded from the analysis, with the harness
+unchanged: `t07` and `t10` in both arms with Haiku, one repetition. All four
+runs were accepted on their first check and passed every hidden example, in
+21 to 25 seconds each, `t10`'s loop invariants in LemmaScript included. One
+transcript records a denied command: the check command with its path in
+quotes, which the allow rule doesn't match; the agent ran it unquoted next.
+
+**Risk this shows: a ceiling.** If most runs succeed in both arms, the
+paired difference is near zero and the pass mark is met because the tasks
+don't separate the languages, not because they are equal. A result like that
+is reported as comparable on these rules only, and a harder set (longer
+rules, more parameters, less exact prose) needs a registration of its own.
+
+The full run has not started.
+
 ## Disclosures
 
 - **What ran before registration.** The reference solutions, checked by both
