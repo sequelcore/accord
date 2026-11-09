@@ -98,6 +98,11 @@ they differ, and reports what the code gives. The text receipt shows it as
 open         f: for n = 0, the contract allows both true and false (the code gives false)
 ```
 
+An input an `open when` covers is a permitted freedom, not an open case.
+Every freedom declared is listed, as `free         f: open when n > 0` in
+text and as `free` (the clauses as written) in JSON `openness`, so an
+accepted freedom is never silent.
+
 An open case, or a search that didn't settle, makes the function
 **incomplete**, not failed: nothing is wrong yet, and whether the freedom is
 intended is a person's decision.

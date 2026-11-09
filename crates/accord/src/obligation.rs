@@ -290,8 +290,8 @@ pub(crate) fn mutant_scripts(
 }
 
 /// The script that searches for an open case of `function`: an admitted input
-/// with two different results, `r0` and `r1`, that both meet every
-/// `ensures`. `sat` finds one; `unsat` means the contract determines the
+/// no `open when` covers, with two different results, `r0` and `r1`, that
+/// both meet every `ensures`. `sat` finds one; `unsat` means the contract determines the
 /// result for every admitted input.
 pub(crate) fn open_script(function: &Function, datatypes: &str) -> String {
     let ret = sort(&function.ret);
@@ -311,10 +311,20 @@ pub(crate) fn open_script(function: &Function, datatypes: &str) -> String {
             results += &format!("(assert {})\n", in_range(r, *width));
         }
     }
+    let free = all(
+        "or",
+        function
+            .clauses
+            .iter()
+            .filter(|c| c.kind == ClauseKind::Open)
+            .map(|c| term(&c.expr))
+            .collect(),
+        "false",
+    );
     let mut named: Vec<String> = function.params.iter().map(|(n, _)| n.clone()).collect();
     named.extend(["r0".to_string(), "r1".to_string()]);
     format!(
-        "{}(define-fun contract ((result {ret})) Bool {ensures})\n{results}(assert (and (contract r0) (contract r1) (not (= r0 r1))))\n{}",
+        "{}(define-fun contract ((result {ret})) Bool {ensures})\n{results}(assert (and (not {free}) (contract r0) (contract r1) (not (= r0 r1))))\n{}",
         prelude(function, datatypes),
         ending(&named)
     )

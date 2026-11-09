@@ -270,6 +270,25 @@ pub(crate) fn result(function: &Function, names: &Names) -> Result<Value, String
     body(function, &env)
 }
 
+/// Whether some `open when` of `function` covers `names`.
+pub(crate) fn covered(function: &Function, names: &Names) -> Result<bool, String> {
+    let env = Env {
+        names,
+        result: None,
+        mode: Mode::Math,
+    };
+    for clause in function
+        .clauses
+        .iter()
+        .filter(|c| c.kind == ClauseKind::Open)
+    {
+        if env.boolean(&clause.expr)? {
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+
 /// Whether every `ensures` of `contract` holds of `result` for `names`.
 pub(crate) fn meets(contract: &Function, names: &Names, result: &Value) -> Result<bool, String> {
     let env = Env {

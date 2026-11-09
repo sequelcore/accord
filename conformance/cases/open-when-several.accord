@@ -1,0 +1,9 @@
+// expect: proved
+// open: determined
+fn positive(n: i64) -> Bool
+    ensures result implies n >= 0
+    open when n > 0
+    open when n == 0
+{
+    n > 0
+}

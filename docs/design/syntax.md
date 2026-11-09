@@ -77,7 +77,7 @@ example larger(a: 2, b: 5) == 5
 | `///` before a declaration | Documentation for people; never checked |
 
 A function's **clauses** come between its signature and its body, in this
-order: `intent` (at most one), `requires`, `ensures`. Its **body** is either
+order: `intent` (at most one), `requires`, `ensures`, `open when`. Its **body** is either
 a block `{ … }` or a decision table `decide { … }`.
 
 ## Decision tables
@@ -103,6 +103,23 @@ condition can never be the first to hold.
   obligation to prove it.
 - `ensures condition` is a guarantee about `result`, the value the function
   returns. The body is an obligation to meet it.
+- `open when condition` declares a **permitted freedom**: for inputs where
+  the condition holds, any result the contract allows is acceptable. It
+  describes inputs, so it can't mention `result`, and like `requires` it is
+  a specification, with mathematical integers. A function may have several;
+  an input is covered when any of them holds. The compiler reports an **open
+  case**, an input for which the contract allows two different results, only
+  where no `open when` covers it, and the receipt lists every freedom
+  declared, so an accepted freedom is never silent:
+
+  ```accord
+  fn positive(n: i64) -> Bool
+      ensures result implies n >= 0
+      open when n >= 0
+  {
+      n > 0
+  }
+  ```
 
 ## Types and values
 
@@ -163,3 +180,11 @@ Accepted on 2026-11-07:
    always-qualified and leading-dot variants; all three passed and read
    equally well, including two enums that share a variant name. The bare form
    is the shortest, and decision tables read most like their rule.
+
+Accepted on 2026-11-08 ([#27](https://github.com/sequelcore/accord/issues/27)):
+
+6. **A permitted freedom is the clause `open when condition`**, after
+   `ensures`, so it sits beside the contract it relaxes and can't drift from
+   it, for the same reason `intent` is a clause. An open case it doesn't cover makes the function
+   incomplete, not failed: whether a freedom is intended is a person's
+   decision.

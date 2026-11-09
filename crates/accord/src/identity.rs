@@ -337,5 +337,11 @@ fn sum(x: i32, y: i32) -> i32
     fn a_contract_change_changes_the_definition() {
         let weaker = ORIGINAL.replace("ensures result == a + b", "ensures result >= a + b");
         assert_ne!(identities(ORIGINAL)[1].1, identities(&weaker)[1].1);
+        // A declared freedom is part of what the specification means.
+        let free = ORIGINAL.replace(
+            "ensures result == a + b\n",
+            "ensures result == a + b\n    open when a > 0\n",
+        );
+        assert_ne!(identities(ORIGINAL)[1].1, identities(&free)[1].1);
     }
 }

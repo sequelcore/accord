@@ -95,6 +95,8 @@ pub(crate) enum Expr {
 pub(crate) enum ClauseKind {
     Requires,
     Ensures,
+    /// `open when`: inputs for which any result the contract allows is fine.
+    Open,
 }
 
 #[derive(Clone, Debug)]

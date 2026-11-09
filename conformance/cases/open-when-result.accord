@@ -1,0 +1,7 @@
+// expect: error
+fn positive(n: i64) -> Bool
+    ensures result implies n >= 0
+    open when result
+{
+    n > 0
+}

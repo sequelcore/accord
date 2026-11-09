@@ -37,8 +37,10 @@ pub enum Openness {
 pub struct Determinacy {
     /// The function.
     pub function: String,
-    /// Whether its contract determines its result.
+    /// Whether its contract determines its result where no freedom is declared.
     pub openness: Openness,
+    /// Each `open when` declared, as written: freedoms a person accepted.
+    pub free: Vec<String>,
 }
 
 fn search(unit: &Unit, solvers: &Solvers) -> Option<Determinacy> {
@@ -64,6 +66,9 @@ fn search(unit: &Unit, solvers: &Solvers) -> Option<Determinacy> {
     // Both results must meet the contract and differ.
     let replay = |inputs: &Inputs| -> Result<(), String> {
         let names = interpret::admitted(function, inputs)?;
+        if interpret::covered(function, &names)? {
+            return Err("an `open when` covers that input".to_string());
+        }
         let (first, second) = (read(inputs, "r0")?, read(inputs, "r1")?);
         let both = interpret::meets(function, &names, &first)?
             && interpret::meets(function, &names, &second)?;
@@ -115,6 +120,13 @@ fn search(unit: &Unit, solvers: &Solvers) -> Option<Determinacy> {
     Some(Determinacy {
         function: unit.source.name.clone(),
         openness,
+        free: unit
+            .source
+            .clauses
+            .iter()
+            .filter(|c| c.kind == ClauseKind::Open)
+            .map(|c| c.text.clone())
+            .collect(),
     })
 }
 
