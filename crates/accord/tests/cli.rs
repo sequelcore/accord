@@ -223,6 +223,7 @@ fn diff_exits_by_whether_a_contract_got_weaker() {
     let both_stdin = accord(&["diff", "-", "-"]);
     let missing = accord(&["diff", &strict, "no-such-file.accord"]);
     let rejected = accord(&["diff", &strict, &broken]);
+    let folder = accord(&["diff", &strict, &dir.to_string_lossy()]);
     let _ = std::fs::remove_dir_all(&dir);
 
     assert_eq!(weaker.status.code(), Some(1));
@@ -242,6 +243,11 @@ fn diff_exits_by_whether_a_contract_got_weaker() {
     assert_eq!(rejected.status.code(), Some(4));
     assert!(
         String::from_utf8_lossy(&rejected.stderr).contains("broken.accord:3: unknown name `b`")
+    );
+    assert_eq!(folder.status.code(), Some(2));
+    assert!(
+        String::from_utf8_lossy(&folder.stderr)
+            .contains("is a folder; `accord diff` compares two files")
     );
 }
 

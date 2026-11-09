@@ -13,8 +13,9 @@ const USAGE: &str = "usage: accord check <file or folder> [--json]\n       accor
 /// (nothing failed, but something wasn't proved or nothing was checked).
 /// `diff`'s: 0 no contract got weaker; 1 one got weaker or incomparable, or a
 /// function was removed; 3 nothing proved weaker, but something couldn't be
-/// compared. For both, 2 is a usage error, and 4 means a file was rejected or
-/// couldn't be read, or the solvers couldn't be found.
+/// compared. For both, 2 is a usage error, a folder given to `diff` included,
+/// and 4 means a file was rejected or couldn't be read, or the solvers couldn't
+/// be found.
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
     match args.as_slice() {
@@ -147,6 +148,10 @@ fn check_error(path: &str, as_json: bool, diagnostic: Diagnostic) -> ExitCode {
 
 /// A file's text, or stdin's for `-`.
 fn read(path: &str) -> Result<String, ExitCode> {
+    if Path::new(path).is_dir() {
+        eprintln!("{path}: is a folder; `accord diff` compares two files\n{USAGE}");
+        return Err(ExitCode::from(2));
+    }
     let read = if path == "-" {
         std::io::read_to_string(std::io::stdin())
     } else {
@@ -163,9 +168,9 @@ fn compare(old_path: &str, new_path: &str, as_json: bool) -> ExitCode {
         eprintln!("only one side can be read from stdin\n{USAGE}");
         return ExitCode::from(2);
     }
-    let (old, new) = match (read(old_path), read(new_path)) {
-        (Ok(old), Ok(new)) => (old, new),
-        (Err(code), _) | (_, Err(code)) => return code,
+    let (old, new) = match read(old_path).and_then(|old| Ok((old, read(new_path)?))) {
+        Ok(sides) => sides,
+        Err(code) => return code,
     };
     let solvers = match Solvers::from_env() {
         Ok(solvers) => solvers,
