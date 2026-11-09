@@ -84,6 +84,20 @@ fn check_shows_a_witness_for_each_reached_row_and_says_when_no_input_reaches_one
 }
 
 #[test]
+fn check_exits_1_and_says_why_when_an_example_fails() {
+    let output = accord(&["check", &case("example-fault")]);
+    assert_eq!(
+        output.status.code(),
+        Some(1),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("failed"), "{stdout}");
+    assert!(stdout.contains("it gives 5, not 2"), "{stdout}");
+}
+
+#[test]
 fn check_exits_4_and_names_the_line_when_the_file_is_rejected() {
     let output = accord(&["check", &case("unknown-name")]);
     assert_eq!(output.status.code(), Some(4));

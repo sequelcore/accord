@@ -2,16 +2,18 @@
 //! also resolve what needs the expected type: each bare variant's enum, and
 //! the width of each integer literal and arithmetic operation.
 
+mod example;
+
 use crate::Diagnostic;
 use crate::syntax::{Body, ClauseKind, Enum, Expr, Op, Program, Type};
 
 struct Scope<'a> {
-    enums: &'a [Enum],
-    params: &'a [(String, Type)],
-    result: Option<&'a Type>,
+    pub enums: &'a [Enum],
+    pub params: &'a [(String, Type)],
+    pub result: Option<&'a Type>,
     /// In `requires` and `ensures`, integers are mathematical: a literal
     /// needn't fit its type.
-    spec: bool,
+    pub spec: bool,
 }
 
 fn type_name(ty: &Type) -> &str {
@@ -216,7 +218,12 @@ impl Scope<'_> {
         }
     }
 
-    fn value(&self, expr: &mut Expr, ty: &Type, message: &str) -> Result<(), Diagnostic> {
+    pub(super) fn value(
+        &self,
+        expr: &mut Expr,
+        ty: &Type,
+        message: &str,
+    ) -> Result<(), Diagnostic> {
         if self.infer(expr, Some(ty))? == *ty {
             Ok(())
         } else {
@@ -264,7 +271,8 @@ fn check_type(enums: &[Enum], ty: &Type, line: usize) -> Result<(), Diagnostic> 
     }
 }
 
-/// Checks names and types in every function, and resolves bare variants.
+/// Checks names and types in every function and example, and resolves bare
+/// variants.
 pub(crate) fn check(program: &mut Program) -> Result<(), Diagnostic> {
     check_enums(&program.enums)?;
     let enums = &program.enums;
@@ -305,6 +313,10 @@ pub(crate) fn check(program: &mut Program) -> Result<(), Diagnostic> {
                 }
             }
         }
+    }
+    let functions = &program.functions;
+    for example in &mut program.examples {
+        example::check(enums, functions, example)?;
     }
     Ok(())
 }

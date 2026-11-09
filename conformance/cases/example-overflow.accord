@@ -1,0 +1,7 @@
+// expect: refuted, passed
+fn add(a: i32, b: i32) -> i32
+{
+    a + b
+}
+
+example add(a: 1, b: 2) == 3
