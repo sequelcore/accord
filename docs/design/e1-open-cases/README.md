@@ -84,3 +84,43 @@ The solver arm **answers the question with "as many or more"** if:
 If (1) fails, the solver missed a real ambiguity, which is reported as a
 defect. If (1) holds and (2) doesn't, the solver finds the same as agents, no
 more, on this corpus. The pass mark doesn't change after the run.
+
+## Result of the run (2026-11-09)
+
+**Pass mark not met.** 140 conversations, all with a reply, none run twice;
+cost $0.32. The replies are in [`replies.jsonl`](replies.jsonl), the scores
+per conversation in [`scores.csv`](scores.csv), produced by
+[`run.py`](run.py) and [`score.py`](score.py).
+
+| Measure | Result |
+| --- | --- |
+| Agent recall on planted files | 82 of 84 conversations |
+| Per file | `a1` to `a4` and `a6` 14 of 14; `a5-proof-outcome` 12 of 14 |
+| Agent precision | 283 of 289 claims valid |
+| Claims on determined files | none, from any conversation |
+| Agent-only finds | 0 |
+| Planted files at least half the conversations missed | none |
+
+Condition (1) holds: the solver missed no ambiguity an agent found. Condition
+(2) doesn't: every planted file, the subtle ones included, was found by most
+conversations. As registered, **on this corpus the solver finds the same
+ambiguities as agents, not more.**
+
+**What the invalid claims were.** Five of the six come from one conversation
+(`claude-haiku-5.5`, `a5`, repetition 2) that described Tesota's gap
+correctly but wrote enum values unqualified (`"Failed"`), which the prompt's
+format and the registered scoring don't accept; they count as invalid and the
+conversation as a miss. The other miss is real: the same model's first
+repetition said the contract determines the result. The sixth invalid claim
+is a real error: `gpt-6-luna` claimed `Failed` is allowed for a timed-out run,
+which the contract rules out.
+
+**Reading, not part of the pass mark.** On small contracts, asking agents
+finds open cases about as well as the solver does, which agrees with
+[tesota#796](https://github.com/sequelcore/tesota/issues/796)'s finding that a
+search didn't beat asking. What the solver adds on this corpus is not more
+findings but other evidence: it made no false claim and missed none; it
+proves a contract determined, where the agents' correct "none" on the four
+determined files is an opinion; and it checks an agent's claims, as
+`score.py` does. Whether larger contracts change the comparison is a
+question for a further, separately registered run.
