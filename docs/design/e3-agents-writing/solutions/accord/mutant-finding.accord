@@ -1,0 +1,9 @@
+enum ProofOutcome { Passed, Failed, Vacuous, TimedOut, Cancelled, NotStarted }
+enum MutantFinding { Rejected, Survived, Inconclusive }
+
+fn mutant_finding(outcome: ProofOutcome) -> MutantFinding
+decide {
+    | outcome == Failed => Rejected
+    | outcome == Passed => Survived
+    | otherwise         => Inconclusive
+}

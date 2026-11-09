@@ -1,0 +1,19 @@
+enum ProofOutcome { Passed, Failed, Vacuous, TimedOut, Cancelled, NotStarted }
+
+fn proof_outcome(
+    cancelled: Bool,
+    timed_out: Bool,
+    started: Bool,
+    regenerated: Bool,
+    check_exit: i64,
+    verified: i64,
+) -> ProofOutcome
+    requires verified >= 0
+decide {
+    | cancelled                          => Cancelled
+    | timed_out                          => TimedOut
+    | not started                        => NotStarted
+    | not regenerated or check_exit != 0 => Failed
+    | verified > 0                       => Passed
+    | otherwise                          => Vacuous
+}

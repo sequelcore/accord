@@ -1,0 +1,9 @@
+fn sign(n: i64) -> i64
+    ensures n > 0 implies result == 1
+    ensures n < 0 implies result == -1
+    ensures n == 0 implies result == 0
+decide {
+    | n > 0     => 1
+    | n < 0     => -1
+    | otherwise => 0
+}

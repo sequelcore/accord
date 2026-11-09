@@ -1,0 +1,973 @@
+{
+ "tasks": [
+  {
+   "id": "t01-clamp",
+   "prose": "Limit a value to a range. Given `value`, `low` and `high`, where callers guarantee `low <= high`, return `low` when `value` is below `low`, `high` when it is above `high`, and `value` itself otherwise.",
+   "params": [
+    "value",
+    "low",
+    "high"
+   ],
+   "types": [
+    "Int",
+    "Int",
+    "Int"
+   ],
+   "result": "Int",
+   "accord": {
+    "name": "clamp",
+    "decls": []
+   },
+   "ts": {
+    "name": "clamp",
+    "params": [
+     "value",
+     "low",
+     "high"
+    ],
+    "decls": []
+   },
+   "examples": [
+    {
+     "args": {
+      "value": 5,
+      "low": 0,
+      "high": 10
+     },
+     "expected": 5
+    },
+    {
+     "args": {
+      "value": -3,
+      "low": 0,
+      "high": 10
+     },
+     "expected": 0
+    },
+    {
+     "args": {
+      "value": 12,
+      "low": 0,
+      "high": 10
+     },
+     "expected": 10
+    },
+    {
+     "args": {
+      "value": 0,
+      "low": 0,
+      "high": 10
+     },
+     "expected": 0
+    },
+    {
+     "args": {
+      "value": 10,
+      "low": 0,
+      "high": 10
+     },
+     "expected": 10
+    },
+    {
+     "args": {
+      "value": 7,
+      "low": 7,
+      "high": 7
+     },
+     "expected": 7
+    },
+    {
+     "args": {
+      "value": -20,
+      "low": -10,
+      "high": -5
+     },
+     "expected": -10
+    },
+    {
+     "args": {
+      "value": -1,
+      "low": -10,
+      "high": -5
+     },
+     "expected": -5
+    }
+   ]
+  },
+  {
+   "id": "t02-sign",
+   "prose": "Return the sign of an integer `n`: 1 when `n` is positive, -1 when it is negative, and 0 when it is zero.",
+   "params": [
+    "n"
+   ],
+   "types": [
+    "Int"
+   ],
+   "result": "Int",
+   "accord": {
+    "name": "sign",
+    "decls": []
+   },
+   "ts": {
+    "name": "sign",
+    "params": [
+     "n"
+    ],
+    "decls": []
+   },
+   "examples": [
+    {
+     "args": {
+      "n": 5
+     },
+     "expected": 1
+    },
+    {
+     "args": {
+      "n": -5
+     },
+     "expected": -1
+    },
+    {
+     "args": {
+      "n": 0
+     },
+     "expected": 0
+    },
+    {
+     "args": {
+      "n": 1
+     },
+     "expected": 1
+    },
+    {
+     "args": {
+      "n": -1
+     },
+     "expected": -1
+    },
+    {
+     "args": {
+      "n": 1000000
+     },
+     "expected": 1
+    }
+   ]
+  },
+  {
+   "id": "t03-largest",
+   "prose": "Return the largest of three integers `a`, `b` and `c`.",
+   "params": [
+    "a",
+    "b",
+    "c"
+   ],
+   "types": [
+    "Int",
+    "Int",
+    "Int"
+   ],
+   "result": "Int",
+   "accord": {
+    "name": "largest",
+    "decls": []
+   },
+   "ts": {
+    "name": "largest",
+    "params": [
+     "a",
+     "b",
+     "c"
+    ],
+    "decls": []
+   },
+   "examples": [
+    {
+     "args": {
+      "a": 1,
+      "b": 2,
+      "c": 3
+     },
+     "expected": 3
+    },
+    {
+     "args": {
+      "a": 3,
+      "b": 2,
+      "c": 1
+     },
+     "expected": 3
+    },
+    {
+     "args": {
+      "a": 2,
+      "b": 3,
+      "c": 1
+     },
+     "expected": 3
+    },
+    {
+     "args": {
+      "a": 5,
+      "b": 5,
+      "c": 1
+     },
+     "expected": 5
+    },
+    {
+     "args": {
+      "a": 1,
+      "b": 5,
+      "c": 5
+     },
+     "expected": 5
+    },
+    {
+     "args": {
+      "a": -1,
+      "b": -2,
+      "c": -3
+     },
+     "expected": -1
+    },
+    {
+     "args": {
+      "a": 4,
+      "b": 4,
+      "c": 4
+     },
+     "expected": 4
+    }
+   ]
+  },
+  {
+   "id": "t04-within-budget",
+   "prose": "A measurement is retried once, and it keeps to its budget when at least one of the two attempts is within the limit. Given the two measurements `first` and `second` and the `limit`, all of which callers guarantee are zero or more, return whether either measurement is at most the limit.",
+   "params": [
+    "first",
+    "second",
+    "limit"
+   ],
+   "types": [
+    "Int",
+    "Int",
+    "Int"
+   ],
+   "result": "Bool",
+   "accord": {
+    "name": "within_budget_after_retry",
+    "decls": []
+   },
+   "ts": {
+    "name": "withinBudgetAfterRetry",
+    "params": [
+     "first",
+     "second",
+     "limit"
+    ],
+    "decls": []
+   },
+   "examples": [
+    {
+     "args": {
+      "first": 5,
+      "second": 9,
+      "limit": 6
+     },
+     "expected": true
+    },
+    {
+     "args": {
+      "first": 9,
+      "second": 5,
+      "limit": 6
+     },
+     "expected": true
+    },
+    {
+     "args": {
+      "first": 9,
+      "second": 8,
+      "limit": 6
+     },
+     "expected": false
+    },
+    {
+     "args": {
+      "first": 6,
+      "second": 7,
+      "limit": 6
+     },
+     "expected": true
+    },
+    {
+     "args": {
+      "first": 0,
+      "second": 0,
+      "limit": 0
+     },
+     "expected": true
+    },
+    {
+     "args": {
+      "first": 1,
+      "second": 1,
+      "limit": 0
+     },
+     "expected": false
+    }
+   ]
+  },
+  {
+   "id": "t05-grade",
+   "prose": "Turn a test score into a letter grade. Callers guarantee the `score` is between 0 and 100 inclusive. Scores of 90 or more get A, 80 to 89 get B, 70 to 79 get C, and anything below 70 gets F.",
+   "params": [
+    "score"
+   ],
+   "types": [
+    "Int"
+   ],
+   "result": "Grade",
+   "accord": {
+    "name": "grade",
+    "decls": [
+     "enum Grade { A, B, C, F }"
+    ]
+   },
+   "ts": {
+    "name": "grade",
+    "params": [
+     "score"
+    ],
+    "decls": [
+     "export type Grade = \"a\" | \"b\" | \"c\" | \"f\";"
+    ]
+   },
+   "examples": [
+    {
+     "args": {
+      "score": 100
+     },
+     "expected": "A"
+    },
+    {
+     "args": {
+      "score": 90
+     },
+     "expected": "A"
+    },
+    {
+     "args": {
+      "score": 89
+     },
+     "expected": "B"
+    },
+    {
+     "args": {
+      "score": 80
+     },
+     "expected": "B"
+    },
+    {
+     "args": {
+      "score": 79
+     },
+     "expected": "C"
+    },
+    {
+     "args": {
+      "score": 70
+     },
+     "expected": "C"
+    },
+    {
+     "args": {
+      "score": 69
+     },
+     "expected": "F"
+    },
+    {
+     "args": {
+      "score": 0
+     },
+     "expected": "F"
+    }
+   ]
+  },
+  {
+   "id": "t06-distance",
+   "prose": "Return the distance between two integers `a` and `b`: how far apart they are, never negative. Callers guarantee both are between -1000000 and 1000000 inclusive.",
+   "params": [
+    "a",
+    "b"
+   ],
+   "types": [
+    "Int",
+    "Int"
+   ],
+   "result": "Int",
+   "accord": {
+    "name": "distance",
+    "decls": []
+   },
+   "ts": {
+    "name": "distance",
+    "params": [
+     "a",
+     "b"
+    ],
+    "decls": []
+   },
+   "examples": [
+    {
+     "args": {
+      "a": 3,
+      "b": 10
+     },
+     "expected": 7
+    },
+    {
+     "args": {
+      "a": 10,
+      "b": 3
+     },
+     "expected": 7
+    },
+    {
+     "args": {
+      "a": -4,
+      "b": 4
+     },
+     "expected": 8
+    },
+    {
+     "args": {
+      "a": 5,
+      "b": 5
+     },
+     "expected": 0
+    },
+    {
+     "args": {
+      "a": -1000000,
+      "b": 1000000
+     },
+     "expected": 2000000
+    },
+    {
+     "args": {
+      "a": 1000000,
+      "b": -1000000
+     },
+     "expected": 2000000
+    }
+   ]
+  },
+  {
+   "id": "t07-proof-outcome",
+   "prose": "Report how one proof run ended. The inputs say whether the run was `cancelled`, whether it `timed_out`, whether it `started` at all, whether its files were `regenerated`, the exit code of the check (`check_exit`) and how many obligations were `verified` (callers guarantee zero or more). A cancelled run is Cancelled, even if it also timed out. Otherwise a run that timed out is TimedOut. Otherwise a run that never started is NotStarted. Otherwise, if regeneration failed or the check exited with a nonzero code, it is Failed. Otherwise it is Passed when at least one obligation was verified, and Vacuous when none was.",
+   "params": [
+    "cancelled",
+    "timed_out",
+    "started",
+    "regenerated",
+    "check_exit",
+    "verified"
+   ],
+   "types": [
+    "Bool",
+    "Bool",
+    "Bool",
+    "Bool",
+    "Int",
+    "Int"
+   ],
+   "result": "ProofOutcome",
+   "accord": {
+    "name": "proof_outcome",
+    "decls": [
+     "enum ProofOutcome { Passed, Failed, Vacuous, TimedOut, Cancelled, NotStarted }"
+    ]
+   },
+   "ts": {
+    "name": "proofOutcome",
+    "params": [
+     "cancelled",
+     "timedOut",
+     "started",
+     "regenerated",
+     "checkExit",
+     "verified"
+    ],
+    "decls": [
+     "export type ProofOutcome = \"passed\" | \"failed\" | \"vacuous\" | \"timed_out\" | \"cancelled\" | \"not_started\";"
+    ]
+   },
+   "examples": [
+    {
+     "args": {
+      "cancelled": false,
+      "timed_out": false,
+      "started": true,
+      "regenerated": true,
+      "check_exit": 0,
+      "verified": 3
+     },
+     "expected": "Passed"
+    },
+    {
+     "args": {
+      "cancelled": false,
+      "timed_out": false,
+      "started": true,
+      "regenerated": true,
+      "check_exit": 0,
+      "verified": 0
+     },
+     "expected": "Vacuous"
+    },
+    {
+     "args": {
+      "cancelled": true,
+      "timed_out": true,
+      "started": true,
+      "regenerated": true,
+      "check_exit": 0,
+      "verified": 3
+     },
+     "expected": "Cancelled"
+    },
+    {
+     "args": {
+      "cancelled": false,
+      "timed_out": true,
+      "started": true,
+      "regenerated": true,
+      "check_exit": 0,
+      "verified": 3
+     },
+     "expected": "TimedOut"
+    },
+    {
+     "args": {
+      "cancelled": false,
+      "timed_out": false,
+      "started": false,
+      "regenerated": true,
+      "check_exit": 0,
+      "verified": 3
+     },
+     "expected": "NotStarted"
+    },
+    {
+     "args": {
+      "cancelled": false,
+      "timed_out": false,
+      "started": true,
+      "regenerated": false,
+      "check_exit": 0,
+      "verified": 3
+     },
+     "expected": "Failed"
+    },
+    {
+     "args": {
+      "cancelled": false,
+      "timed_out": false,
+      "started": true,
+      "regenerated": true,
+      "check_exit": 1,
+      "verified": 3
+     },
+     "expected": "Failed"
+    },
+    {
+     "args": {
+      "cancelled": false,
+      "timed_out": true,
+      "started": false,
+      "regenerated": false,
+      "check_exit": 2,
+      "verified": 0
+     },
+     "expected": "TimedOut"
+    },
+    {
+     "args": {
+      "cancelled": true,
+      "timed_out": false,
+      "started": false,
+      "regenerated": false,
+      "check_exit": 1,
+      "verified": 0
+     },
+     "expected": "Cancelled"
+    }
+   ]
+  },
+  {
+   "id": "t08-mutant-finding",
+   "prose": "Report what one mutant's proof outcome says about the contract it was proved under. A Failed proof means the contract rejected the mutant (Rejected). A Passed proof means the mutant survived (Survived). Any other outcome is Inconclusive.",
+   "params": [
+    "outcome"
+   ],
+   "types": [
+    "ProofOutcome"
+   ],
+   "result": "MutantFinding",
+   "accord": {
+    "name": "mutant_finding",
+    "decls": [
+     "enum ProofOutcome { Passed, Failed, Vacuous, TimedOut, Cancelled, NotStarted }",
+     "enum MutantFinding { Rejected, Survived, Inconclusive }"
+    ]
+   },
+   "ts": {
+    "name": "mutantFinding",
+    "params": [
+     "outcome"
+    ],
+    "decls": [
+     "export type ProofOutcome = \"passed\" | \"failed\" | \"vacuous\" | \"timed_out\" | \"cancelled\" | \"not_started\";",
+     "export type MutantFinding = \"rejected\" | \"survived\" | \"inconclusive\";"
+    ]
+   },
+   "examples": [
+    {
+     "args": {
+      "outcome": "Passed"
+     },
+     "expected": "Survived"
+    },
+    {
+     "args": {
+      "outcome": "Failed"
+     },
+     "expected": "Rejected"
+    },
+    {
+     "args": {
+      "outcome": "Vacuous"
+     },
+     "expected": "Inconclusive"
+    },
+    {
+     "args": {
+      "outcome": "TimedOut"
+     },
+     "expected": "Inconclusive"
+    },
+    {
+     "args": {
+      "outcome": "Cancelled"
+     },
+     "expected": "Inconclusive"
+    },
+    {
+     "args": {
+      "outcome": "NotStarted"
+     },
+     "expected": "Inconclusive"
+    }
+   ]
+  },
+  {
+   "id": "t09-partial-decision",
+   "prose": "Decide an authorization request when some policies could not be evaluated yet. The inputs say whether some forbid policy is already satisfied (`satisfied_forbid`), whether some permit policy is already satisfied (`satisfied_permit`), whether some permit policy is still unevaluated (`residual_permit`), and whether some forbid policy is still unevaluated (`residual_forbid`). Forbid wins: the answer is Deny when a forbid is satisfied, and also Deny when no permit is satisfied and none remains that could be. It is Allow when a permit is satisfied, no forbid is satisfied and no forbid remains. In every other case the decision is Unknown.",
+   "params": [
+    "satisfied_forbid",
+    "satisfied_permit",
+    "residual_permit",
+    "residual_forbid"
+   ],
+   "types": [
+    "Bool",
+    "Bool",
+    "Bool",
+    "Bool"
+   ],
+   "result": "PartialDecision",
+   "accord": {
+    "name": "partial_decision",
+    "decls": [
+     "enum PartialDecision { Deny, Allow, Unknown }"
+    ]
+   },
+   "ts": {
+    "name": "partialDecision",
+    "params": [
+     "satisfiedForbid",
+     "satisfiedPermit",
+     "residualPermit",
+     "residualForbid"
+    ],
+    "decls": [
+     "export type PartialDecision = \"deny\" | \"allow\" | \"unknown\";"
+    ]
+   },
+   "examples": [
+    {
+     "args": {
+      "satisfied_forbid": false,
+      "satisfied_permit": false,
+      "residual_permit": false,
+      "residual_forbid": false
+     },
+     "expected": "Deny"
+    },
+    {
+     "args": {
+      "satisfied_forbid": false,
+      "satisfied_permit": false,
+      "residual_permit": false,
+      "residual_forbid": true
+     },
+     "expected": "Deny"
+    },
+    {
+     "args": {
+      "satisfied_forbid": false,
+      "satisfied_permit": false,
+      "residual_permit": true,
+      "residual_forbid": false
+     },
+     "expected": "Unknown"
+    },
+    {
+     "args": {
+      "satisfied_forbid": false,
+      "satisfied_permit": false,
+      "residual_permit": true,
+      "residual_forbid": true
+     },
+     "expected": "Unknown"
+    },
+    {
+     "args": {
+      "satisfied_forbid": false,
+      "satisfied_permit": true,
+      "residual_permit": false,
+      "residual_forbid": false
+     },
+     "expected": "Allow"
+    },
+    {
+     "args": {
+      "satisfied_forbid": false,
+      "satisfied_permit": true,
+      "residual_permit": false,
+      "residual_forbid": true
+     },
+     "expected": "Unknown"
+    },
+    {
+     "args": {
+      "satisfied_forbid": false,
+      "satisfied_permit": true,
+      "residual_permit": true,
+      "residual_forbid": false
+     },
+     "expected": "Allow"
+    },
+    {
+     "args": {
+      "satisfied_forbid": false,
+      "satisfied_permit": true,
+      "residual_permit": true,
+      "residual_forbid": true
+     },
+     "expected": "Unknown"
+    },
+    {
+     "args": {
+      "satisfied_forbid": true,
+      "satisfied_permit": false,
+      "residual_permit": false,
+      "residual_forbid": false
+     },
+     "expected": "Deny"
+    },
+    {
+     "args": {
+      "satisfied_forbid": true,
+      "satisfied_permit": false,
+      "residual_permit": false,
+      "residual_forbid": true
+     },
+     "expected": "Deny"
+    },
+    {
+     "args": {
+      "satisfied_forbid": true,
+      "satisfied_permit": false,
+      "residual_permit": true,
+      "residual_forbid": false
+     },
+     "expected": "Deny"
+    },
+    {
+     "args": {
+      "satisfied_forbid": true,
+      "satisfied_permit": false,
+      "residual_permit": true,
+      "residual_forbid": true
+     },
+     "expected": "Deny"
+    },
+    {
+     "args": {
+      "satisfied_forbid": true,
+      "satisfied_permit": true,
+      "residual_permit": false,
+      "residual_forbid": false
+     },
+     "expected": "Deny"
+    },
+    {
+     "args": {
+      "satisfied_forbid": true,
+      "satisfied_permit": true,
+      "residual_permit": false,
+      "residual_forbid": true
+     },
+     "expected": "Deny"
+    },
+    {
+     "args": {
+      "satisfied_forbid": true,
+      "satisfied_permit": true,
+      "residual_permit": true,
+      "residual_forbid": false
+     },
+     "expected": "Deny"
+    },
+    {
+     "args": {
+      "satisfied_forbid": true,
+      "satisfied_permit": true,
+      "residual_permit": true,
+      "residual_forbid": true
+     },
+     "expected": "Deny"
+    }
+   ]
+  },
+  {
+   "id": "t10-gate-verdict",
+   "prose": "Decide what a verification gate does with one file's proof outcome. A Passed proof is Proved. A proof that is NotStarted, TimedOut or Cancelled goes to the operator (Operator). A Failed or Vacuous proof goes back to the agent (SendBack), unless its `failure` message is one the gate already sent back for this file, listed in `sent`: then the correction made no progress (NoProgress).",
+   "params": [
+    "outcome",
+    "failure",
+    "sent"
+   ],
+   "types": [
+    "ProofOutcome",
+    "Text",
+    "List<Text>"
+   ],
+   "result": "GateVerdict",
+   "accord": {
+    "name": "gate_verdict",
+    "decls": [
+     "enum ProofOutcome { Passed, Failed, Vacuous, TimedOut, Cancelled, NotStarted }",
+     "enum GateVerdict { Proved, SendBack, NoProgress, Operator }"
+    ]
+   },
+   "ts": {
+    "name": "gateVerdict",
+    "params": [
+     "outcome",
+     "failure",
+     "sent"
+    ],
+    "decls": [
+     "export type ProofOutcome = \"passed\" | \"failed\" | \"vacuous\" | \"timed_out\" | \"cancelled\" | \"not_started\";",
+     "export type GateVerdict = \"proved\" | \"send_back\" | \"no_progress\" | \"operator\";"
+    ]
+   },
+   "examples": [
+    {
+     "args": {
+      "outcome": "Passed",
+      "failure": "e1",
+      "sent": []
+     },
+     "expected": "Proved"
+    },
+    {
+     "args": {
+      "outcome": "Failed",
+      "failure": "e1",
+      "sent": []
+     },
+     "expected": "SendBack"
+    },
+    {
+     "args": {
+      "outcome": "Failed",
+      "failure": "e1",
+      "sent": [
+       "e2"
+      ]
+     },
+     "expected": "SendBack"
+    },
+    {
+     "args": {
+      "outcome": "Failed",
+      "failure": "e1",
+      "sent": [
+       "e2",
+       "e1"
+      ]
+     },
+     "expected": "NoProgress"
+    },
+    {
+     "args": {
+      "outcome": "Vacuous",
+      "failure": "e3",
+      "sent": [
+       "e3"
+      ]
+     },
+     "expected": "NoProgress"
+    },
+    {
+     "args": {
+      "outcome": "Vacuous",
+      "failure": "e3",
+      "sent": []
+     },
+     "expected": "SendBack"
+    },
+    {
+     "args": {
+      "outcome": "NotStarted",
+      "failure": "e1",
+      "sent": [
+       "e1"
+      ]
+     },
+     "expected": "Operator"
+    },
+    {
+     "args": {
+      "outcome": "TimedOut",
+      "failure": "e1",
+      "sent": []
+     },
+     "expected": "Operator"
+    },
+    {
+     "args": {
+      "outcome": "Cancelled",
+      "failure": "e1",
+      "sent": []
+     },
+     "expected": "Operator"
+    }
+   ]
+  }
+ ]
+}

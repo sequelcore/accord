@@ -1,0 +1,10 @@
+enum ProofOutcome { Passed, Failed, Vacuous, TimedOut, Cancelled, NotStarted }
+enum GateVerdict { Proved, SendBack, NoProgress, Operator }
+
+fn gate_verdict(outcome: ProofOutcome, failure: Text, sent: List<Text>) -> GateVerdict
+decide {
+    | outcome == Passed                                => Proved
+    | outcome != Failed and outcome != Vacuous         => Operator
+    | failure in sent                                  => NoProgress
+    | otherwise                                        => SendBack
+}

@@ -1,0 +1,6 @@
+Write one function in {language}, a language whose checker proves code against its contract.
+
+task.md describes the function and gives its exact signature. reference.md describes {language}. Write the file {file} with the declarations task.md lists and the function, with a contract that states fully what the function guarantees.
+
+Check the file by running exactly this command: {check} {file}
+You may run it at most {checks} times. Its last lines say whether the file is accepted. You are done when it is; keep the signature exactly as task.md gives it.

@@ -1,0 +1,7 @@
+fn distance(a: i64, b: i64) -> i64
+    requires a >= -1000000 and a <= 1000000 and b >= -1000000 and b <= 1000000
+    ensures result >= 0
+    ensures result == a - b or result == b - a
+{
+    if a >= b { a - b } else { b - a }
+}

@@ -1,0 +1,14 @@
+enum PartialDecision { Deny, Allow, Unknown }
+
+fn partial_decision(
+    satisfied_forbid: Bool,
+    satisfied_permit: Bool,
+    residual_permit: Bool,
+    residual_forbid: Bool,
+) -> PartialDecision
+decide {
+    | satisfied_forbid                                => Deny
+    | not satisfied_permit and not residual_permit    => Deny
+    | satisfied_permit and not residual_forbid        => Allow
+    | otherwise                                       => Unknown
+}
