@@ -81,6 +81,13 @@ unused slots within their experience stratum, without inspecting answers.
 Never show two versions of one rule to the same person. No Accord contributor,
 material author, answer-key reader, or readability-packet reviewer is eligible.
 
+This repository is public. Participant identities, contact details,
+recruitment, consent, payment, and raw per-person records never enter it;
+they stay in a private record kept by the experiment's owner, linked to
+allocation slots only by slot number. What is published here is anonymized:
+per-slot answers and times without anything that identifies a person, and the
+aggregate results.
+
 Run a disjoint logistics pilot before registration. Publish its recruitment,
 timing and comprehension problems, then freeze any changes and a precision
 simulation before collecting E2 observations. No such pilot or simulation has
