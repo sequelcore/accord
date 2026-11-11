@@ -60,6 +60,8 @@ enum Change {
     Literal(usize, i128, i128),
     /// A condition negated.
     Negated(usize),
+    /// A membership test negated, with the line of its element.
+    NotIn(usize),
     /// Two adjacent rows swapped, by line.
     Swapped(usize, usize),
     /// A row's result replaced.
@@ -124,6 +126,13 @@ fn at(n: &mut usize) -> bool {
 /// Applies the `n`th change in `expr`, counting down `n`; `None` while the
 /// change lies further on.
 fn mutate_expr(expr: &mut Expr, n: &mut usize) -> Option<Change> {
+    if let Expr::Binary(Op::In, element, _) = expr
+        && at(n)
+    {
+        let line = line_of(element);
+        *expr = Expr::Not(Box::new(expr.clone()));
+        return Some(Change::NotIn(line));
+    }
     match expr {
         Expr::Binary(op, left, right) => {
             if let Some(to) = swap(*op)
@@ -249,6 +258,7 @@ fn describe(change: &Change, unit: &Unit) -> String {
         ),
         Change::Literal(line, from, to) => format!("line {line}: `{from}` became `{to}`"),
         Change::Negated(line) => format!("line {line}: the condition negated"),
+        Change::NotIn(line) => format!("line {line}: `in` became `not in`"),
         Change::Swapped(first, second) => format!("the rows on lines {first} and {second} swapped"),
         Change::Result(line, from, to) => format!(
             "line {line}: the row gives `{}` instead of `{}`",
