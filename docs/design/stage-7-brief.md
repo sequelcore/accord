@@ -298,7 +298,7 @@ Operator requests human attention. The pure function returns a verdict; it
 does not itself perform those actions.
 
 **Specification:** each row below is an “if and only if”, represented by two
-proved `ensures` clauses in [gate.accord](../../conformance/programs/tesota/gate.accord).
+proved `ensures` clauses in [gate-rule.accord](../../conformance/programs/tesota/gate-rule.accord).
 It describes the promised results, without showing the decision-table body.
 
 | Result | Exactly when | Clauses |

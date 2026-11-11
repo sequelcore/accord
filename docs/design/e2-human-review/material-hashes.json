@@ -1,6 +1,6 @@
 {
   "../stage-7-review/cedar-packet.md": "0052d3a3e784b2a07cfbe076d3f9ba826fc4ab96ccbeb3b4fb42342e51648736",
-  "../stage-7-review/gate-packet.md": "417b1f56664a883a70cc22fb17170398be73909a51ecea8e9ba14bf7d6e63ef3",
+  "../stage-7-review/gate-packet.md": "9b4f7a5f8567256e09d7afafa207299450adeef8823494d0d70812cbfbcb9060",
   "README.md": "df813d2abf5ddc8f7b56c971735e35866e19c1e0eff70329843a5f28afc87188",
   "allocation.csv": "bbf1978a19f09aba46adb2ac271379d89a5314a90c37d0ec69a61f285a80c28a",
   "answer-key.json": "75f3b6b74078aa34c199d1a2919ecc89ca7779ec1021e08372b8e773319821c2",
@@ -52,7 +52,7 @@
   "corpus/R10.accord": "f5a8a9bb2aa5979107e4ea8f8e69b9dde2040d42104aa199332f64e48c89b778",
   "corpus/R11.accord": "3a0af93be2e7685cd8cd4701df21fdfc135610377c033951fb38f3dfb76524c6",
   "corpus/R12.accord": "c907371e24d6474d4d970e53b1fb0dcfb336dbc1845b9746ec8f344d861c4832",
-  "materials.py": "4f3ed4cfcf1852b2530e8df5ca4fc041ae288beb5ed2798f6b8c7c9603dce8d1",
+  "materials.py": "890aec1c276389ffdcc70dbf3068d3980ca1e98622390373ddb1f44e48c16b46",
   "score.py": "cb0cc7c3b43fbdda746bc2aa9273fdd46140b4c6ec5cc61756bf3955830b25c0",
   "test_materials.py": "7455c9a9c83dc55038dd31c141057883e892ea5d4bd531a1949d44dc0b9ac945",
   "test_score.py": "821dfd3b9469f73362a9236d2e4478317b24bd0e9f3fbead1e436cf9a93454c6"

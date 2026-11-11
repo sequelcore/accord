@@ -37,6 +37,12 @@ before the code generator. A folder without `out/` must be refused.
 that builds in Node and compares each call with the interpreter
 ([TypeScript reference](../docs/typescript.md)).
 
+The ports in [`programs/tesota/`](programs/tesota) carry Tesota's file names,
+so their modules replace Tesota's own. `scripts/check-tesota.sh <empty
+folder>` clones Tesota at the commit they come from and runs its typecheck
+and tests twice: with its rules as written, then with the generated modules
+in their place. It needs `bun` and network access, so CI doesn't run it.
+
 ## Cedar partial authorization
 
 [`programs/cedar/`](programs/cedar) ports the Boolean decision in Cedar's

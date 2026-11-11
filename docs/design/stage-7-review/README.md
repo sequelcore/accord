@@ -8,7 +8,7 @@ consistency; they do not establish human readability.
 
 Read the [gate packet](gate-packet.md) and [Cedar packet](cedar-packet.md), without
 opening source or the answer key. Return answers 1–8 for each and identify
-anything unclear. The gate packet includes all five functions in `gate.accord`,
+anything unclear. The gate packet includes all five functions in `gate-rule.accord`,
 plus the enclosing program's incomplete standing. The Cedar packet explains
 the four Boolean inputs and distinguishes domain Unknown from solver uncertainty.
 

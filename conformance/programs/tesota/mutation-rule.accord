@@ -1,11 +1,11 @@
 // expect: proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, passed, passed, passed, passed, passed
 // Tesota's mutation-rule (src/verification/mutation-rule.ts at dev 4ef9b191). Its
 // `ProofOutcome` comes from proof-outcome-rule, declared beside it in
-// proof-outcome.accord.
+// proof-outcome-rule.accord.
 /// What one mutant's proof says about the contract it was proved under.
-enum MutantFinding { Rejected, Survived, Inconclusive }
+pub enum MutantFinding { Rejected, Survived, Inconclusive }
 
-fn mutant_finding(outcome: ProofOutcome) -> MutantFinding
+pub fn mutant_finding(outcome: ProofOutcome) -> MutantFinding
     ensures result == Rejected implies outcome == Failed
     ensures outcome == Failed implies result == Rejected
     ensures result == Survived implies outcome == Passed
@@ -20,7 +20,7 @@ decide {
 
 /// Whether a surviving mutant is dropped as equivalent: only a proof that
 /// passed drops it.
-fn equivalent_mutant(outcome: ProofOutcome) -> Bool
+pub fn equivalent_mutant(outcome: ProofOutcome) -> Bool
     ensures result implies outcome == Passed
     ensures outcome == Passed implies result
 {

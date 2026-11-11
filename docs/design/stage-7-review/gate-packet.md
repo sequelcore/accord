@@ -16,9 +16,9 @@ text; no graphical terminal viewport was captured. Data: the named conformance
 program. Interaction: run the check and read its output.
 
 ```text
-function     fn verification_required(changed: Bool, selected: Bool) -> Bool (gate.accord)
-review_hash  5d57a74ff6e0100d82f65865e28025e3e821dfe26089666f4dff70603e44885b
-intent       verification_required (gate.accord) (unchecked): Require verification after changed files or a selected design check.
+function     fn verification_required(changed: Bool, selected: Bool) -> Bool (gate-rule.accord)
+review_hash  fd745e1359064c0aa10bc5b1074d4fb55d6dd67c8a4f7e9b20327bc7df1dc18d
+intent       verification_required (gate-rule.accord) (unchecked): Require verification after changed files or a selected design check.
 specification line 15: ensures result implies changed or selected
 specification line 16: ensures changed or selected implies result
 proved       verification_required (line 15): ensures result implies changed or selected
@@ -33,10 +33,10 @@ not_proved   intent_alignment: The compiler does not prove that the specificatio
 not_proved   integration: Callers, external interpretation of inputs, and surrounding system behavior were not checked.
 not_proved   trusted_components: The parser, obligation generator, solvers, and interpreter are trusted, not proved correct here.
 not_proved   mutation_sample: Only the reported finite sample of mutants was checked; contract adequacy is not proved.
-standing     verification_required (gate.accord): verified
-function     fn tool_may_change_files(tool_name: Text, native_question: Bool, read_only: Bool) -> Bool (gate.accord)
-review_hash  e4cfc8097a23f3b0c28bb9d591723f606af70ab8e630f5fe853337bbf043035d
-intent       tool_may_change_files (gate.accord) (unchecked): A started tool may change files unless it asks a native question, runs read-only, or is a trusted reader.
+standing     verification_required (gate-rule.accord): verified
+function     fn tool_may_change_files(tool_name: Text, native_question: Bool, read_only: Bool) -> Bool (gate-rule.accord)
+review_hash  0ae487f9157de055df2d512da1423c0a26060170a2f600beaa6832a2dfc7cc9f
+intent       tool_may_change_files (gate-rule.accord) (unchecked): A started tool may change files unless it asks a native question, runs read-only, or is a trusted reader.
 specification line 24: ensures result implies not native_question and not read_only and not tool_name in ["read", "grep", "find", "ls", "update_tasks"]
 specification line 25: ensures not native_question and not read_only and not tool_name in ["read", "grep", "find", "ls", "update_tasks"] implies result
 proved       tool_may_change_files (line 24): ensures result implies not native_question and not read_only and not tool_name in ["read", "grep", "find", "ls", "update_tasks"]
@@ -50,12 +50,12 @@ not_proved   intent_alignment: The compiler does not prove that the specificatio
 not_proved   integration: Callers, external interpretation of inputs, and surrounding system behavior were not checked.
 not_proved   trusted_components: The parser, obligation generator, solvers, and interpreter are trusted, not proved correct here.
 not_proved   mutation_sample: Only the reported finite sample of mutants was checked; contract adequacy is not proved.
-standing     tool_may_change_files (gate.accord): verified
-function     fn gate_verdict(outcome: ProofOutcome, failure: Text, sent: List<Text>) -> GateVerdict (gate.accord)
-review_hash  bd58d623f7f7a6c7fd782194b5c7e59fc2e1e3c8cfded30ae6e925f6aebf08fa
+standing     tool_may_change_files (gate-rule.accord): verified
+function     fn gate_verdict(outcome: ProofOutcome, failure: Text, sent: List<Text>) -> GateVerdict (gate-rule.accord)
+review_hash  d57685df9571e36500dad12462a73bcfd1224b6b53c567d3b087701789f3733c
 type         enum ProofOutcome { Passed, Failed, Vacuous, TimedOut, Cancelled, NotStarted }
 type         enum GateVerdict { Proved, SendBack, NoProgress, Operator }
-intent       gate_verdict (gate.accord) (unchecked): Accept a passed proof; send a failed or vacuous proof back once per failure; identify repetition as no progress; ask the operator about interrupted or unstarted work.
+intent       gate_verdict (gate-rule.accord) (unchecked): Accept a passed proof; send a failed or vacuous proof back once per failure; identify repetition as no progress; ask the operator about interrupted or unstarted work.
 specification line 32: ensures result == Proved implies outcome == Passed
 specification line 33: ensures outcome == Passed implies result == Proved
 specification line 34: ensures result == SendBack implies (outcome == Failed or outcome == Vacuous) and not failure in sent
@@ -94,12 +94,12 @@ not_proved   intent_alignment: The compiler does not prove that the specificatio
 not_proved   integration: Callers, external interpretation of inputs, and surrounding system behavior were not checked.
 not_proved   trusted_components: The parser, obligation generator, solvers, and interpreter are trusted, not proved correct here.
 not_proved   mutation_sample: Only the reported finite sample of mutants was checked; contract adequacy is not proved.
-standing     gate_verdict (gate.accord): verified
-function     fn command_verdict(outcome: ProofOutcome, failure: Text, sent: List<Text>, preexisting: Bool) -> GateVerdict (gate.accord)
-review_hash  f57f142d8fb1a07aeae538a12c4e9a016f51a1389287af41780b8ae9ea2f7b37
+standing     gate_verdict (gate-rule.accord): verified
+function     fn command_verdict(outcome: ProofOutcome, failure: Text, sent: List<Text>, preexisting: Bool) -> GateVerdict (gate-rule.accord)
+review_hash  5d549d0c2e1eb20744bc7c290882d96b095d46ee99e59026bfeb4f2f0bd5ad3c
 type         enum ProofOutcome { Passed, Failed, Vacuous, TimedOut, Cancelled, NotStarted }
 type         enum GateVerdict { Proved, SendBack, NoProgress, Operator }
-intent       command_verdict (gate.accord) (unchecked): Treat an already present command failure as the operator's; otherwise accept passed proofs, send failures back once, and identify interrupted work or repetition.
+intent       command_verdict (gate-rule.accord) (unchecked): Treat an already present command failure as the operator's; otherwise accept passed proofs, send failures back once, and identify interrupted work or repetition.
 specification line 50: ensures result == Proved implies outcome == Passed
 specification line 51: ensures outcome == Passed implies result == Proved
 specification line 52: ensures result == SendBack implies not (preexisting and outcome == Failed) and (outcome == Failed or outcome == Vacuous) and not failure in sent
@@ -137,11 +137,11 @@ not_proved   intent_alignment: The compiler does not prove that the specificatio
 not_proved   integration: Callers, external interpretation of inputs, and surrounding system behavior were not checked.
 not_proved   trusted_components: The parser, obligation generator, solvers, and interpreter are trusted, not proved correct here.
 not_proved   mutation_sample: Only the reported finite sample of mutants was checked; contract adequacy is not proved.
-standing     command_verdict (gate.accord): verified
-function     fn keeps_working(verdicts: List<GateVerdict>) -> Bool (gate.accord)
-review_hash  b2a7542605549efde49afccf768a5f74f3833d5b7957689c43c26c6ce8599da3
+standing     command_verdict (gate-rule.accord): verified
+function     fn keeps_working(verdicts: List<GateVerdict>) -> Bool (gate-rule.accord)
+review_hash  7db01a344122d412583e174ad18a1db3a295bbdf854ec8ac29e3fc629b2989c1
 type         enum GateVerdict { Proved, SendBack, NoProgress, Operator }
-intent       keeps_working (gate.accord) (unchecked): Continue while at least one verdict requests another attempt.
+intent       keeps_working (gate-rule.accord) (unchecked): Continue while at least one verdict requests another attempt.
 specification line 69: ensures result implies SendBack in verdicts
 specification line 70: ensures SendBack in verdicts implies result
 proved       keeps_working (line 69): ensures result implies SendBack in verdicts
@@ -156,7 +156,7 @@ not_proved   intent_alignment: The compiler does not prove that the specificatio
 not_proved   integration: Callers, external interpretation of inputs, and surrounding system behavior were not checked.
 not_proved   trusted_components: The parser, obligation generator, solvers, and interpreter are trusted, not proved correct here.
 not_proved   mutation_sample: Only the reported finite sample of mutants was checked; contract adequacy is not proved.
-standing     keeps_working (gate.accord): verified
+standing     keeps_working (gate-rule.accord): verified
 
 Program context: the checked folder is incomplete.
 Related function proof_outcome: incomplete; open_case, surviving_mutants.
