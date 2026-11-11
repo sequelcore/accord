@@ -191,7 +191,7 @@ fn body(function: &Function, env: &Env) -> Result<Value, String> {
 }
 
 /// The first `requires` that doesn't hold, as written.
-fn broken_requires(
+pub(crate) fn broken_requires(
     function: &Function,
     names: &[(String, Value)],
 ) -> Result<Option<String>, String> {

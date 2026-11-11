@@ -210,6 +210,7 @@ impl Parser<'_> {
         };
         Ok(Function {
             name,
+            public: false,
             intent,
             line,
             file: 0,
@@ -336,8 +337,10 @@ pub(crate) fn parse(source: &str) -> Result<Program, Diagnostic> {
         examples: Vec::new(),
     };
     while parser.peek().is_some() {
-        // `pub` has no effect until one file can import another.
-        if parser.at_word("pub") {
+        // Within a folder every file sees every declaration; `pub` decides
+        // what a file's generated module exports.
+        let public = parser.at_word("pub");
+        if public {
             parser.pos += 1;
         }
         if parser.at_word("enum") {
@@ -345,7 +348,9 @@ pub(crate) fn parse(source: &str) -> Result<Program, Diagnostic> {
         } else if parser.at_word("example") {
             program.examples.push(parser.example()?);
         } else {
-            program.functions.push(parser.function()?);
+            let mut function = parser.function()?;
+            function.public = public;
+            program.functions.push(function);
         }
     }
     Ok(program)

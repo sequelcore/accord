@@ -1,0 +1,17 @@
+pub fn total(a: i64, b: i64) -> i64
+    requires a >= 0 and a <= 1000000
+    requires b >= 0 and b <= 1000000
+    ensures result == a + b
+{
+    a + b
+}
+
+pub fn clamp(n: i32, low: i32, high: i32) -> i32
+    requires low <= high
+    ensures result >= low and result <= high
+{
+    if n < low { low } else { if n > high { high } else { n - 0 * 2 } }
+}
+
+example total(a: 2, b: 3) == 5
+example clamp(n: -4, low: -1, high: 1) == -1

@@ -1,0 +1,17 @@
+pub enum Verdict { Proved, SendBack }
+
+pub fn reader(tool: Text, readers: List<Text>, verdicts: List<Verdict>) -> Bool
+    ensures result implies tool in readers or Verdict.SendBack in verdicts
+    ensures tool in readers or Verdict.SendBack in verdicts implies result
+{
+    tool in readers or Verdict.SendBack in verdicts
+}
+
+pub fn trusted(tool: Text, flags: List<Bool>) -> Bool
+    ensures result implies tool in ["read", "dé\jà"] and flags == [true]
+    ensures tool in ["read", "dé\jà"] and flags == [true] implies result
+{
+    tool in ["read", "dé\jà"] and flags == [true]
+}
+
+example reader(tool: "ls", readers: ["ls"], verdicts: []) == true

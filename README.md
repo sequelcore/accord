@@ -3,7 +3,7 @@
 A programming language whose compiler proves what the code promises.
 
 **Status:** experimental. Nothing is released. The compiler checks and
-proves programs, but doesn't yet produce code that runs: the
+proves programs, and writes proved programs as TypeScript: the
 [roadmap](ROADMAP.md) says what's being built and in what order.
 
 ## The idea
@@ -24,6 +24,12 @@ unchecked intent, complete specification, evidence, and proof limits. Add
 `--json` for structured diagnostics with stable codes. The
 [receipt reference](docs/receipt.md) describes both views; the
 [readability packets](docs/design/stage-7-review/README.md) await human review.
+
+`accord build <file or folder> --out <folder>` writes a program whose
+obligations are all proved as TypeScript modules, with a check of every
+`requires` where a caller enters them. The
+[TypeScript reference](docs/typescript.md) says what a module holds and what
+it trusts.
 
 ## License
 

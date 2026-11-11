@@ -27,6 +27,16 @@ needs Z3 and cvc5: on the `PATH` as `z3` and `cvc5`, or named by the
 `ACCORD_Z3` and `ACCORD_CVC5` environment variables. Without them the
 harness fails rather than skipping.
 
+## TypeScript output
+
+Each folder in [`typescript/`](typescript) is one program in `src/`, and the
+modules `accord build` must write for it in `out/`, byte for byte, written
+before the code generator. A folder without `out/` must be refused.
+`cargo test --test typescript` compares them. The differential test in
+`crates/accord/src/typescript/differential.rs` then runs every program here
+that builds in Node and compares each call with the interpreter
+([TypeScript reference](../docs/typescript.md)).
+
 ## Cedar partial authorization
 
 [`programs/cedar/`](programs/cedar) ports the Boolean decision in Cedar's
