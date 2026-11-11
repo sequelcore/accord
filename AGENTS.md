@@ -30,10 +30,11 @@ each term means.
 
 ## Checks
 
-The tests need Z3 and cvc5. `scripts/install-solvers.sh <folder>` downloads
-the pinned releases, verifies their checksums and prints the `ACCORD_Z3` and
-`ACCORD_CVC5` values to export; CI runs the same script. Without the solvers,
-the conformance harness fails rather than skipping.
+The tests need Z3, cvc5 and Node 22.6 or later. `scripts/install-solvers.sh
+<folder>` downloads the pinned solvers, verifies their checksums and prints
+the `ACCORD_Z3` and `ACCORD_CVC5` values to export; CI runs the same script.
+Node runs the generated TypeScript; `ACCORD_NODE` names it when it isn't on
+the `PATH`. Without them, the tests fail rather than skipping.
 
 CI runs fmt, clippy and the tests (`.github/workflows/ci.yml`); run them
 locally before every push, and push only a finished change: every push runs

@@ -14,12 +14,14 @@ mod openness;
 pub mod receipt;
 mod solver;
 mod syntax;
+mod typescript;
 
 pub use diagnostic::DiagnosticCode;
 pub use mutation::{Strength, Survivor};
 pub use openness::{Determinacy, Openness};
 pub use solver::Solvers;
 pub use syntax::{Type, Width};
+pub use typescript::{Build, Module, build};
 
 /// Parameter names with the values a solver gave them, in source terms.
 pub type Inputs = Vec<(String, String)>;
@@ -293,6 +295,16 @@ pub fn verify_folder(
     only: Option<&str>,
     solvers: &Solvers,
 ) -> Result<Report, Diagnostic> {
+    let (program, names) = program_of(files)?;
+    let target = only.and_then(|name| names.iter().position(|n| n == name));
+    if only.is_some() && target.is_none() {
+        return Err(Diagnostic::new(0, "the file isn't in its folder's program"));
+    }
+    Ok(report(&program, target, &names, solvers))
+}
+
+/// A folder's files parsed and checked as one program, with their names.
+fn program_of(files: &[(String, String)]) -> Result<(syntax::Program, Vec<String>), Diagnostic> {
     let names: Vec<String> = files.iter().map(|(name, _)| name.clone()).collect();
     let mut program = syntax::Program {
         enums: Vec::new(),
@@ -309,11 +321,7 @@ pub fn verify_folder(
         program.examples.extend(part.examples);
     }
     check::check(&mut program, &names)?;
-    let target = only.and_then(|name| names.iter().position(|n| n == name));
-    if only.is_some() && target.is_none() {
-        return Err(Diagnostic::new(0, "the file isn't in its folder's program"));
-    }
-    Ok(report(&program, target, &names, solvers))
+    Ok((program, names))
 }
 
 /// Everything a check establishes about a checked program's functions: all

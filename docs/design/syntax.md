@@ -73,7 +73,7 @@ example larger(a: 2, b: 5) == 5
 | `enum Name { A, B, … }` | A type whose values are exactly the listed variants |
 | `fn name(params) -> Type clauses body` | A pure, total function |
 | `example call == value` | A concrete case, checked by running it |
-| `pub` before a declaration | Exported from its file |
+| `pub` before a function | Exported from its file's [TypeScript module](../typescript.md); within a folder every file sees every declaration either way |
 | `///` before a declaration | Documentation for people; never checked |
 
 A function's **clauses** come between its signature and its body, in this

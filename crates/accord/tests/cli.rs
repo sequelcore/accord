@@ -291,3 +291,51 @@ fn check_takes_a_folder_as_one_program() {
             .contains("b.accord:2: `same` is declared more than once")
     );
 }
+
+fn typescript_case(name: &str) -> String {
+    format!(
+        "{}/../../conformance/typescript/{name}",
+        env!("CARGO_MANIFEST_DIR")
+    )
+}
+
+#[test]
+fn build_writes_each_module_and_lists_it() {
+    let out = std::env::temp_dir().join(format!("accord-build-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&out);
+    let source = format!("{}/src", typescript_case("imports"));
+    let output = accord(&["build", &source, "--out", &out.to_string_lossy()]);
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let listed = String::from_utf8_lossy(&output.stdout);
+    for name in ["light.ts", "stop.ts"] {
+        assert!(listed.contains(name), "{listed}");
+        let expected = format!("{}/out/{name}", typescript_case("imports"));
+        assert_eq!(
+            std::fs::read_to_string(out.join(name)).expect("written"),
+            std::fs::read_to_string(expected).expect("expected")
+        );
+    }
+    let _ = std::fs::remove_dir_all(&out);
+}
+
+#[test]
+fn build_exits_1_and_writes_nothing_when_an_obligation_is_refuted() {
+    let out = std::env::temp_dir().join(format!("accord-refused-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&out);
+    let source = format!("{}/src/wrong.accord", typescript_case("refused"));
+    let output = accord(&["build", &source, "--out", &out.to_string_lossy()]);
+    assert_eq!(output.status.code(), Some(1));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("nothing written"));
+    assert!(!out.exists());
+}
+
+#[test]
+fn build_without_an_output_folder_is_a_usage_error() {
+    let output = accord(&["build", &typescript_case("imports")]);
+    assert_eq!(output.status.code(), Some(2));
+}

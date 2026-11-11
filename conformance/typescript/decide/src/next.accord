@@ -1,0 +1,21 @@
+/// A traffic light.
+pub enum Light { Red, Amber, Green }
+
+/// Not exported, so not emitted: nothing calls it.
+fn stays(light: Light) -> Light
+    ensures result == light
+{
+    light
+}
+
+pub fn next(light: Light, held: Bool, waited: i32, total: i64) -> Light
+    requires waited >= 0 and total >= 0
+    ensures held implies result == light
+decide {
+    | held           => light
+    | light == Red   => Green
+    | light == Green => Amber
+    | otherwise      => Red
+}
+
+example next(light: Red, held: false, waited: 0, total: 0) == Green

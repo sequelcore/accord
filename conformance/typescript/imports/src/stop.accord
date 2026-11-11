@@ -1,0 +1,6 @@
+pub fn stop(light: Light, lights: List<Light>) -> Bool
+    ensures result implies light == Red or Light.Red in lights
+    ensures light == Red or Light.Red in lights implies result
+{
+    light == Red or Light.Red in lights
+}

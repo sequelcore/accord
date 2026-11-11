@@ -1,0 +1,6 @@
+// A refuted `ensures`: nothing may be emitted.
+pub fn wrong(a: Bool) -> Bool
+    ensures result == a
+{
+    not a
+}
