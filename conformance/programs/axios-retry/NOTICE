@@ -1,0 +1,10 @@
+axios-retry request predicates
+Copyright 2019 Softonic International S.A.
+
+The port in retry.accord is derived from axios-retry,
+https://github.com/softonic/axios-retry, release 4.5.0 at commit
+a748627fdc5e22e659055b6cfb44e35ad5801bf4. The project is archived.
+It is licensed under Apache-2.0 (see LICENSE-APACHE at the repository root).
+The port takes an AxiosError's fields as parameters and states the retry rule
+in each request predicate; adapter.patch changes axios-retry's own
+src/index.ts to call the generated module.
