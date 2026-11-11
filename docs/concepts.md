@@ -78,11 +78,12 @@ never records acceptance; that stays with the person.
   Only functions with an `ensures` are mutated. The mistakes planted are: a
   comparison or logical operator swapped (`<` and `<=`, `>` and `>=`, `==`
   and `!=`, `and` and `or`); an integer literal moved by one, never below
-  zero; a condition negated; and, in a decision table, two adjacent rows
-  swapped, a row's `Bool` or enum result replaced, or a row removed where
-  `otherwise` keeps the table complete. Nothing else is mutated: not `in`,
-  arithmetic operators, texts or lists, so a contract's strength says
-  nothing about those parts of a body. At most 64 mutants are tried per
+  zero; a condition negated; a membership test negated (`in` becomes `not
+  in`); and, in a decision table, two adjacent rows swapped, a row's `Bool`
+  or enum result replaced, or a row removed where `otherwise` keeps the
+  table complete. Nothing else is mutated: not arithmetic operators, texts
+  or lists, so a contract's strength says nothing about those parts of a
+  body. At most 64 mutants are tried per
   function; the rest are counted as not tried.
 - **Weakening:** two revisions of one contract compared: weaker, stronger,
   equivalent, incomparable or undecided, decided by the solvers. A weaker

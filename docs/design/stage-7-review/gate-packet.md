@@ -35,7 +35,7 @@ not_proved   trusted_components: The parser, obligation generator, solvers, and 
 not_proved   mutation_sample: Only the reported finite sample of mutants was checked; contract adequacy is not proved.
 standing     verification_required (gate.accord): verified
 function     fn tool_may_change_files(tool_name: Text, native_question: Bool, read_only: Bool) -> Bool (gate.accord)
-review_hash  e4cfc8097a23f3b0c28bb9d591723f606af70ab8e630f5fe853337bbf043035d
+review_hash  a9d338cf7716803c967548115538deee198c9f37319c66b2fb31347633edcaa8
 intent       tool_may_change_files (gate.accord) (unchecked): A started tool may change files unless it asks a native question, runs read-only, or is a trusted reader.
 specification line 24: ensures result implies not native_question and not read_only and not tool_name in ["read", "grep", "find", "ls", "update_tasks"]
 specification line 25: ensures not native_question and not read_only and not tool_name in ["read", "grep", "find", "ls", "update_tasks"] implies result
@@ -45,14 +45,14 @@ counterexamples none reported (this alone is not a proof)
 passed       tool_may_change_files (line 79): example tool_may_change_files(tool_name: "ls", native_question: false, read_only: false) == false
 open_cases   none outside declared freedoms (search settled)
 freedoms     none declared
-strength     tool_may_change_files: 2 mutants: 2 caught, 0 equivalent, 0 surviving, 0 undecided
+strength     tool_may_change_files: 3 mutants: 3 caught, 0 equivalent, 0 surviving, 0 undecided
 not_proved   intent_alignment: The compiler does not prove that the specification captures the intended requirement.
 not_proved   integration: Callers, external interpretation of inputs, and surrounding system behavior were not checked.
 not_proved   trusted_components: The parser, obligation generator, solvers, and interpreter are trusted, not proved correct here.
 not_proved   mutation_sample: Only the reported finite sample of mutants was checked; contract adequacy is not proved.
 standing     tool_may_change_files (gate.accord): verified
 function     fn gate_verdict(outcome: ProofOutcome, failure: Text, sent: List<Text>) -> GateVerdict (gate.accord)
-review_hash  bd58d623f7f7a6c7fd782194b5c7e59fc2e1e3c8cfded30ae6e925f6aebf08fa
+review_hash  3e0b15bfab162e49fa20472073d4848778792e300d5809e797888cc0b5e2a6d3
 type         enum ProofOutcome { Passed, Failed, Vacuous, TimedOut, Cancelled, NotStarted }
 type         enum GateVerdict { Proved, SendBack, NoProgress, Operator }
 intent       gate_verdict (gate.accord) (unchecked): Accept a passed proof; send a failed or vacuous proof back once per failure; identify repetition as no progress; ask the operator about interrupted or unstarted work.
@@ -89,14 +89,14 @@ passed       gate_verdict (line 84): example gate_verdict(outcome: TimedOut, fai
 passed       gate_verdict (line 85): example gate_verdict(outcome: Vacuous, failure: "no checks", sent: []) == SendBack
 open_cases   none outside declared freedoms (search settled)
 freedoms     none declared
-strength     gate_verdict: 24 mutants: 24 caught, 0 equivalent, 0 surviving, 0 undecided
+strength     gate_verdict: 25 mutants: 25 caught, 0 equivalent, 0 surviving, 0 undecided
 not_proved   intent_alignment: The compiler does not prove that the specification captures the intended requirement.
 not_proved   integration: Callers, external interpretation of inputs, and surrounding system behavior were not checked.
 not_proved   trusted_components: The parser, obligation generator, solvers, and interpreter are trusted, not proved correct here.
 not_proved   mutation_sample: Only the reported finite sample of mutants was checked; contract adequacy is not proved.
 standing     gate_verdict (gate.accord): verified
 function     fn command_verdict(outcome: ProofOutcome, failure: Text, sent: List<Text>, preexisting: Bool) -> GateVerdict (gate.accord)
-review_hash  f57f142d8fb1a07aeae538a12c4e9a016f51a1389287af41780b8ae9ea2f7b37
+review_hash  7ec81e54e3dacb9cb311d708ff09824dcdec11cc15b2bf61ba2e6b119d8f6c53
 type         enum ProofOutcome { Passed, Failed, Vacuous, TimedOut, Cancelled, NotStarted }
 type         enum GateVerdict { Proved, SendBack, NoProgress, Operator }
 intent       command_verdict (gate.accord) (unchecked): Treat an already present command failure as the operator's; otherwise accept passed proofs, send failures back once, and identify interrupted work or repetition.
@@ -132,14 +132,14 @@ passed       command_verdict (line 77): example command_verdict(outcome: Failed,
 passed       command_verdict (line 86): example command_verdict(outcome: Vacuous, failure: "no checks", sent: [], preexisting: true) == SendBack
 open_cases   none outside declared freedoms (search settled)
 freedoms     none declared
-strength     command_verdict: 32 mutants: 31 caught, 1 equivalent, 0 surviving, 0 undecided
+strength     command_verdict: 33 mutants: 32 caught, 1 equivalent, 0 surviving, 0 undecided
 not_proved   intent_alignment: The compiler does not prove that the specification captures the intended requirement.
 not_proved   integration: Callers, external interpretation of inputs, and surrounding system behavior were not checked.
 not_proved   trusted_components: The parser, obligation generator, solvers, and interpreter are trusted, not proved correct here.
 not_proved   mutation_sample: Only the reported finite sample of mutants was checked; contract adequacy is not proved.
 standing     command_verdict (gate.accord): verified
 function     fn keeps_working(verdicts: List<GateVerdict>) -> Bool (gate.accord)
-review_hash  b2a7542605549efde49afccf768a5f74f3833d5b7957689c43c26c6ce8599da3
+review_hash  219fdf0a9849b39b543e8d73b61ce36d1ded8a38cc4df4902a6bdffb203687d5
 type         enum GateVerdict { Proved, SendBack, NoProgress, Operator }
 intent       keeps_working (gate.accord) (unchecked): Continue while at least one verdict requests another attempt.
 specification line 69: ensures result implies SendBack in verdicts
@@ -151,7 +151,7 @@ passed       keeps_working (line 78): example keeps_working(verdicts: [Proved, S
 passed       keeps_working (line 87): example keeps_working(verdicts: [Proved, Operator]) == false
 open_cases   none outside declared freedoms (search settled)
 freedoms     none declared
-strength     keeps_working: 0 mutants: 0 caught, 0 equivalent, 0 surviving, 0 undecided
+strength     keeps_working: 1 mutant: 1 caught, 0 equivalent, 0 surviving, 0 undecided
 not_proved   intent_alignment: The compiler does not prove that the specification captures the intended requirement.
 not_proved   integration: Callers, external interpretation of inputs, and surrounding system behavior were not checked.
 not_proved   trusted_components: The parser, obligation generator, solvers, and interpreter are trusted, not proved correct here.
