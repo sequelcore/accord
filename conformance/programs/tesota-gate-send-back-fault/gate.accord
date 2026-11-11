@@ -4,13 +4,13 @@
 // equivalence is two `implies`, and `exists(k, sent[k] === failure)` is
 // `failure in sent`. Tesota's commandVerdict calls gateVerdict; Accord has no
 // calls between functions yet, so command_verdict states that table itself.
-// ProofOutcome is declared beside it, in proof-outcome.accord.
+// ProofOutcome is declared beside it, in proof-outcome-rule.accord.
 
 /// What the gate does with one changed file's proof when a run is about to settle.
 pub enum GateVerdict { Proved, SendBack, NoProgress, Operator }
 
 /// A selected design check requires verification even when no tool may have changed files.
-fn verification_required(changed: Bool, selected: Bool) -> Bool
+pub fn verification_required(changed: Bool, selected: Bool) -> Bool
     intent "Require verification after changed files or a selected design check."
     ensures result implies changed or selected
     ensures changed or selected implies result
@@ -19,7 +19,7 @@ fn verification_required(changed: Bool, selected: Bool) -> Bool
 }
 
 /// A started tool may change files unless it is a trusted reader or runs read-only.
-fn tool_may_change_files(tool_name: Text, native_question: Bool, read_only: Bool) -> Bool
+pub fn tool_may_change_files(tool_name: Text, native_question: Bool, read_only: Bool) -> Bool
     intent "A started tool may change files unless it asks a native question, runs read-only, or is a trusted reader."
     ensures result implies not native_question and not read_only and not tool_name in ["read", "grep", "find", "ls", "update_tasks"]
     ensures not native_question and not read_only and not tool_name in ["read", "grep", "find", "ls", "update_tasks"] implies result
@@ -27,7 +27,7 @@ fn tool_may_change_files(tool_name: Text, native_question: Bool, read_only: Bool
     not native_question and not read_only and not tool_name in ["read", "grep", "find", "ls", "update_tasks"]
 }
 
-fn gate_verdict(outcome: ProofOutcome, failure: Text, sent: List<Text>) -> GateVerdict
+pub fn gate_verdict(outcome: ProofOutcome, failure: Text, sent: List<Text>) -> GateVerdict
     intent "Accept a passed proof; send a failed or vacuous proof back once per failure; identify repetition as no progress; ask the operator about interrupted or unstarted work."
     ensures result == Proved implies outcome == Passed
     ensures outcome == Passed implies result == Proved
@@ -45,7 +45,7 @@ decide {
 }
 
 /// A command's failure the base already had is the operator's, never sent back.
-fn command_verdict(outcome: ProofOutcome, failure: Text, sent: List<Text>, preexisting: Bool) -> GateVerdict
+pub fn command_verdict(outcome: ProofOutcome, failure: Text, sent: List<Text>, preexisting: Bool) -> GateVerdict
     intent "Treat an already present command failure as the operator's; otherwise accept passed proofs, send failures back once, and identify interrupted work or repetition."
     ensures result == Proved implies outcome == Passed
     ensures outcome == Passed implies result == Proved
@@ -64,7 +64,7 @@ decide {
 }
 
 /// Whether the run continues: while some file goes back to the agent.
-fn keeps_working(verdicts: List<GateVerdict>) -> Bool
+pub fn keeps_working(verdicts: List<GateVerdict>) -> Bool
     intent "Continue while at least one verdict requests another attempt."
     ensures result implies SendBack in verdicts
     ensures SendBack in verdicts implies result

@@ -235,7 +235,7 @@ def generate(binary):
     for domain, target in [("gate", "conformance/programs/tesota"), ("cedar", "conformance/programs/cedar")]:
         report, text = check(binary, target)
         if domain == "gate":
-            names = {d["name"] for d in report["definitions"] if d["file"] == "gate.accord"}
+            names = {d["name"] for d in report["definitions"] if d["file"] == "gate-rule.accord"}
             sections = re.split(r"(?=^function     )", text, flags=re.M)
             text = "".join(s for s in sections if any(re.match(r"function     fn " + re.escape(n) + r"\(", s) for n in names))
             text += f"\nProgram context: the checked folder is {report['standing']}.\n"
