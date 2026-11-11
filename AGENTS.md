@@ -17,6 +17,10 @@ each term means.
 - **Specification semantics are defined, not borrowed.** Where Accord's
   meaning differs from TypeScript's or Rust's (integer width, overflow,
   evaluation order), the reference says so and a case covers it.
+- **Keep native code possible.** Before changing integers, evaluation,
+  values, `Text`, effects, hashing or generated code, read
+  [native code constraints](docs/design/native-code-constraints.md) and
+  settle any decision it lists as costly to reverse.
 - **Grow by the roadmap's target.** Add only what the current stage's target
   needs; the next rule to port decides the next construct. From stage 7 each
   stage takes at least one rule from outside Tesota.
