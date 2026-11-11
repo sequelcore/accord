@@ -146,9 +146,9 @@ condition can never be the first to hold.
   overflows, so a specification can state `a + b > a` without caring about
   width, and its literals needn't fit a width.
 - Enum variants are written bare (`Passed`) where the type is known, and
-  qualified (`ProofOutcome.Passed`) where it isn't. The formatter writes the
-  bare form wherever it can, so a qualified variant appears only where it is
-  needed.
+  qualified (`ProofOutcome.Passed`) where it isn't. The canonical form uses
+  the bare variant wherever it can, so a qualified variant appears only where
+  it is needed.
 
 ## Expressions
 
@@ -158,7 +158,7 @@ condition can never be the first to hold.
 | Comparison | `==`, `!=` on any type; `<`, `<=`, `>`, `>=` on integers; `in` from an element to a list |
 | Arithmetic | `+`, `-`, `*`, and `-` before a value; `/` and `%` truncate toward zero (`-7 / 2 == -3`, `-7 % 2 == -1`), in code and in specifications, with a zero divisor and `MIN / -1` obligations. `/` and `%` aren't compiled yet |
 | Choice | `if condition { a } else { b }`, always with `else` |
-| Call | `name(label: value, …)`; labels are required when the function has more than one parameter |
+| Call | `name(label: value, …)`; labels are required when the function has more than one parameter. Calls appear only in `example` declarations: a function body can't call another function yet |
 
 Blocks are expressions: the last expression is the block's value. There is no
 `return`: an early exit is a decision table.
@@ -176,9 +176,9 @@ file that uses a declaration from its folder is checked through its folder.
 
 - Functions, parameters and values are `snake_case`; types and variants are
   `PascalCase`.
-- One canonical layout, applied by the formatter, as above: four-space
-  indentation, a parameter per line when they don't fit on one, aligned
-  arrows in decision tables, trailing commas in multi-line lists.
+- One canonical layout, as above: four-space indentation, a parameter per
+  line when they don't fit on one, aligned arrows in decision tables,
+  trailing commas in multi-line lists.
 
 ## Decisions
 
