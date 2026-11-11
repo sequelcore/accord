@@ -33,6 +33,48 @@ fn a_weak_contract_lets_a_differing_mutant_survive() {
 }
 
 #[test]
+fn a_contract_that_ignores_membership_lets_a_negated_in_survive() {
+    // The contract pins `read_only` and says nothing about which tools are
+    // readers.
+    let weak = strength(
+        "fn may_write(tool: Text, read_only: Bool) -> Bool
+    ensures read_only implies not result
+{
+    not read_only and not tool in [\"read\", \"ls\"]
+}
+",
+    );
+    let [may_write] = weak.as_slice() else {
+        panic!("{weak:?}")
+    };
+    let negated = may_write
+        .survivors
+        .iter()
+        .find(|survivor| survivor.change == "line 4: `in` became `not in`")
+        .unwrap_or_else(|| panic!("{may_write:?}"));
+    assert_ne!(negated.original, negated.mutant, "{negated:?}");
+}
+
+#[test]
+fn a_contract_that_pins_membership_catches_a_negated_in() {
+    let strong = strength(
+        "fn reader(tool: Text) -> Bool
+    ensures result implies tool in [\"read\", \"ls\"]
+    ensures tool in [\"read\", \"ls\"] implies result
+{
+    tool in [\"read\", \"ls\"]
+}
+",
+    );
+    let [reader] = strong.as_slice() else {
+        panic!("{strong:?}")
+    };
+    assert!(reader.survivors.is_empty(), "{reader:?}");
+    assert_eq!(reader.caught, reader.tried, "{reader:?}");
+    assert!(reader.tried > 0, "{reader:?}");
+}
+
+#[test]
 fn a_strong_contract_catches_or_proves_equivalent_every_mutant() {
     let strong = strength(
         "fn larger(a: i64, b: i64) -> i64
