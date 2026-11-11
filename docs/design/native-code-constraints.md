@@ -27,9 +27,6 @@ native backend later. Terms are defined in the [concepts](../concepts.md).
 - **Division** truncates toward zero, and a zero divisor and `MIN / -1` are
   obligations ([roadmap](../../ROADMAP.md#decisions)). The tokenizer still
   rejects `/` and `%`.
-- **Stage 8 is checked by differential testing**, exhaustive within a
-  documented scope, with its trust limits stated in the receipt
-  ([below](#test-generated-code-now-prove-it-later)).
 - **No new surface syntax** without evidence that the current one limits
   comprehension or productivity.
 - **A structured interface for agents** comes after
@@ -100,17 +97,19 @@ assurance. The receipt names which one applies.
 | Outcome reported | Tested | Proved |
 | Finds a compiler bug on an input not tried | No | Yes, within the validator's model |
 
-Stage 8 uses differential testing within a documented scope:
+Stage 8's [TypeScript output](../typescript.md#what-it-trusts) uses
+differential testing, in Accord's own test suite:
 
 - **Exhaustive** where the domain is finite: every combination of `Bool` and
-  enum parameters.
+  enum parameters, up to 4,096 combinations per function. Past that, a seeded
+  sample of them is taken.
 - **Selected** for integers, `Text` and lists: each width's boundaries (`MIN`,
-  `MIN + 1`, -1, 0, 1, `MAX - 1`, `MAX`), every solver model and
-  counterexample, every `example`, and a seeded random sample. The scope is
-  written down for each function.
-- **Stated limits:** the receipt says the output was tested against the
-  interpreter on the stated inputs and not proved equivalent. A function
-  outside the documented scope is reported as untested.
+  `MIN + 1`, -1, 0, 1, `MAX - 1`, `MAX`; for `i64`, the safe integers'), a
+  seeded sample, the program's text literals and characters beyond ASCII,
+  every input a solver gave and every `example`.
+- **Stated limits:** each module's header says it isn't proved equivalent,
+  and the TypeScript reference states which inputs the tests use. The receipt
+  doesn't report on generated code yet.
 
 Formal translation validation is required before a backend uses any flag
 that relies on a proof (condition 6).
@@ -143,11 +142,11 @@ before the stage that first depends on it. Rows are in dependency order.
 | 3 | Freedom of evaluation order for `and` and `or` | Enforced | 1, 2 | Effects | Generated code that evaluates eagerly |
 | 4 | Totality, and how termination is proved | Holds trivially: no recursion or loops | 2 | Recursion or loops | What "proved" means for code that may not return |
 | 5 | Value semantics: no aliasing a program can observe | Agreed direction | 2 | Records, or updates to lists | Every memory strategy at once |
-| 6 | The encoding of `Text` | Undecided | 5 | The first `Text` operation beyond equality, and stage 8's boundary, since TypeScript strings are UTF-16 | Every `Text` proof and boundary check |
+| 6 | The encoding of `Text` | Decided for equality: a sequence of characters up to U+2FFFF, the solvers' alphabet, which the [boundary](../typescript.md#the-boundary) enforces. Length and ordering undecided | 5 | The first `Text` operation beyond equality, and stage 8's boundary, since TypeScript strings are UTF-16 | Every `Text` proof and boundary check |
 | 7 | Proving calls: callers rely on the callee's contract, not its body | Undecided: no calls between functions | 1, 2, 4 | Calls between functions | The cost of proofs, separate compilation, inlining |
 | 8 | Normalization and hashing | Enforced | 1 | Any change to the normal form | Every stored hash and piece of evidence |
 | 9 | An identity for a specification apart from its implementation | Undecided | 7, 8 | Several implementations of one specification | How approval and evidence bind |
-| 10 | The boundary contract: what is checked and which error a failed check returns | Undecided | 1, 5, 6 | Stage 8's first published output | A public interface, once others call it |
+| 10 | The boundary contract: what is checked and which error a failed check returns | Decided: [types, ranges and each `requires`](../typescript.md#the-boundary), with `TypeError` or `RangeError` | 1, 5, 6 | Stage 8's first published output | A public interface, once others call it |
 
 ## Keep these optimizations possible
 

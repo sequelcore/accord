@@ -43,6 +43,27 @@ folder>` clones Tesota at the commit they come from and runs its typecheck
 and tests twice: with its rules as written, then with the generated modules
 in their place. It needs `bun` and network access, so CI doesn't run it.
 
+## axios-retry request predicates
+
+[`programs/axios-retry/`](programs/axios-retry) ports `isRetryableError`,
+`isSafeRequestError` and `isIdempotentRequestError` from axios-retry 4.5.0 at
+commit `a748627fdc5e22e659055b6cfb44e35ad5801bf4`; the project is archived.
+Accord has no records, so an `AxiosError` arrives as its fields, and a body
+can't call another function, so each request predicate states the retry rule
+itself. `axios-retry-status-fault` widens the server-error range to 600 under
+the unchanged contract.
+
+[`adapter.patch`](programs/axios-retry/adapter.patch) is written by hand: it
+makes axios-retry's own `src/index.ts` read those fields and call the
+generated `retry.ts`, and keeps the generated file out of its linter.
+`scripts/check-axios-retry.sh <empty folder>` runs axios-retry's lint and
+specs as released and with the generated predicates in place. Two of its
+specs bound elapsed time from above and fail now and then on a slow machine
+in both runs; the check accepts those two only. It needs network access and
+Node 20, so CI doesn't run it. The port is licensed under Apache-2.0;
+attribution is in [`programs/axios-retry/NOTICE`](programs/axios-retry/NOTICE)
+and the source header.
+
 ## Cedar partial authorization
 
 [`programs/cedar/`](programs/cedar) ports the Boolean decision in Cedar's
