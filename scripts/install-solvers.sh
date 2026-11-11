@@ -33,7 +33,9 @@ sha256() { if command -v sha256sum >/dev/null; then sha256sum < "$1"; else shasu
 
 fetch() { # repo tag asset sum target
   mkdir -p "$5"
-  curl -fsSL -o "$5/$3" "https://github.com/$1/releases/download/$2/$3"
+  # GitHub's release downloads sometimes answer 504; curl retries transient
+  # failures, up to five times.
+  curl -fsSL --retry 5 --retry-delay 5 -o "$5/$3" "https://github.com/$1/releases/download/$2/$3"
   local got; got="$(sha256 "$5/$3")"
   if [ "$got" != "$4" ]; then echo "$3: checksum mismatch ($got)" >&2; exit 1; fi
   unzip -q -o "$5/$3" -d "$5"
