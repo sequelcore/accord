@@ -33,6 +33,16 @@ pub(super) fn tokenize(source: &str) -> Result<Vec<(Token, usize, usize)>, Diagn
                 let Some(end) = inner.find('"') else {
                     return Err(Diagnostic::new(line, "a string must end on its line"));
                 };
+                // SMT-LIB's strings hold characters up to U+2FFFF only.
+                if let Some(c) = inner[..end].chars().find(|c| u32::from(*c) > 0x2FFFF) {
+                    return Err(Diagnostic::new(
+                        line,
+                        format!(
+                            "a text can't hold U+{:X}: the solvers reason about characters up to U+2FFFF",
+                            u32::from(c)
+                        ),
+                    ));
+                }
                 tokens.push((Token::Str(inner[..end].to_string()), line, at));
                 rest = &inner[end + 1..];
                 continue;

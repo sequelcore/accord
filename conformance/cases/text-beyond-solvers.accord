@@ -1,0 +1,8 @@
+// expect: error
+// A text literal holds a character past U+2FFFF, the last one the solvers'
+// string theory has, so no obligation over it could be decided.
+fn tag(t: Text) -> Bool
+    ensures result implies t != "󠁁"
+{
+    t != "󠁁"
+}

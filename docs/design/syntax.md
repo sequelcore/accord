@@ -126,8 +126,10 @@ condition can never be the first to hold.
 - `Bool`: `true`, `false`.
 - `Text`: a sequence of characters, written in double quotes (`"read"`). A
   literal ends at the next `"` on its line and has no escapes, so it can't
-  contain `"`; any other character, accented or not, stands for itself.
-  Texts are compared with `==` and `!=` and have no other operations yet.
+  contain `"`; any other character, accented or not, stands for itself, up
+  to U+2FFFF, the last character the solvers reason about. A literal with a
+  later one is rejected. Texts are compared with `==` and `!=` and have no
+  other operations yet.
 - `List<T>`: a sequence of values of type `T`, written `["read", "grep"]`
   or `[]`. `T` is `Bool`, an enum or `Text`; lists of integers wait for a
   target that needs them. A list literal takes its element type from its
