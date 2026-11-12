@@ -135,6 +135,29 @@ pub(crate) enum Expr {
     Index(Box<Expr>, Box<Expr>, Site),
 }
 
+impl Expr {
+    /// The line the expression starts on, or 0 for a `Bool` literal, which
+    /// carries none.
+    pub fn line(&self) -> usize {
+        match self {
+            Expr::Name(_, line)
+            | Expr::Variant(_, _, line)
+            | Expr::Int(_, line)
+            | Expr::Text(_, line)
+            | Expr::List(_, _, line)
+            | Expr::Quantified(.., line)
+            | Expr::Length(_, line) => *line,
+            Expr::Arith(.., site)
+            | Expr::Neg(_, site)
+            | Expr::Call(.., site)
+            | Expr::Index(.., site) => site.line,
+            Expr::Not(inner) => inner.line(),
+            Expr::Binary(_, left, _) | Expr::If(left, _, _) => left.line(),
+            Expr::Bool(_) => 0,
+        }
+    }
+}
+
 /// What a quantifier over a list gives: whether the condition holds of every
 /// element, of some element, or of how many.
 #[derive(Clone, Copy, Debug, PartialEq)]

@@ -1,6 +1,6 @@
 //! Quantifiers over lists, `length` and indexing.
 
-use super::expr::{Scope, line_of};
+use super::expr::Scope;
 use super::type_name;
 use crate::Diagnostic;
 use crate::syntax::{Expr, Quantifier, Range, Type, Width};
@@ -91,7 +91,7 @@ impl Scope<'_> {
             Type::List(element) => *element,
             other => {
                 return Err(Diagnostic::new(
-                    line_of(list),
+                    list.line(),
                     format!("only a list can be indexed, not a `{}`", type_name(&other)),
                 ));
             }

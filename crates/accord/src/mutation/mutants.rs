@@ -52,25 +52,6 @@ fn swap(op: Op) -> Option<Op> {
     })
 }
 
-fn line_of(expr: &Expr) -> usize {
-    match expr {
-        Expr::Name(_, line)
-        | Expr::Variant(_, _, line)
-        | Expr::Int(_, line)
-        | Expr::Text(_, line)
-        | Expr::List(_, _, line)
-        | Expr::Quantified(.., line)
-        | Expr::Length(_, line) => *line,
-        Expr::Arith(.., site)
-        | Expr::Neg(_, site)
-        | Expr::Call(.., site)
-        | Expr::Index(.., site) => site.line,
-        Expr::Not(inner) => line_of(inner),
-        Expr::Binary(_, left, _) | Expr::If(left, _, _) => line_of(left),
-        Expr::Bool(_) => 0,
-    }
-}
-
 /// Whether the change being counted down to is this one; counts it down
 /// otherwise.
 fn at(n: &mut usize) -> bool {
@@ -85,7 +66,7 @@ fn mutate_expr(expr: &mut Expr, n: &mut usize) -> Option<Change> {
     if let Expr::Binary(Op::In, element, _) = expr
         && at(n)
     {
-        let line = line_of(element);
+        let line = element.line();
         *expr = Expr::Not(Box::new(expr.clone()));
         return Some(Change::NotIn(line));
     }
@@ -94,7 +75,7 @@ fn mutate_expr(expr: &mut Expr, n: &mut usize) -> Option<Change> {
             if let Some(to) = swap(*op)
                 && at(n)
             {
-                let change = Change::Op(line_of(left), *op, to);
+                let change = Change::Op(left.line(), *op, to);
                 *op = to;
                 return Some(change);
             }
@@ -112,7 +93,7 @@ fn mutate_expr(expr: &mut Expr, n: &mut usize) -> Option<Change> {
         }
         Expr::If(condition, then, otherwise) => {
             if at(n) {
-                let line = line_of(condition);
+                let line = condition.line();
                 **condition = Expr::Not(condition.clone());
                 return Some(Change::Negated(line));
             }
