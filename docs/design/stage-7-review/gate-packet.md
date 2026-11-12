@@ -163,6 +163,7 @@ standing     keeps_working (gate-rule.accord): verified
 
 Program context: the checked folder is incomplete.
 Related function proof_outcome: incomplete; open_case, surviving_mutants.
+Related function decisions: incomplete; open_case.
 ```
 
 ## Questions

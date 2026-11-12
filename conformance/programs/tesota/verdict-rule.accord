@@ -1,0 +1,198 @@
+// expect: proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, passed, passed, passed, passed, passed, passed, passed, passed, passed, passed, passed, passed, passed
+// open: determined, determined, determined, open, determined, determined, determined, determined, determined, determined, determined
+// Tesota's verdict-rule (src/verification/verdict-rule.ts at dev 4ef9b191).
+// Each LemmaScript equivalence is one `==` between two conditions. Its
+// numbers are JavaScript numbers; here they are `i64`. Its two loops are
+// `count` and `any`, and run_standing's loop over the changed paths is
+// `all`, which calls path_covered. An `ensures` that only restates a result
+// type's values is the enum itself. ProofOutcome and ModelRun are declared
+// beside it, in proof-outcome-rule.accord and model-rule.accord.
+
+/// What one finding of a receipt asks of the operator: a decision, a gap to
+/// know about, evidence that holds, or a model's opinion, never evidence.
+pub enum Standing { Decide, Gap, Holds, Opinion }
+
+/// Where a run's verification stands.
+pub enum RunStanding { Verified, Incomplete, Failed, Unverified, Unchanged }
+
+/// What review completeness says about model observations.
+pub enum ReviewStatus { Completed, Partial, NotRun, Disabled }
+
+/// The color of a receipt's verdict.
+pub enum Tone { Error, Warning, Success }
+
+/// How a method's row of the receipt sums up its runs.
+pub enum MethodStanding { Holds, Partly, Fails, None }
+
+/// What kind of check a receipt ran.
+pub enum CheckKind { Proof, Command, Model }
+
+/// How one check of a receipt ended.
+pub enum CheckEnd { Passed, Failed, Gap }
+
+/// The process result an exported receipt states, spelled as the agentic
+/// process evidence proposal spells `predicate.result`.
+pub enum StatementResult { Cancelled = "CANCELLED", Completed = "COMPLETED", Failed = "FAILED", None }
+
+/// A path receives exercise credit only from its own observed assertion sensitivity on current passing evidence.
+pub fn source_credit(noticed: Bool, passed: Bool, current: Bool) -> Bool
+    intent "Credit a path only when its own assertion noticed it on current passing evidence."
+    ensures result == (noticed and passed and current)
+{
+    noticed and passed and current
+}
+
+/// Review completeness describes model observations only; it never participates in mechanical standing.
+pub fn review_status(total: i64, completed: i64, partial: i64, disabled: i64) -> ReviewStatus
+    intent "Completed or disabled only when every observation is; partial when some is partial or some completed; otherwise not run."
+    requires total >= 0 and completed >= 0 and partial >= 0 and disabled >= 0
+    requires completed + partial + disabled <= total
+    ensures (result == Completed) == (total > 0 and completed == total)
+    ensures (result == Disabled) == (total > 0 and disabled == total)
+    ensures (result == Partial) == (partial > 0 or (completed > 0 and completed < total))
+    ensures (result == NotRun) == (completed == 0 and partial == 0 and (total == 0 or disabled < total))
+decide {
+    | total > 0 and completed == total => Completed
+    | total > 0 and disabled == total  => Disabled
+    | partial > 0 or completed > 0     => Partial
+    | otherwise                        => NotRun
+}
+
+/// Unverified external effects prevent an overall verified or unchanged claim, preserving a known failure.
+pub fn external_standing(standing: RunStanding, effects: i64) -> RunStanding
+    intent "Unverified external effects make a run incomplete unless it already failed."
+    ensures effects > 0 and standing != Failed implies result == Incomplete
+    ensures effects <= 0 or standing == Failed implies result == standing
+{
+    if effects > 0 and standing != Failed { Incomplete } else { standing }
+}
+
+/// How many findings need the operator: a model's opinion never counts. The receipt is clean when none does.
+pub fn decisions(standings: List<Standing>) -> i64
+    intent "Count the findings that need a decision; zero exactly when none does."
+    ensures 0 <= result and result <= length(standings)
+    ensures (result == 0) == (not any s in standings: s == Decide)
+{
+    count s in standings: s == Decide
+}
+
+/// Whether a summary of one check's findings must say how many of them hold.
+pub fn partly_holds(standings: List<Standing>) -> Bool
+    intent "Say how many findings hold when some finding needs a decision or is a gap."
+    ensures result == (any s in standings: s == Decide or s == Gap)
+{
+    any s in standings: s == Decide or s == Gap
+}
+
+/// The color of a receipt's verdict: red when a check failed among what needs the operator, amber when something needs them or is a gap, green only when neither.
+pub fn verdict_tone(decisions: i64, failed: Bool, gaps: i64) -> Tone
+    intent "Green only with no decision and no gap; red only when a decision is due and a check failed."
+    requires decisions >= 0 and gaps >= 0
+    ensures (result == Error) == (decisions > 0 and failed)
+    ensures (result == Success) == (decisions == 0 and gaps == 0)
+decide {
+    | decisions > 0 and failed => Error
+    | decisions > 0            => Warning
+    | gaps > 0                 => Warning
+    | otherwise                => Success
+}
+
+/// How a method's row of the receipt sums up its runs: holds only when every run held outright.
+pub fn method_standing(held: i64, partly: i64, failed: i64, runs: i64) -> MethodStanding
+    intent "Holds only when every run held outright; partly when some held but not all outright; fails when none held and one failed; none otherwise."
+    requires held >= 0 and partly >= 0 and failed >= 0
+    requires held + partly + failed <= runs
+    ensures (result == Holds) == (runs > 0 and held == runs)
+    ensures (result == Partly) == (held + partly > 0 and held < runs)
+    ensures (result == Fails) == (held + partly == 0 and failed > 0)
+    ensures (result == None) == (held + partly + failed == 0)
+decide {
+    | runs > 0 and held == runs => Holds
+    | held + partly > 0         => Partly
+    | failed > 0                => Fails
+    | otherwise                 => None
+}
+
+/// How one check of a receipt ended: failed only when it ran and showed the change wrong; passed when it held on current content; otherwise a gap.
+pub fn check_end(kind: CheckKind, stale: Bool, outcome: ProofOutcome, run: ModelRun, fault_passes: Bool) -> CheckEnd
+    intent "Fail only on an observed failure, pass only on current passing evidence, and call everything else a gap."
+    ensures (result == Failed) == (not stale and ((kind == Model and (run == Violated or run == Deadlocked or run == AssumptionFailed or (run == ModelRun.Passed and fault_passes))) or (kind != Model and outcome == ProofOutcome.Failed)))
+    ensures (result == Passed) == (not stale and outcome == ProofOutcome.Passed and (kind != Model or (run == ModelRun.Passed and not fault_passes)))
+    ensures stale implies result == Gap
+    ensures kind != Model and (outcome == Vacuous or outcome == NotStarted or outcome == TimedOut or outcome == Cancelled) implies result == Gap
+    ensures kind == Model and (run == Malformed or run == Vacuous or run == TimedOut or run == Cancelled or run == NotStarted) implies result == Gap
+decide {
+    | stale => Gap
+    | kind == Model and (run == Violated or run == Deadlocked or run == AssumptionFailed or (run == ModelRun.Passed and fault_passes)) => Failed
+    | kind == Model and outcome == ProofOutcome.Passed and run == ModelRun.Passed => Passed
+    | kind == Model => Gap
+    | outcome == ProofOutcome.Failed => Failed
+    | outcome == ProofOutcome.Passed => Passed
+    | otherwise => Gap
+}
+
+/// The process result an exported receipt states: cancelled when the run stopped, completed only when it stands verified or unchanged, failed when a check showed the change wrong, and none otherwise.
+pub fn statement_result(stopped: Bool, standing: RunStanding) -> StatementResult
+    intent "Never state a success the run didn't observe."
+    ensures (result == Cancelled) == stopped
+    ensures (result == Completed) == (not stopped and (standing == Verified or standing == Unchanged))
+    ensures (result == StatementResult.Failed) == (not stopped and standing == RunStanding.Failed)
+    ensures (result == None) == (not stopped and (standing == Incomplete or standing == Unverified))
+decide {
+    | stopped => Cancelled
+    | standing == Verified or standing == Unchanged => Completed
+    | standing == RunStanding.Failed => StatementResult.Failed
+    | otherwise => None
+}
+
+/// Whether one changed path is covered: it proved, or it was tested and exercised.
+pub fn path_covered(proved: Bool, tested: Bool, exercised: Bool) -> Bool
+    intent "A path is covered when it proved, or was tested and exercised."
+    ensures result == (proved or (tested and exercised))
+{
+    proved or (tested and exercised)
+}
+
+/// Where a run's verification stands, one meaning on every surface. One entry per changed path in proved, tested and exercised.
+pub fn run_standing(
+    changed: Bool,
+    stopped: Bool,
+    decisions: i64,
+    failed: Bool,
+    passed: i64,
+    gaps: i64,
+    proved: List<Bool>,
+    tested: List<Bool>,
+    exercised: List<Bool>,
+) -> RunStanding
+    intent "Verified only with passing evidence, every changed path covered, no gap, no decision and no stop; failed only when a check failed among what stopped the run or needs the operator."
+    requires passed >= 0 and decisions >= 0 and gaps >= 0
+    requires length(tested) == length(proved) and length(exercised) == length(proved)
+    ensures (result == Verified) == (not stopped and decisions == 0 and changed and passed > 0 and gaps == 0 and (all k in indices(proved): proved[k] or (tested[k] and exercised[k])))
+    ensures (result == Failed) == ((stopped or decisions > 0) and failed)
+    ensures (result == Unchanged) == (not stopped and decisions == 0 and not changed)
+    ensures (result == Unverified) == (not stopped and decisions == 0 and changed and passed == 0)
+    ensures (result == Incomplete) == (((stopped or decisions > 0) and not failed) or (not stopped and decisions == 0 and changed and passed > 0 and (gaps > 0 or (any k in indices(proved): not proved[k] and not (tested[k] and exercised[k])))))
+decide {
+    | (stopped or decisions > 0) and failed => Failed
+    | stopped or decisions > 0 => Incomplete
+    | not changed => Unchanged
+    | passed == 0 => Unverified
+    | gaps > 0 => Incomplete
+    | all k in indices(proved): path_covered(proved: proved[k], tested: tested[k], exercised: exercised[k]) => Verified
+    | otherwise => Incomplete
+}
+
+example external_standing(standing: Verified, effects: 1) == Incomplete
+example external_standing(standing: Failed, effects: 1) == Failed
+example decisions(standings: [Decide, Opinion, Decide, Gap]) == 2
+example decisions(standings: [Holds, Gap, Opinion, Opinion]) == 0
+example partly_holds(standings: [Holds, Gap]) == true
+example partly_holds(standings: [Holds, Holds, Opinion]) == false
+example verdict_tone(decisions: 1, failed: true, gaps: 3) == Error
+example verdict_tone(decisions: 0, failed: false, gaps: 1) == Warning
+example method_standing(held: 1, partly: 0, failed: 1, runs: 2) == Partly
+example method_standing(held: 0, partly: 0, failed: 0, runs: 0) == None
+example run_standing(changed: true, stopped: false, decisions: 0, failed: false, passed: 1, gaps: 0, proved: [false], tested: [true], exercised: [true]) == Verified
+example run_standing(changed: true, stopped: false, decisions: 0, failed: false, passed: 1, gaps: 0, proved: [false], tested: [true], exercised: [false]) == Incomplete
+example run_standing(changed: false, stopped: true, decisions: 0, failed: true, passed: 0, gaps: 0, proved: [], tested: [], exercised: []) == Failed

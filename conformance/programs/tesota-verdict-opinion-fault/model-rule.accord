@@ -1,0 +1,6 @@
+// expect:
+// The ModelRun of Tesota's model-rule (src/verification/model-rule.ts at dev
+// 4ef9b191), which verdict-rule reads. Only the type is ported: the rest of
+// model-rule stays Tesota's own.
+/// How one run of a design model ended.
+pub enum ModelRun { AssumptionFailed, Deadlocked, Passed, Vacuous, Violated, Malformed, TimedOut, Cancelled, NotStarted }

@@ -72,7 +72,115 @@ not_proved   integration: Callers, external interpretation of inputs, and surrou
 not_proved   trusted_components: The parser, obligation generator, solvers, and interpreter are trusted, not proved correct here.
 not_proved   mutation_sample: Only the reported finite sample of mutants was checked; contract adequacy is not proved.
 standing     partial_decision (partial-decision.accord): verified
-standing     the folder: verified (12 of 12 obligations proved, 12 reused from the ledger; 16 of 16 examples passed)
+function     fn some_policy(effects: List<Effect>, evaluations: List<Evaluation>, effect: Effect, evaluation: Evaluation) -> Bool (policy-set.accord)
+review_hash  78c42516fa1c4f4227b6bf67acaf7984771baa4c2bd5b82f0f02d788581aef48
+type         enum Effect { Permit, Forbid }
+type         enum Evaluation { Satisfied, NotSatisfied, Residual, Error }
+intent       some_policy (policy-set.accord) (unchecked): Some policy with this effect evaluated to this result.
+specification line 30: requires length(evaluations) == length(effects)
+specification line 31: ensures result == (any k in indices(effects): effects[k] == effect and evaluations[k] == evaluation)
+proved       some_policy (line 31): ensures result == (any k in indices(effects): effects[k] == effect and evaluations[k] == evaluation)
+proved       some_policy (line 31): `effects[k]` is within its list
+proved       some_policy (line 31): `evaluations[k]` is within its list
+proved       some_policy (line 33): `effects[k]` is within its list
+proved       some_policy (line 33): `evaluations[k]` is within its list
+counterexamples none reported (this alone is not a proof)
+examples     none declared
+open_cases   none outside declared freedoms (search settled)
+freedoms     none declared
+strength     some_policy: 3 mutants: 3 caught, 0 equivalent, 0 surviving, 0 undecided
+not_proved   intent_alignment: The compiler does not prove that the specification captures the intended requirement.
+not_proved   integration: Callers, external interpretation of inputs, and surrounding system behavior were not checked.
+not_proved   trusted_components: The parser, obligation generator, solvers, and interpreter are trusted, not proved correct here.
+not_proved   list_assumptions: Every list is assumed to hold at most 4,294,967,295 elements, as a TypeScript array does, and `count` is known to the solvers only through trusted axioms: its bounds, when it is zero and when it is the length.
+not_proved   no_examples: No declared example was executed for this function.
+not_proved   admitted_domain: Guarantees apply only to inputs meeting requires; no behavior is promised for excluded inputs.
+not_proved   mutation_sample: Only the reported finite sample of mutants was checked; contract adequacy is not proved.
+standing     some_policy (policy-set.accord): verified
+function     fn partial_authorization(effects: List<Effect>, evaluations: List<Evaluation>) -> PartialDecision (policy-set.accord)
+review_hash  8b4555fe76c23ef271ef357e8b7c55873f8eaba5bf7cbe3cb760bbf17095483d
+type         enum Effect { Permit, Forbid }
+type         enum Evaluation { Satisfied, NotSatisfied, Residual, Error }
+type         enum PartialDecision { Deny, Allow, Unknown }
+intent       partial_authorization (policy-set.accord) (unchecked): Deny on a satisfied forbid or with no permit that can hold; allow on a satisfied permit with no forbid that can hold; otherwise unknown.
+specification line 41: requires length(evaluations) == length(effects)
+specification line 42: ensures (result == Deny) == ((any k in indices(effects): effects[k] == Forbid and evaluations[k] == Satisfied) or not ((any k in indices(effects): effects[k] == Permit and evaluations[k] == Satisfied) or (any k in indices(effects): effects[k] == Permit and evaluations[k] == Residual)))
+specification line 43: ensures (result == Allow) == (not (any k in indices(effects): effects[k] == Forbid and evaluations[k] == Satisfied) and (any k in indices(effects): effects[k] == Permit and evaluations[k] == Satisfied) and not (any k in indices(effects): effects[k] == Forbid and evaluations[k] == Residual))
+specification line 44: ensures (all k in indices(effects): evaluations[k] != Residual) implies (result == Allow) == ((any k in indices(effects): effects[k] == Permit and evaluations[k] == Satisfied) and not (any k in indices(effects): effects[k] == Forbid and evaluations[k] == Satisfied))
+proved       partial_authorization (line 42): ensures (result == Deny) == ((any k in indices(effects): effects[k] == Forbid and evaluations[k] == Satisfied) or not ((any k in indices(effects): effects[k] == Permit and evaluations[k] == Satisfied) or (any k in indices(effects): effects[k] == Permit and evaluations[k] == Residual)))
+proved       partial_authorization (line 42): `effects[k]` is within its list
+proved       partial_authorization (line 42): `evaluations[k]` is within its list
+proved       partial_authorization (line 42): `effects[k]` is within its list
+proved       partial_authorization (line 42): `evaluations[k]` is within its list
+proved       partial_authorization (line 42): `effects[k]` is within its list
+proved       partial_authorization (line 42): `evaluations[k]` is within its list
+proved       partial_authorization (line 43): ensures (result == Allow) == (not (any k in indices(effects): effects[k] == Forbid and evaluations[k] == Satisfied) and (any k in indices(effects): effects[k] == Permit and evaluations[k] == Satisfied) and not (any k in indices(effects): effects[k] == Forbid and evaluations[k] == Residual))
+proved       partial_authorization (line 43): `effects[k]` is within its list
+proved       partial_authorization (line 43): `evaluations[k]` is within its list
+proved       partial_authorization (line 43): `effects[k]` is within its list
+proved       partial_authorization (line 43): `evaluations[k]` is within its list
+proved       partial_authorization (line 43): `effects[k]` is within its list
+proved       partial_authorization (line 43): `evaluations[k]` is within its list
+proved       partial_authorization (line 44): ensures (all k in indices(effects): evaluations[k] != Residual) implies (result == Allow) == ((any k in indices(effects): effects[k] == Permit and evaluations[k] == Satisfied) and not (any k in indices(effects): effects[k] == Forbid and evaluations[k] == Satisfied))
+proved       partial_authorization (line 44): `evaluations[k]` is within its list
+proved       partial_authorization (line 44): `effects[k]` is within its list
+proved       partial_authorization (line 44): `evaluations[k]` is within its list
+proved       partial_authorization (line 44): `effects[k]` is within its list
+proved       partial_authorization (line 44): `evaluations[k]` is within its list
+proved       partial_authorization (line 47): `some_policy(effects: effects, evaluations: evaluations, effect: Forbid, evaluation: Satisfied)` meets `some_policy`'s requires
+proved       partial_authorization (line 48): `some_policy(effects: effects, evaluations: evaluations, effect: Permit, evaluation: Satisfied)` meets `some_policy`'s requires
+proved       partial_authorization (line 49): `some_policy(effects: effects, evaluations: evaluations, effect: Permit, evaluation: Residual)` meets `some_policy`'s requires
+proved       partial_authorization (line 50): `some_policy(effects: effects, evaluations: evaluations, effect: Forbid, evaluation: Residual)` meets `some_policy`'s requires
+counterexamples none reported (this alone is not a proof)
+passed       partial_authorization (line 75): example partial_authorization(effects: [Permit, Forbid], evaluations: [Satisfied, Residual]) == Unknown
+passed       partial_authorization (line 76): example partial_authorization(effects: [Permit, Forbid], evaluations: [Satisfied, NotSatisfied]) == Allow
+passed       partial_authorization (line 77): example partial_authorization(effects: [Permit], evaluations: [Residual]) == Unknown
+passed       partial_authorization (line 78): example partial_authorization(effects: [Forbid], evaluations: [Residual]) == Deny
+open_cases   none outside declared freedoms (search settled)
+freedoms     none declared
+strength     partial_authorization: 0 mutants: 0 caught, 0 equivalent, 0 surviving, 0 undecided
+not_proved   intent_alignment: The compiler does not prove that the specification captures the intended requirement.
+not_proved   integration: Callers, external interpretation of inputs, and surrounding system behavior were not checked.
+not_proved   trusted_components: The parser, obligation generator, solvers, and interpreter are trusted, not proved correct here.
+not_proved   list_assumptions: Every list is assumed to hold at most 4,294,967,295 elements, as a TypeScript array does, and `count` is known to the solvers only through trusted axioms: its bounds, when it is zero and when it is the length.
+not_proved   admitted_domain: Guarantees apply only to inputs meeting requires; no behavior is promised for excluded inputs.
+not_proved   mutation_sample: Only the reported finite sample of mutants was checked; contract adequacy is not proved.
+standing     partial_authorization (policy-set.accord): verified
+function     fn is_authorized(effects: List<Effect>, evaluations: List<Evaluation>) -> Decision (policy-set.accord)
+review_hash  ae601e0acac29091dfce90213c371028cff96a666872cb9db8a67607c12c0b83
+type         enum Effect { Permit, Forbid }
+type         enum Evaluation { Satisfied, NotSatisfied, Residual, Error }
+type         enum Decision { Allow, Deny }
+intent       is_authorized (policy-set.accord) (unchecked): Allow only when some permit is satisfied and no forbid is; deny by default, and skip a policy whose evaluation failed.
+specification line 59: requires length(evaluations) == length(effects)
+specification line 60: ensures (result == Allow) == ((any k in indices(effects): effects[k] == Permit and evaluations[k] == Satisfied) and not (any k in indices(effects): effects[k] == Forbid and evaluations[k] == Satisfied))
+specification line 61: ensures (all k in indices(effects): effects[k] == Permit) implies (result == Allow) == (any k in indices(effects): evaluations[k] == Satisfied)
+proved       is_authorized (line 60): ensures (result == Allow) == ((any k in indices(effects): effects[k] == Permit and evaluations[k] == Satisfied) and not (any k in indices(effects): effects[k] == Forbid and evaluations[k] == Satisfied))
+proved       is_authorized (line 60): `effects[k]` is within its list
+proved       is_authorized (line 60): `evaluations[k]` is within its list
+proved       is_authorized (line 60): `effects[k]` is within its list
+proved       is_authorized (line 60): `evaluations[k]` is within its list
+proved       is_authorized (line 61): ensures (all k in indices(effects): effects[k] == Permit) implies (result == Allow) == (any k in indices(effects): evaluations[k] == Satisfied)
+proved       is_authorized (line 61): `effects[k]` is within its list
+proved       is_authorized (line 61): `evaluations[k]` is within its list
+proved       is_authorized (line 63): `some_policy(effects: effects, evaluations: evaluations, effect: Permit, evaluation: Satisfied)` meets `some_policy`'s requires
+proved       is_authorized (line 64): `some_policy(effects: effects, evaluations: evaluations, effect: Forbid, evaluation: Satisfied)` meets `some_policy`'s requires
+counterexamples none reported (this alone is not a proof)
+passed       is_authorized (line 71): example is_authorized(effects: [], evaluations: []) == Deny
+passed       is_authorized (line 72): example is_authorized(effects: [Permit, Forbid], evaluations: [Satisfied, Error]) == Allow
+passed       is_authorized (line 73): example is_authorized(effects: [Permit, Forbid], evaluations: [Satisfied, Satisfied]) == Deny
+passed       is_authorized (line 74): example is_authorized(effects: [Permit, Permit], evaluations: [Error, Residual]) == Deny
+open_cases   none outside declared freedoms (search settled)
+freedoms     none declared
+strength     is_authorized: 2 mutants: 2 caught, 0 equivalent, 0 surviving, 0 undecided
+not_proved   intent_alignment: The compiler does not prove that the specification captures the intended requirement.
+not_proved   integration: Callers, external interpretation of inputs, and surrounding system behavior were not checked.
+not_proved   trusted_components: The parser, obligation generator, solvers, and interpreter are trusted, not proved correct here.
+not_proved   list_assumptions: Every list is assumed to hold at most 4,294,967,295 elements, as a TypeScript array does, and `count` is known to the solvers only through trusted axioms: its bounds, when it is zero and when it is the length.
+not_proved   admitted_domain: Guarantees apply only to inputs meeting requires; no behavior is promised for excluded inputs.
+not_proved   mutation_sample: Only the reported finite sample of mutants was checked; contract adequacy is not proved.
+standing     is_authorized (policy-set.accord): verified
+standing     the folder: verified (51 of 51 obligations proved, 51 reused from the ledger; 24 of 24 examples passed)
 ```
 
 ## Questions

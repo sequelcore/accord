@@ -12,7 +12,7 @@ set -euo pipefail
 work="${1:?usage: scripts/check-tesota.sh <empty folder> [Tesota repository]}"
 repository="${2:-https://github.com/sequelcore/tesota}"
 commit=4ef9b191b24204d633af72c03f1c398268364573
-rules=(proof-outcome-rule gate-rule mutation-rule)
+rules=(proof-outcome-rule gate-rule mutation-rule verdict-rule)
 root="$(cd "$(dirname "$0")/.." && pwd)"
 
 if [ -e "$work" ] && [ -n "$(ls -A "$work")" ]; then

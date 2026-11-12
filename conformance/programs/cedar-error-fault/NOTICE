@@ -1,0 +1,13 @@
+Cedar authorization decisions
+Copyright Cedar Contributors
+
+The ports in this folder are derived from Cedar,
+https://github.com/cedar-policy/cedar, at commit
+5af7b8cd78e4e0da3ae23f1715023fff8e62941d.
+They are licensed under Apache-2.0 (see LICENSE-APACHE at the repository root).
+partial-decision.accord ports PartialResponse::decision, with collection
+nonemptiness as Boolean parameters and Option<Decision> as an enum.
+policy-set.accord ports how a policy set's evaluation reaches a decision,
+partial and concrete, with each policy as its effect and the result of
+evaluating it; it does not port evaluating a policy's conditions.
+Each cedar-*-fault folder holds the same ports with one planted fault.
