@@ -22,28 +22,32 @@ use serde_json::{Value as Json, json};
 
 mod inputs;
 
-use super::expr::{camel, value};
+use super::expr::camel;
 use crate::Solvers;
 use crate::interpret::{self, Value};
-use crate::syntax::{Function, Type, Width};
+use crate::syntax::{Enum, Function, Type, Width};
 use inputs::{SAFE, Seeded, inputs};
 
-fn to_json(value: &Value) -> Json {
+fn to_json(value: &Value, enums: &[Enum]) -> Json {
     match value {
         Value::Bool(b) => json!(b),
         Value::Int(n) => i64::try_from(*n).map_or_else(|_| json!(n.to_string()), |n| json!(n)),
         Value::Text(t) => json!(t),
-        Value::List(items) => Json::Array(items.iter().map(to_json).collect()),
-        Value::Variant(_, name) => json!(value_text(name)),
+        Value::List(items) => Json::Array(items.iter().map(|v| to_json(v, enums)).collect()),
+        Value::Variant(owner, name) => {
+            let e = enums.iter().find(|e| e.name == *owner);
+            json!(e.expect("a variant of a declared enum").text(name))
+        }
     }
 }
 
-fn value_text(variant: &str) -> String {
-    value(variant).trim_matches('"').to_string()
-}
-
 /// What the generated function must do for `names`.
-fn expected(function: &Function, names: &interpret::Names, functions: &[Function]) -> Json {
+fn expected(
+    function: &Function,
+    names: &interpret::Names,
+    functions: &[Function],
+    enums: &[Enum],
+) -> Json {
     let unsafe_i64 = |ty: &Type, v: &Value| {
         *ty == Type::Int(Width::I64) && matches!(v, Value::Int(n) if n.abs() > SAFE)
     };
@@ -62,7 +66,7 @@ fn expected(function: &Function, names: &interpret::Names, functions: &[Function
     }
     match interpret::result(function, names, functions) {
         Ok(result) if unsafe_i64(&function.ret, &result) => json!({"error": "RangeError"}),
-        Ok(result) => json!({"ok": to_json(&result)}),
+        Ok(result) => json!({"ok": to_json(&result, enums)}),
         Err(reason) => panic!(
             "{}: no result for an admitted input: {reason}",
             function.name
@@ -167,12 +171,12 @@ fn generated_modules_agree_with_the_interpreter() {
                 wanted.push((
                     name.clone(),
                     function.name.clone(),
-                    expected(function, &names, &program.functions),
+                    expected(function, &names, &program.functions, &program.enums),
                 ));
                 calls.push(json!({
                     "module": module.display().to_string(),
                     "name": camel(&function.name),
-                    "args": args.iter().map(to_json).collect::<Vec<_>>(),
+                    "args": args.iter().map(|a| to_json(a, &program.enums)).collect::<Vec<_>>(),
                 }));
             }
         }

@@ -70,7 +70,7 @@ example larger(a: 2, b: 5) == 5
 
 | Form | Meaning |
 | --- | --- |
-| `enum Name { A, B, … }` | A type whose values are exactly the listed variants |
+| `enum Name { A, B, … }` | A type whose values are exactly the listed variants. A variant may give its value outside Accord as a string, `A = "A_VALUE"`; otherwise it is its name in `snake_case`. No two variants of an enum share a value |
 | `fn name(params) -> Type clauses body` | A pure, total function |
 | `example call == value` | A concrete case, checked by running it |
 | `pub` before a function | Exported from its file's [TypeScript module](../typescript.md); within a folder every file sees every declaration either way |

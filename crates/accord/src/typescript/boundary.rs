@@ -2,7 +2,7 @@
 //! its parameters' types and ranges and each `requires`, and then calls the
 //! body. Integers in a `requires` are mathematical, so they are `bigint`s.
 
-use super::expr::{Context, Scope, camel, string, value};
+use super::expr::{Context, Scope, camel, string};
 use super::{enumeration, outer, signature};
 use crate::syntax::{ClauseKind, Function, Program, Type, Width};
 
@@ -36,7 +36,7 @@ pub(super) fn wrapper(program: &Program, function: &Function) -> (String, bool) 
         let must = |what: &str| format!("{name}: {p} must be {what}");
         let variants = |enum_name: &str| -> String {
             let e = enumeration(program, enum_name).expect("`check` resolves every enum");
-            let values: Vec<String> = e.variants.iter().map(|v| value(v)).collect();
+            let values: Vec<String> = e.variants.iter().map(|v| string(&e.text(v))).collect();
             format!("[{}]", values.join(", "))
         };
         match ty {
@@ -115,6 +115,7 @@ pub(super) fn wrapper(program: &Program, function: &Function) -> (String, bool) 
         params: &function.params,
         context: Context::Spec,
         functions: &[],
+        enums: &program.enums,
         indices: &[],
     };
     for clause in function

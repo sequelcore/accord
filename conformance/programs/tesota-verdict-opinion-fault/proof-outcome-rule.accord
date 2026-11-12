@@ -1,0 +1,3 @@
+// expect:
+/// How one proof of a file ended.
+pub enum ProofOutcome { Passed, Failed, Vacuous, TimedOut, Cancelled, NotStarted }

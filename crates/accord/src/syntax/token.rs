@@ -12,9 +12,9 @@ pub(super) enum Token {
 }
 
 /// Longer symbols first, so `->`, `<=` and the like aren't read as two.
-const SYMBOLS: [&str; 21] = [
-    "->", "=>", "==", "!=", "<=", ">=", "<", ">", "+", "-", "*", "(", ")", "{", "}", "[", "]", ":",
-    ",", ".", "|",
+const SYMBOLS: [&str; 22] = [
+    "->", "=>", "==", "!=", "<=", ">=", "<", ">", "=", "+", "-", "*", "(", ")", "{", "}", "[", "]",
+    ":", ",", ".", "|",
 ];
 
 pub(super) fn tokenize(source: &str) -> Result<Vec<(Token, usize, usize)>, Diagnostic> {

@@ -29,9 +29,21 @@ impl Parser<'_> {
         self.expect_word("enum")?;
         let name = self.name()?;
         self.expect_sym("{")?;
-        let mut variants = Vec::new();
+        let (mut variants, mut values) = (Vec::new(), Vec::new());
         while !self.at_sym("}") {
             variants.push(self.name()?);
+            values.push(if self.at_sym("=") {
+                self.pos += 1;
+                match self.peek().cloned() {
+                    Some(Token::Str(text)) => {
+                        self.pos += 1;
+                        Some(text)
+                    }
+                    _ => return self.error("expected the variant's value as a string"),
+                }
+            } else {
+                None
+            });
             if !self.at_sym("}") {
                 self.expect_sym(",")?;
             }
@@ -43,6 +55,7 @@ impl Parser<'_> {
         Ok(Enum {
             name,
             variants,
+            values,
             line,
             file: 0,
         })

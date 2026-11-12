@@ -17,7 +17,7 @@ use crate::openness::{Determinacy, Openness};
 use crate::syntax::{Body, Enum, Function, Program, Type, Width};
 use crate::{Diagnostic, Outcome, Report, Run, Solvers};
 use boundary::{TEXT_CHECK, wrapper};
-use expr::{Context, Scope, camel, string, value};
+use expr::{Context, Scope, camel, string};
 
 const HEADER: &str = "// Every obligation of these functions is proved. This TypeScript is not
 // proved equivalent to them: Accord tests its code generator against its
@@ -116,7 +116,7 @@ fn module(program: &Program, names: &[String], file: usize, openness: &[Determin
         items.push(imports);
     }
     for e in program.enums.iter().filter(|e| e.file == file) {
-        let values: Vec<String> = e.variants.iter().map(|v| value(v)).collect();
+        let values: Vec<String> = e.variants.iter().map(|v| string(&e.text(v))).collect();
         items.push(format!(
             "export type {} = {};\n",
             e.name,
@@ -128,12 +128,12 @@ fn module(program: &Program, names: &[String], file: usize, openness: &[Determin
         let (wrapper, uses_text) = wrapper(program, function);
         text |= uses_text;
         items.push(wrapper);
-        items.push(core(function, &program.functions));
+        items.push(core(function, program));
     }
     // A called function's body is written into every module that calls it,
     // unexported, so no module exports an unchecked entry point.
     for function in called(program, &functions) {
-        items.push(core(function, &program.functions));
+        items.push(core(function, program));
     }
     if text {
         items.push(TEXT_CHECK.to_string());
@@ -245,13 +245,14 @@ fn signature(function: &Function, name: &str, ty: fn(&Type) -> String) -> String
     format!("{name}({}): {}", params.join(", "), ty(&function.ret))
 }
 
-/// The function's body, unexported; it may call `functions`.
-fn core(function: &Function, functions: &[Function]) -> String {
+/// The function's body, unexported; it may call the program's functions.
+fn core(function: &Function, program: &Program) -> String {
     let name = format!("{}$", camel(&function.name));
     let code = Scope {
         params: &function.params,
         context: Context::Code,
-        functions,
+        functions: &program.functions,
+        enums: &program.enums,
         indices: &[],
     };
     let want = match function.ret {

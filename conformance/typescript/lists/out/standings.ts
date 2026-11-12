@@ -51,7 +51,7 @@ export function allCovered(proved: readonly boolean[], tested: readonly boolean[
 }
 
 function allCovered$(proved: readonly boolean[], tested: readonly boolean[], exercised: readonly boolean[]): boolean {
-  return proved.every((_, k) => pathCovered$(proved[k], tested[k], exercised[k]));
+  return proved.every((_, k) => pathCovered$(proved[k]!, tested[k]!, exercised[k]!));
 }
 
 function pathCovered$(proved: boolean, tested: boolean, exercised: boolean): boolean {

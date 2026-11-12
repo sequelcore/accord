@@ -5,7 +5,7 @@
 //! specification every integer is a `bigint`, since specification arithmetic
 //! is mathematical.
 
-use crate::syntax::{Arith, Expr, Function, Op, Quantifier, Type, Width};
+use crate::syntax::{Arith, Enum, Expr, Function, Op, Quantifier, Type, Width};
 
 /// Where an expression is evaluated.
 #[derive(Clone, Copy, PartialEq)]
@@ -22,6 +22,8 @@ pub(super) struct Scope<'a> {
     pub context: Context,
     /// The functions a call may name.
     pub functions: &'a [Function],
+    /// The enums a variant may belong to.
+    pub enums: &'a [Enum],
     /// The indices quantifiers range over here, each a `number`.
     pub indices: &'a [String],
 }
@@ -40,18 +42,6 @@ pub(super) fn camel(name: &str) -> String {
         }
     }
     out
-}
-
-/// A variant's `PascalCase` name as its `snake_case` string value.
-pub(super) fn value(variant: &str) -> String {
-    let mut out = String::new();
-    for (index, c) in variant.chars().enumerate() {
-        if c.is_uppercase() && index > 0 {
-            out.push('_');
-        }
-        out.extend(c.to_lowercase());
-    }
-    format!("\"{out}\"")
 }
 
 /// A text as a TypeScript string literal.
@@ -127,7 +117,10 @@ impl Scope<'_> {
                 (Context::Spec, Some(Type::Int(_))) => format!("BigInt({})", camel(name)),
                 _ => camel(name),
             },
-            Expr::Variant(_, variant, _) => value(variant),
+            Expr::Variant(owner, variant, _) => {
+                let e = self.enums.iter().find(|e| e.name == *owner);
+                string(&e.expect("`check` resolves every variant").text(variant))
+            }
             Expr::Not(inner) => format!("!{}", self.wrapped(inner, None)),
             Expr::Neg(inner, site) => format!("-{}", self.wrapped(inner, site.width)),
             Expr::Arith(arith, left, right, site) => {
@@ -211,14 +204,12 @@ impl Scope<'_> {
 
 #[cfg(test)]
 mod tests {
-    use super::{camel, value};
+    use super::camel;
 
     #[test]
     fn names_follow_typescript_conventions() {
         assert_eq!(camel("timed_out"), "timedOut");
         assert_eq!(camel("proof_outcome"), "proofOutcome");
         assert_eq!(camel("n"), "n");
-        assert_eq!(value("TimedOut"), "\"timed_out\"");
-        assert_eq!(value("Red"), "\"red\"");
     }
 }

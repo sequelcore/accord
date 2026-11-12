@@ -1,0 +1,1042 @@
+{
+ "cases/branch-guard-fault.accord": {
+  "median_s": 0.149,
+  "times_s": [
+   0.149,
+   0.139,
+   0.158
+  ],
+  "obligations": 2,
+  "outcomes": {
+   "proved": 1,
+   "refuted": 1
+  }
+ },
+ "cases/branch-guard.accord": {
+  "median_s": 0.609,
+  "times_s": [
+   0.596,
+   0.609,
+   0.647
+  ],
+  "obligations": 2,
+  "outcomes": {
+   "proved": 2
+  }
+ },
+ "cases/cedar-partial-decision-forbid-fault.accord": {
+  "median_s": 0.483,
+  "times_s": [
+   0.483,
+   0.474,
+   0.488
+  ],
+  "obligations": 12,
+  "outcomes": {
+   "proved": 10,
+   "refuted": 2
+  }
+ },
+ "cases/cedar-partial-decision-residual-forbid-fault.accord": {
+  "median_s": 0.488,
+  "times_s": [
+   0.464,
+   0.488,
+   0.489
+  ],
+  "obligations": 12,
+  "outcomes": {
+   "proved": 10,
+   "refuted": 2
+  }
+ },
+ "cases/cedar-partial-decision-residual-permit-fault.accord": {
+  "median_s": 0.488,
+  "times_s": [
+   0.488,
+   0.462,
+   0.493
+  ],
+  "obligations": 12,
+  "outcomes": {
+   "proved": 10,
+   "refuted": 2
+  }
+ },
+ "cases/choice-fault.accord": {
+  "median_s": 0.143,
+  "times_s": [
+   0.156,
+   0.143,
+   0.141
+  ],
+  "obligations": 2,
+  "outcomes": {
+   "proved": 1,
+   "refuted": 1
+  }
+ },
+ "cases/choice.accord": {
+  "median_s": 0.182,
+  "times_s": [
+   0.182,
+   0.169,
+   0.2
+  ],
+  "obligations": 2,
+  "outcomes": {
+   "proved": 2
+  }
+ },
+ "cases/decide-arith-fault.accord": {
+  "median_s": 0.246,
+  "times_s": [
+   0.201,
+   0.246,
+   0.292
+  ],
+  "obligations": 4,
+  "outcomes": {
+   "proved": 3,
+   "refuted": 1
+  }
+ },
+ "cases/decide-arith.accord": {
+  "median_s": 0.234,
+  "times_s": [
+   0.254,
+   0.231,
+   0.234
+  ],
+  "obligations": 4,
+  "outcomes": {
+   "proved": 4
+  }
+ },
+ "cases/decide-fault.accord": {
+  "median_s": 0.27,
+  "times_s": [
+   0.27,
+   0.278,
+   0.249
+  ],
+  "obligations": 4,
+  "outcomes": {
+   "proved": 3,
+   "refuted": 1
+  }
+ },
+ "cases/decide-otherwise-fault.accord": {
+  "median_s": 0.208,
+  "times_s": [
+   0.218,
+   0.208,
+   0.201
+  ],
+  "obligations": 4,
+  "outcomes": {
+   "proved": 3,
+   "refuted": 1
+  }
+ },
+ "cases/decide-otherwise.accord": {
+  "median_s": 0.175,
+  "times_s": [
+   0.16,
+   0.175,
+   0.194
+  ],
+  "obligations": 3,
+  "outcomes": {
+   "proved": 3
+  }
+ },
+ "cases/decide-shadowed-fault.accord": {
+  "median_s": 0.203,
+  "times_s": [
+   0.223,
+   0.203,
+   0.173
+  ],
+  "obligations": 4,
+  "outcomes": {
+   "proved": 3,
+   "refuted": 1
+  }
+ },
+ "cases/decide-shadowed.accord": {
+  "median_s": 0.175,
+  "times_s": [
+   0.184,
+   0.168,
+   0.175
+  ],
+  "obligations": 4,
+  "outcomes": {
+   "proved": 4
+  }
+ },
+ "cases/decide.accord": {
+  "median_s": 0.942,
+  "times_s": [
+   0.942,
+   1.03,
+   0.813
+  ],
+  "obligations": 5,
+  "outcomes": {
+   "proved": 5
+  }
+ },
+ "cases/enum-compare-fault.accord": {
+  "median_s": 0.114,
+  "times_s": [
+   0.112,
+   0.115,
+   0.114
+  ],
+  "obligations": 1,
+  "outcomes": {
+   "refuted": 1
+  }
+ },
+ "cases/enum-compare.accord": {
+  "median_s": 0.269,
+  "times_s": [
+   0.265,
+   0.339,
+   0.269
+  ],
+  "obligations": 1,
+  "outcomes": {
+   "proved": 1
+  }
+ },
+ "cases/example-decide-fault.accord": {
+  "median_s": 0.218,
+  "times_s": [
+   0.218,
+   0.208,
+   0.218
+  ],
+  "obligations": 4,
+  "outcomes": {
+   "proved": 3,
+   "refuted": 1
+  }
+ },
+ "cases/example-decide.accord": {
+  "median_s": 0.89,
+  "times_s": [
+   0.951,
+   0.89,
+   0.833
+  ],
+  "obligations": 5,
+  "outcomes": {
+   "proved": 5
+  }
+ },
+ "cases/example-fault.accord": {
+  "median_s": 0.255,
+  "times_s": [
+   0.255,
+   0.252,
+   0.293
+  ],
+  "obligations": 2,
+  "outcomes": {
+   "proved": 2
+  }
+ },
+ "cases/example-overflow-fault.accord": {
+  "median_s": 0.068,
+  "times_s": [
+   0.07,
+   0.067,
+   0.068
+  ],
+  "obligations": 1,
+  "outcomes": {
+   "refuted": 1
+  }
+ },
+ "cases/example-overflow.accord": {
+  "median_s": 0.085,
+  "times_s": [
+   0.085,
+   0.087,
+   0.084
+  ],
+  "obligations": 1,
+  "outcomes": {
+   "refuted": 1
+  }
+ },
+ "cases/example-requires-fault.accord": {
+  "median_s": 0.319,
+  "times_s": [
+   0.319,
+   0.303,
+   0.331
+  ],
+  "obligations": 1,
+  "outcomes": {
+   "proved": 1
+  }
+ },
+ "cases/example-requires.accord": {
+  "median_s": 0.322,
+  "times_s": [
+   0.322,
+   0.313,
+   0.344
+  ],
+  "obligations": 1,
+  "outcomes": {
+   "proved": 1
+  }
+ },
+ "cases/example.accord": {
+  "median_s": 0.273,
+  "times_s": [
+   0.261,
+   0.282,
+   0.273
+  ],
+  "obligations": 2,
+  "outcomes": {
+   "proved": 2
+  }
+ },
+ "cases/identity-fault.accord": {
+  "median_s": 0.107,
+  "times_s": [
+   0.113,
+   0.104,
+   0.107
+  ],
+  "obligations": 1,
+  "outcomes": {
+   "refuted": 1
+  }
+ },
+ "cases/identity.accord": {
+  "median_s": 0.112,
+  "times_s": [
+   0.107,
+   0.112,
+   0.112
+  ],
+  "obligations": 1,
+  "outcomes": {
+   "proved": 1
+  }
+ },
+ "cases/int-compare-fault.accord": {
+  "median_s": 0.18,
+  "times_s": [
+   0.188,
+   0.18,
+   0.17
+  ],
+  "obligations": 1,
+  "outcomes": {
+   "refuted": 1
+  }
+ },
+ "cases/int-compare.accord": {
+  "median_s": 0.608,
+  "times_s": [
+   0.672,
+   0.608,
+   0.598
+  ],
+  "obligations": 1,
+  "outcomes": {
+   "proved": 1
+  }
+ },
+ "cases/intent.accord": {
+  "median_s": 0.169,
+  "times_s": [
+   0.168,
+   0.169,
+   0.176
+  ],
+  "obligations": 2,
+  "outcomes": {
+   "proved": 2
+  }
+ },
+ "cases/list-enum.accord": {
+  "median_s": 0.143,
+  "times_s": [
+   0.149,
+   0.137,
+   0.143
+  ],
+  "obligations": 1,
+  "outcomes": {
+   "proved": 1
+  }
+ },
+ "cases/list-equal.accord": {
+  "median_s": 0.146,
+  "times_s": [
+   0.135,
+   0.146,
+   0.147
+  ],
+  "obligations": 1,
+  "outcomes": {
+   "proved": 1
+  }
+ },
+ "cases/list-in-fault.accord": {
+  "median_s": 0.1,
+  "times_s": [
+   0.1,
+   0.101,
+   0.1
+  ],
+  "obligations": 1,
+  "outcomes": {
+   "refuted": 1
+  }
+ },
+ "cases/list-in.accord": {
+  "median_s": 0.135,
+  "times_s": [
+   0.132,
+   0.135,
+   0.15
+  ],
+  "obligations": 1,
+  "outcomes": {
+   "proved": 1
+  }
+ },
+ "cases/list-readers-fault.accord": {
+  "median_s": 0.163,
+  "times_s": [
+   0.163,
+   0.163,
+   0.158
+  ],
+  "obligations": 2,
+  "outcomes": {
+   "proved": 1,
+   "refuted": 1
+  }
+ },
+ "cases/list-readers.accord": {
+  "median_s": 0.195,
+  "times_s": [
+   0.183,
+   0.195,
+   0.216
+  ],
+  "obligations": 2,
+  "outcomes": {
+   "proved": 2
+  }
+ },
+ "cases/multiply-fault.accord": {
+  "median_s": 0.185,
+  "times_s": [
+   0.158,
+   0.185,
+   0.186
+  ],
+  "obligations": 2,
+  "outcomes": {
+   "proved": 1,
+   "refuted": 1
+  }
+ },
+ "cases/multiply.accord": {
+  "median_s": 0.258,
+  "times_s": [
+   0.268,
+   0.258,
+   0.253
+  ],
+  "obligations": 2,
+  "outcomes": {
+   "proved": 2
+  }
+ },
+ "cases/mutation-passed-fault.accord": {
+  "median_s": 0.727,
+  "times_s": [
+   0.727,
+   0.753,
+   0.609
+  ],
+  "obligations": 12,
+  "outcomes": {
+   "proved": 10,
+   "refuted": 2
+  }
+ },
+ "cases/mutation-vacuous-fault.accord": {
+  "median_s": 0.922,
+  "times_s": [
+   0.923,
+   0.896,
+   0.922
+  ],
+  "obligations": 12,
+  "outcomes": {
+   "proved": 11,
+   "refuted": 1
+  }
+ },
+ "cases/mutation.accord": {
+  "median_s": 0.949,
+  "times_s": [
+   0.969,
+   0.947,
+   0.949
+  ],
+  "obligations": 12,
+  "outcomes": {
+   "proved": 12
+  }
+ },
+ "cases/negate-fault.accord": {
+  "median_s": 0.134,
+  "times_s": [
+   0.131,
+   0.134,
+   0.137
+  ],
+  "obligations": 2,
+  "outcomes": {
+   "proved": 1,
+   "refuted": 1
+  }
+ },
+ "cases/negate.accord": {
+  "median_s": 0.139,
+  "times_s": [
+   0.139,
+   0.133,
+   0.143
+  ],
+  "obligations": 2,
+  "outcomes": {
+   "proved": 2
+  }
+ },
+ "cases/open-determined.accord": {
+  "median_s": 0.267,
+  "times_s": [
+   0.304,
+   0.266,
+   0.267
+  ],
+  "obligations": 2,
+  "outcomes": {
+   "proved": 2
+  }
+ },
+ "cases/open-implies.accord": {
+  "median_s": 0.596,
+  "times_s": [
+   0.596,
+   0.603,
+   0.589
+  ],
+  "obligations": 1,
+  "outcomes": {
+   "proved": 1
+  }
+ },
+ "cases/open-mixed.accord": {
+  "median_s": 0.169,
+  "times_s": [
+   0.169,
+   0.165,
+   0.17
+  ],
+  "obligations": 2,
+  "outcomes": {
+   "proved": 2
+  }
+ },
+ "cases/open-table.accord": {
+  "median_s": 0.8,
+  "times_s": [
+   0.8,
+   0.804,
+   0.793
+  ],
+  "obligations": 5,
+  "outcomes": {
+   "proved": 5
+  }
+ },
+ "cases/open-when-partial.accord": {
+  "median_s": 0.641,
+  "times_s": [
+   0.63,
+   0.641,
+   0.643
+  ],
+  "obligations": 1,
+  "outcomes": {
+   "proved": 1
+  }
+ },
+ "cases/open-when-several.accord": {
+  "median_s": 0.57,
+  "times_s": [
+   0.582,
+   0.569,
+   0.57
+  ],
+  "obligations": 1,
+  "outcomes": {
+   "proved": 1
+  }
+ },
+ "cases/open-when.accord": {
+  "median_s": 0.573,
+  "times_s": [
+   0.573,
+   0.578,
+   0.565
+  ],
+  "obligations": 1,
+  "outcomes": {
+   "proved": 1
+  }
+ },
+ "cases/overflow-fault.accord": {
+  "median_s": 0.132,
+  "times_s": [
+   0.132,
+   0.13,
+   0.133
+  ],
+  "obligations": 2,
+  "outcomes": {
+   "proved": 1,
+   "refuted": 1
+  }
+ },
+ "cases/overflow.accord": {
+  "median_s": 0.132,
+  "times_s": [
+   0.129,
+   0.14,
+   0.132
+  ],
+  "obligations": 2,
+  "outcomes": {
+   "proved": 2
+  }
+ },
+ "cases/proof-outcome-drop-row-fault.accord": {
+  "median_s": 0.588,
+  "times_s": [
+   0.588,
+   0.604,
+   0.578
+  ],
+  "obligations": 15,
+  "outcomes": {
+   "proved": 11,
+   "refuted": 4
+  }
+ },
+ "cases/proof-outcome-example-fault.accord": {
+  "median_s": 2.551,
+  "times_s": [
+   2.557,
+   2.551,
+   2.525
+  ],
+  "obligations": 16,
+  "outcomes": {
+   "proved": 16
+  }
+ },
+ "cases/proof-outcome-off-by-one-fault.accord": {
+  "median_s": 0.638,
+  "times_s": [
+   0.638,
+   0.625,
+   0.647
+  ],
+  "obligations": 16,
+  "outcomes": {
+   "proved": 13,
+   "refuted": 3
+  }
+ },
+ "cases/proof-outcome-order-fault.accord": {
+  "median_s": 0.654,
+  "times_s": [
+   0.654,
+   0.618,
+   0.712
+  ],
+  "obligations": 16,
+  "outcomes": {
+   "proved": 15,
+   "refuted": 1
+  }
+ },
+ "cases/proof-outcome-requires-fault.accord": {
+  "median_s": 0.678,
+  "times_s": [
+   0.704,
+   0.678,
+   0.668
+  ],
+  "obligations": 16,
+  "outcomes": {
+   "proved": 15,
+   "refuted": 1
+  }
+ },
+ "cases/proof-outcome-shadowed-row-fault.accord": {
+  "median_s": 0.659,
+  "times_s": [
+   0.643,
+   0.675,
+   0.659
+  ],
+  "obligations": 17,
+  "outcomes": {
+   "proved": 16,
+   "refuted": 1
+  }
+ },
+ "cases/proof-outcome-wrong-result-fault.accord": {
+  "median_s": 0.658,
+  "times_s": [
+   0.673,
+   0.636,
+   0.658
+  ],
+  "obligations": 16,
+  "outcomes": {
+   "proved": 14,
+   "refuted": 2
+  }
+ },
+ "cases/proof-outcome.accord": {
+  "median_s": 2.589,
+  "times_s": [
+   2.585,
+   2.589,
+   2.853
+  ],
+  "obligations": 16,
+  "outcomes": {
+   "proved": 16
+  }
+ },
+ "cases/qualified-variant.accord": {
+  "median_s": 0.155,
+  "times_s": [
+   0.172,
+   0.155,
+   0.148
+  ],
+  "obligations": 1,
+  "outcomes": {
+   "proved": 1
+  }
+ },
+ "cases/requires-fault.accord": {
+  "median_s": 0.124,
+  "times_s": [
+   0.124,
+   0.117,
+   0.131
+  ],
+  "obligations": 1,
+  "outcomes": {
+   "refuted": 1
+  }
+ },
+ "cases/requires.accord": {
+  "median_s": 0.152,
+  "times_s": [
+   0.158,
+   0.146,
+   0.152
+  ],
+  "obligations": 1,
+  "outcomes": {
+   "proved": 1
+  }
+ },
+ "cases/shared-variant.accord": {
+  "median_s": 0.144,
+  "times_s": [
+   0.149,
+   0.137,
+   0.144
+  ],
+  "obligations": 1,
+  "outcomes": {
+   "proved": 1
+  }
+ },
+ "cases/spec-mathematical-fault.accord": {
+  "median_s": 0.134,
+  "times_s": [
+   0.132,
+   0.137,
+   0.134
+  ],
+  "obligations": 2,
+  "outcomes": {
+   "proved": 1,
+   "refuted": 1
+  }
+ },
+ "cases/spec-mathematical.accord": {
+  "median_s": 0.319,
+  "times_s": [
+   0.319,
+   0.305,
+   0.342
+  ],
+  "obligations": 2,
+  "outcomes": {
+   "proved": 2
+  }
+ },
+ "cases/text-accented-fault.accord": {
+  "median_s": 0.116,
+  "times_s": [
+   0.116,
+   0.123,
+   0.109
+  ],
+  "obligations": 1,
+  "outcomes": {
+   "refuted": 1
+  }
+ },
+ "cases/text-accented.accord": {
+  "median_s": 0.146,
+  "times_s": [
+   0.146,
+   0.159,
+   0.139
+  ],
+  "obligations": 1,
+  "outcomes": {
+   "proved": 1
+  }
+ },
+ "cases/text-backslash.accord": {
+  "median_s": 0.203,
+  "times_s": [
+   0.203,
+   0.219,
+   0.183
+  ],
+  "obligations": 2,
+  "outcomes": {
+   "proved": 2
+  }
+ },
+ "cases/text-compare-fault.accord": {
+  "median_s": 0.111,
+  "times_s": [
+   0.111,
+   0.111,
+   0.12
+  ],
+  "obligations": 1,
+  "outcomes": {
+   "refuted": 1
+  }
+ },
+ "cases/text-compare.accord": {
+  "median_s": 0.239,
+  "times_s": [
+   0.215,
+   0.246,
+   0.239
+  ],
+  "obligations": 1,
+  "outcomes": {
+   "proved": 1
+  }
+ },
+ "cases/weakening-command-fault.accord": {
+  "median_s": 1.111,
+  "times_s": [
+   1.192,
+   1.111,
+   1.017
+  ],
+  "obligations": 8,
+  "outcomes": {
+   "proved": 7,
+   "refuted": 1
+  }
+ },
+ "cases/weakening-existed-fault.accord": {
+  "median_s": 0.463,
+  "times_s": [
+   0.439,
+   0.463,
+   0.474
+  ],
+  "obligations": 8,
+  "outcomes": {
+   "proved": 7,
+   "refuted": 1
+  }
+ },
+ "cases/weakening-matched-fault.accord": {
+  "median_s": 0.416,
+  "times_s": [
+   0.411,
+   0.416,
+   0.418
+  ],
+  "obligations": 7,
+  "outcomes": {
+   "proved": 6,
+   "refuted": 1
+  }
+ },
+ "cases/weakening.accord": {
+  "median_s": 0.971,
+  "times_s": [
+   0.971,
+   1.005,
+   0.963
+  ],
+  "obligations": 8,
+  "outcomes": {
+   "proved": 8
+  }
+ },
+ "programs/axios-retry": {
+  "median_s": 2.531,
+  "times_s": [
+   2.538,
+   2.531,
+   2.355
+  ],
+  "obligations": 6,
+  "outcomes": {
+   "proved": 6
+  }
+ },
+ "programs/axios-retry-status-fault": {
+  "median_s": 1.709,
+  "times_s": [
+   1.842,
+   1.709,
+   1.631
+  ],
+  "obligations": 6,
+  "outcomes": {
+   "proved": 5,
+   "refuted": 1
+  }
+ },
+ "programs/cedar": {
+  "median_s": 1.513,
+  "times_s": [
+   1.533,
+   1.513,
+   1.397
+  ],
+  "obligations": 12,
+  "outcomes": {
+   "proved": 12
+  }
+ },
+ "programs/duplicate-name": "rejected",
+ "programs/shared-enum": {
+  "median_s": 0.921,
+  "times_s": [
+   0.921,
+   0.93,
+   0.909
+  ],
+  "obligations": 6,
+  "outcomes": {
+   "proved": 6
+  }
+ },
+ "programs/tesota": {
+  "median_s": 7.263,
+  "times_s": [
+   7.265,
+   7.262,
+   7.263
+  ],
+  "obligations": 61,
+  "outcomes": {
+   "proved": 61
+  }
+ },
+ "programs/tesota-gate-keeps-working-fault": {
+  "median_s": 3.763,
+  "times_s": [
+   3.731,
+   3.763,
+   4.208
+  ],
+  "obligations": 33,
+  "outcomes": {
+   "proved": 31,
+   "refuted": 2
+  }
+ },
+ "programs/tesota-gate-preexisting-fault": {
+  "median_s": 2.496,
+  "times_s": [
+   2.55,
+   2.496,
+   2.431
+  ],
+  "obligations": 32,
+  "outcomes": {
+   "proved": 29,
+   "refuted": 3
+  }
+ },
+ "programs/tesota-gate-reader-fault": {
+  "median_s": 3.787,
+  "times_s": [
+   3.937,
+   3.787,
+   3.668
+  ],
+  "obligations": 33,
+  "outcomes": {
+   "proved": 32,
+   "refuted": 1
+  }
+ },
+ "programs/tesota-gate-send-back-fault": {
+  "median_s": 2.829,
+  "times_s": [
+   3.257,
+   2.829,
+   2.799
+  ],
+  "obligations": 33,
+  "outcomes": {
+   "proved": 29,
+   "refuted": 4
+  }
+ }
+}

@@ -1,0 +1,79 @@
+// expect: refuted, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, passed, failed, passed, failed, passed, passed, passed, passed
+// Cedar's policy-set evaluation from conformance/programs/cedar, with a
+// planted fault: a policy whose evaluation failed counts as satisfied.
+// Copyright Cedar Contributors
+// SPDX-License-Identifier: Apache-2.0
+// Port of a policy set's evaluation, modified from Cedar at
+// 5af7b8cd78e4e0da3ae23f1715023fff8e62941d:
+// https://github.com/cedar-policy/cedar/blob/5af7b8cd78e4e0da3ae23f1715023fff8e62941d/cedar-policy-core/src/authorizer.rs
+// https://github.com/cedar-policy/cedar/blob/5af7b8cd78e4e0da3ae23f1715023fff8e62941d/cedar-policy-core/src/authorizer/partial_response.rs
+// Authorizer::is_authorized_core_internal sorts each policy by its effect and
+// by what evaluating it gave; a policy whose evaluation fails is skipped, as
+// ErrorHandling::Skip does. Each policy here is its effect and that result,
+// one entry per policy in two lists, since Accord has no records yet;
+// evaluating a policy's conditions is not ported. A residual is a condition
+// over unknowns. Licensed under Apache-2.0; see LICENSE-APACHE at the
+// repository root.
+
+/// A policy's effect.
+pub enum Effect { Permit, Forbid }
+
+/// What evaluating one policy against a request gave.
+pub enum Evaluation { Satisfied, NotSatisfied, Residual, Error }
+
+/// A concrete authorization decision.
+pub enum Decision { Allow, Deny }
+
+/// Whether some policy with `effect` evaluated to `evaluation`: whether that
+/// collection of a PartialResponse is nonempty.
+fn some_policy(effects: List<Effect>, evaluations: List<Evaluation>, effect: Effect, evaluation: Evaluation) -> Bool
+    intent "Some policy with this effect evaluated to this result."
+    requires length(evaluations) == length(effects)
+    ensures result == (any k in indices(effects): effects[k] == effect and evaluations[k] == evaluation)
+{
+    any k in indices(effects): effects[k] == effect and (evaluations[k] == evaluation or evaluations[k] == Error)
+}
+
+/// The decision of a partial evaluation (PartialResponse::decision): unknown
+/// while a residual could still change it. Without residuals it allows
+/// exactly when is_authorized does.
+pub fn partial_authorization(effects: List<Effect>, evaluations: List<Evaluation>) -> PartialDecision
+    intent "Deny on a satisfied forbid or with no permit that can hold; allow on a satisfied permit with no forbid that can hold; otherwise unknown."
+    requires length(evaluations) == length(effects)
+    ensures (result == Deny) == ((any k in indices(effects): effects[k] == Forbid and evaluations[k] == Satisfied) or not ((any k in indices(effects): effects[k] == Permit and evaluations[k] == Satisfied) or (any k in indices(effects): effects[k] == Permit and evaluations[k] == Residual)))
+    ensures (result == Allow) == (not (any k in indices(effects): effects[k] == Forbid and evaluations[k] == Satisfied) and (any k in indices(effects): effects[k] == Permit and evaluations[k] == Satisfied) and not (any k in indices(effects): effects[k] == Forbid and evaluations[k] == Residual))
+    ensures (all k in indices(effects): evaluations[k] != Residual) implies (result == Allow) == ((any k in indices(effects): effects[k] == Permit and evaluations[k] == Satisfied) and not (any k in indices(effects): effects[k] == Forbid and evaluations[k] == Satisfied))
+{
+    partial_decision(
+        satisfied_forbid: some_policy(effects: effects, evaluations: evaluations, effect: Forbid, evaluation: Satisfied),
+        satisfied_permit: some_policy(effects: effects, evaluations: evaluations, effect: Permit, evaluation: Satisfied),
+        residual_permit: some_policy(effects: effects, evaluations: evaluations, effect: Permit, evaluation: Residual),
+        residual_forbid: some_policy(effects: effects, evaluations: evaluations, effect: Forbid, evaluation: Residual),
+    )
+}
+
+/// The decision of a concrete evaluation (Response from PartialResponse),
+/// with every residual counted as an error: allowed only when a permit is
+/// satisfied and no forbid is.
+pub fn is_authorized(effects: List<Effect>, evaluations: List<Evaluation>) -> Decision
+    intent "Allow only when some permit is satisfied and no forbid is; deny by default, and skip a policy whose evaluation failed."
+    requires length(evaluations) == length(effects)
+    ensures (result == Allow) == ((any k in indices(effects): effects[k] == Permit and evaluations[k] == Satisfied) and not (any k in indices(effects): effects[k] == Forbid and evaluations[k] == Satisfied))
+    ensures (all k in indices(effects): effects[k] == Permit) implies (result == Allow) == (any k in indices(effects): evaluations[k] == Satisfied)
+{
+    if some_policy(effects: effects, evaluations: evaluations, effect: Permit, evaluation: Satisfied)
+        and not some_policy(effects: effects, evaluations: evaluations, effect: Forbid, evaluation: Satisfied) {
+        Allow
+    } else {
+        Deny
+    }
+}
+
+example is_authorized(effects: [], evaluations: []) == Deny
+example is_authorized(effects: [Permit, Forbid], evaluations: [Satisfied, Error]) == Allow
+example is_authorized(effects: [Permit, Forbid], evaluations: [Satisfied, Satisfied]) == Deny
+example is_authorized(effects: [Permit, Permit], evaluations: [Error, Residual]) == Deny
+example partial_authorization(effects: [Permit, Forbid], evaluations: [Satisfied, Residual]) == Unknown
+example partial_authorization(effects: [Permit, Forbid], evaluations: [Satisfied, NotSatisfied]) == Allow
+example partial_authorization(effects: [Permit], evaluations: [Residual]) == Unknown
+example partial_authorization(effects: [Forbid], evaluations: [Residual]) == Deny

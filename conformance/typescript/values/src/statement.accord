@@ -1,0 +1,11 @@
+/// A run's end, as a log spells it: some variants carry a written value.
+pub enum Statement { Cancelled = "CANCELLED", Completed = "COMPLETED", Failed = "FAILED", None }
+
+pub fn statement(stopped: Bool, standing: Statement) -> Statement
+    ensures stopped implies result == Cancelled
+    ensures not stopped implies result == standing
+{
+    if stopped { Cancelled } else { standing }
+}
+
+example statement(stopped: false, standing: Failed) == Failed

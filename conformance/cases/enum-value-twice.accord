@@ -1,0 +1,9 @@
+// expect: error
+// `Done`'s written value is the one `Failed` gets by default.
+enum Ending { Done = "failed", Failed }
+
+fn ended(ending: Ending) -> Bool
+    ensures result
+{
+    true
+}
