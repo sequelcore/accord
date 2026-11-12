@@ -22,8 +22,9 @@ Taken on 2026-11-12:
   time. Each target is an outside project with its own tests and a license
   that allows porting, checked on 2026-11-12; how much of each test suite
   can run against the port is checked in that stage's issue, before its
-  code. The public phase moves after stage 12, the first stage at which
-  Accord writes complete programs.
+  code. The public phase moves after stage 14, when Accord writes complete
+  programs, compiles them natively and has a measurement against Rust to
+  show.
 
 - **Stage 9's semantics, before its code** ([#69](https://github.com/sequelcore/accord/issues/69)).
   A call is proved through the callee's contract, and a caller's proofs bind
@@ -96,11 +97,11 @@ Taken on 2026-11-07:
 | 14. Native code | A native backend (LLVM), and validation of its output before it relies on a proof | Stage 12's `wc` compiled natively; uutils' tests pass, and a published measurement against uutils' Rust `wc`, with the same algorithm and each side's safety checks stated | |
 | 15. Tools | A language server, a formatter, packages | Stages 11 to 14's programs maintained with them, without knowledge of the compiler | |
 
-**Public phase**, after stage 12: what needs people outside the project.
+**Public phase**, after stage 14: what needs people outside the project.
 Stage 7's readability check runs first, then E2 and E4 run, a first public
 alpha is published, and the project opens a place for public discussion.
-Stages 13 to 15 follow in public. Agent experiments (E3's full run, E1 on
-larger contracts) run when capacity allows, each recording the compiler
+Stage 15 follows in public. Agent experiments (E3's full run, E1 on larger
+contracts) run when capacity allows, each recording the compiler
 revision it used.
 
 Later, each when a stage needs it: escape routes to Lean and Dafny for what
