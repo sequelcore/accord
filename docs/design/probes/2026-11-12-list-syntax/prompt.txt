@@ -1,0 +1,13 @@
+Below is code in a programming language you have probably never seen. Don't search the web or look anything up; answer only from reading it.
+
+{code}
+
+1. What does decisions([Decide, Gap, Decide]) return?
+2. What does partly_holds([Holds, Opinion]) return?
+3. What does all_covered(proved: [true, false], tested: [false, true], exercised: [false, false]) return?
+4. What does all_covered(proved: [], tested: [], exercised: []) return?
+5. In all_covered, what is k, and which values does it take?
+6. How confident are you in your answers, from 1 (a guess) to 5 (certain)?
+7. Which part was hardest to read, and why?
+
+Answer each question separately and briefly.

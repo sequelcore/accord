@@ -1,7 +1,8 @@
 # Encoding lists for quantifiers: solver answers, 2026-11-12
 
-**Status:** one run of small hand-written obligations on one machine. It
-informs stage 9's encoding of lists ([#69](https://github.com/sequelcore/accord/issues/69));
+**Status:** two runs of small hand-written obligations on one machine, the
+second after calls between functions existed. They inform stage 9's encoding
+of lists ([#69](https://github.com/sequelcore/accord/issues/69));
 it doesn't measure the obligations Accord will generate.
 
 ## Question
@@ -27,6 +28,9 @@ and `Text` (`String`):
 | `array-*` | The prove and refute cases, with a list as an array and a separate length |
 | `count-recursive-*` | `count` defined recursively: its bounds and its zero case, and a false bound |
 | `count-axioms-prove` | `decisions`' contract from `count`'s axioms. It only shows that the axioms suffice, which is immediate |
+| `call-in-all-*` | Second run. `runStanding`'s covered-paths clause, with `all k` calling `path_covered` at each index: proved, refuted by a false clause, and refuted where `path_covered`'s contract is too weak. `-global` states the callee's contract once, for every application; `-site` states it at the call, under the same `k` |
+| `seq-Standing-any-prove` | Second run. `partlyHolds`' shape: some standing is `Decide` or `Gap`, as `exists`, equals not every one being neither |
+| `index-in-range-prove` | Second run. An index bounded by its guard is in range, as an indexing obligation needs |
 
 Accord's whole test suite also ran three times at `202fef0`: with the pinned
 solvers; with cvc5 through a wrapper script that adds `--mbqi`; and through
@@ -34,7 +38,7 @@ the same wrapper without it, to separate the cost of the wrapper.
 
 ## Identity
 
-Accord at `202fef0`. Z3 5.3.3 and cvc5 1.4.2 from
+Accord at `202fef0` for the first run and `a11e27a` for the second. Z3 5.3.3 and cvc5 1.4.2 from
 `scripts/install-solvers.sh`. Windows 11 Pro, a developer machine whose
 background load wasn't controlled.
 
@@ -52,6 +56,11 @@ background load wasn't controlled.
 | `count-recursive-prove` | timeout | timeout | timeout |
 | `count-recursive-refute` | sat | unknown | timeout |
 | `count-axioms-prove` | unsat | unsat | unsat |
+| `call-in-all-prove-{global,site}` | unsat | unsat | unsat |
+| `call-in-all-refute-{global,site}` | sat | unknown | sat |
+| `call-in-all-weak-{global,site}` | sat | unknown | sat |
+| `seq-Standing-any-prove` | unsat | unsat | unsat |
+| `index-in-range-prove` | unsat | unsat | unsat |
 
 The test suite passed in all three runs, every outcome unchanged: 57 s with
 the pinned solvers, 84 s through the wrapper without `--mbqi`, 86 s with it.
@@ -69,6 +78,10 @@ The wrapper, not `--mbqi`, accounts for the difference.
   encoding isn't, for the enum.
 - **`count` needs axioms.** Neither solver decides the recursive definition's
   bounds, which need induction.
+- **A call under a quantifier is decided** in both encodings of the
+  callee's contract, and refuted with `--mbqi`, as above. Where the
+  contract is too weak, the solvers' input rests on the callee's value at
+  each index, which a model doesn't list; replaying it needs those values.
 - **`seq.len` over `Seq String`** was decided in these cases, unlike the case
   [#58](https://github.com/sequelcore/accord/issues/58) records. That case is
   still unexplained.

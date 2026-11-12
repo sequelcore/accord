@@ -1,0 +1,6 @@
+(set-logic ALL)
+(declare-const s (Seq Bool))
+(declare-const k Int)
+(assert (and (<= 0 k) (< k (seq.len s))))
+(assert (not (and (<= 0 k) (< k (seq.len s)))))
+(check-sat)

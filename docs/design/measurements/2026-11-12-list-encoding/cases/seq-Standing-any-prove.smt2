@@ -1,0 +1,7 @@
+(set-logic ALL)
+(declare-datatype Standing ((Decide) (Gap) (Holds) (Opinion)))
+(declare-const s (Seq Standing))
+(define-fun body () Bool (exists ((k Int)) (and (<= 0 k) (< k (seq.len s)) (or (= (seq.nth s k) Decide) (= (seq.nth s k) Gap)))))
+(define-fun spec () Bool (not (forall ((j Int)) (=> (and (<= 0 j) (< j (seq.len s))) (and (not (= (seq.nth s j) Decide)) (not (= (seq.nth s j) Gap)))))))
+(assert (not (= body spec)))
+(check-sat)
