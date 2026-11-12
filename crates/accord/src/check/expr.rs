@@ -207,7 +207,7 @@ impl Scope<'_> {
                     Ok(a)
                 } else {
                     Err(Diagnostic::new(
-                        line_of(condition),
+                        condition.line(),
                         "both branches of `if` need the same type",
                     ))
                 }
@@ -224,10 +224,7 @@ impl Scope<'_> {
     pub(super) fn condition(&self, expr: &mut Expr) -> Result<(), Diagnostic> {
         match self.infer(expr, Some(&Type::Bool))? {
             Type::Bool => Ok(()),
-            _ => Err(Diagnostic::new(
-                line_of(expr),
-                "expected a `Bool` condition",
-            )),
+            _ => Err(Diagnostic::new(expr.line(), "expected a `Bool` condition")),
         }
     }
 
@@ -240,26 +237,7 @@ impl Scope<'_> {
         if self.infer(expr, Some(ty))? == *ty {
             Ok(())
         } else {
-            Err(Diagnostic::new(line_of(expr), message))
+            Err(Diagnostic::new(expr.line(), message))
         }
-    }
-}
-
-pub(super) fn line_of(expr: &Expr) -> usize {
-    match expr {
-        Expr::Name(_, line)
-        | Expr::Variant(_, _, line)
-        | Expr::Int(_, line)
-        | Expr::Text(_, line)
-        | Expr::List(_, _, line)
-        | Expr::Quantified(.., line)
-        | Expr::Length(_, line) => *line,
-        Expr::Arith(.., site)
-        | Expr::Neg(_, site)
-        | Expr::Call(.., site)
-        | Expr::Index(.., site) => site.line,
-        Expr::Not(inner) => line_of(inner),
-        Expr::Binary(_, left, _) | Expr::If(left, _, _) => line_of(left),
-        Expr::Bool(_) => 0,
     }
 }

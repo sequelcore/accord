@@ -1,6 +1,6 @@
 //! Binary operators: membership, comparisons and connectives.
 
-use super::expr::{Scope, line_of};
+use super::expr::Scope;
 use super::type_name;
 use crate::Diagnostic;
 use crate::syntax::{Expr, Op, Type};
@@ -14,8 +14,8 @@ impl Scope<'_> {
         right: &mut Expr,
     ) -> Result<Type, Diagnostic> {
         // A `true` or `false` carries no line; the other side does.
-        let line = match line_of(left) {
-            0 => line_of(right),
+        let line = match left.line() {
+            0 => right.line(),
             line => line,
         };
         match op {
