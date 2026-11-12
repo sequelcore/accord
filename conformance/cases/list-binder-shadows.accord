@@ -1,0 +1,6 @@
+// expect: error
+// A quantifier's name can't hide a parameter.
+fn all_set(flag: Bool, flags: List<Bool>) -> Bool
+{
+    all flag in flags: flag
+}

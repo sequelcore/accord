@@ -1,9 +1,9 @@
 // expect: proved, passed
-fn count(n: i64) -> Bool
+fn nonzero(n: i64) -> Bool
     requires n >= 0
     ensures result == (n > 0)
 {
     n != 0
 }
 
-example count(n: 3) == true
+example nonzero(n: 3) == true

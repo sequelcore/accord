@@ -5,6 +5,7 @@
 mod calls;
 mod example;
 mod expr;
+mod lists;
 mod operators;
 
 use calls::{Signature, check_recursion, ordered};
@@ -143,6 +144,8 @@ fn check_function(
             result: (clause.kind == ClauseKind::Ensures).then_some(&function.ret),
             spec: true,
             functions: None,
+            indexing: clause.kind == ClauseKind::Ensures,
+            bound: false,
         };
         if scope.infer(&mut clause.expr, Some(&Type::Bool))? != Type::Bool {
             return Err(Diagnostic::new(
@@ -157,6 +160,8 @@ fn check_function(
         result: None,
         spec: false,
         functions: Some(signatures),
+        indexing: true,
+        bound: false,
     };
     let message = "the body's type isn't the function's return type";
     match &mut function.body {

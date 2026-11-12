@@ -1,8 +1,11 @@
-//! The operations in code that carry obligations, arithmetic and calls,
-//! each with the conditions under which it runs.
+//! The operations that carry obligations, each with the conditions under
+//! which it is evaluated and the quantifiers around it: arithmetic, calls
+//! and indexing in code, and indexing in an `ensures`.
 
-use super::smt::{all, has_requires, requires_of, term};
-use crate::syntax::{Body, Expr, Function, Program};
+use super::calls::{has_requires, requires_of};
+use super::lists::{at_index, in_bounds, index_name};
+use super::smt::{all, term};
+use crate::syntax::{Body, Expr, Function, Op, Program};
 
 /// A condition that must have a given value for code to run; `None` is a
 /// row's `otherwise`, which always holds.
@@ -15,60 +18,161 @@ pub(super) fn guard_term(guard: &Guard) -> String {
     let c = guard.condition.map_or("true".to_string(), term);
     if guard.holds { c } else { format!("(not {c})") }
 }
-/// One arithmetic operation or call in code, with the conditions under which
-/// it runs.
+/// One operation, with the conditions under which it is evaluated and the
+/// quantifiers it is inside, outermost first.
+#[derive(Clone)]
 pub(super) struct Operation<'a> {
     pub(super) expr: &'a Expr,
     pub(super) guards: Vec<Guard<'a>>,
+    pub(super) bound: Vec<&'a Expr>,
 }
-/// Every arithmetic operation and call in `expr`, in the order they run:
-/// operands and arguments first. Only the branch of an `if` that runs is
+/// Whether an operation is an arithmetic operation, a call or an index.
+fn carries_obligation(expr: &Expr) -> bool {
+    matches!(
+        expr,
+        Expr::Arith(..) | Expr::Neg(..) | Expr::Call(..) | Expr::Index(..)
+    )
+}
+/// Every arithmetic operation, call and index in `expr`, in the order they
+/// run: operands and arguments first. Only the branch of an `if` that runs is
 /// guarded by its condition; both operands of `and` and `or` run, whatever
-/// the other's value.
-fn operations<'a>(expr: &'a Expr, guards: &[Guard<'a>], out: &mut Vec<Operation<'a>>) {
-    let push = |out: &mut Vec<Operation<'a>>| {
-        out.push(Operation {
-            expr,
-            guards: guards.to_vec(),
-        });
+/// the other's value, and a quantifier's condition runs for every element.
+fn operations<'a>(
+    expr: &'a Expr,
+    guards: &[Guard<'a>],
+    bound: &[&'a Expr],
+    out: &mut Vec<Operation<'a>>,
+) {
+    let each = |inner: &'a Expr, out: &mut Vec<Operation<'a>>| {
+        operations(inner, guards, bound, out);
     };
     match expr {
-        Expr::Arith(_, left, right, _) => {
-            operations(left, guards, out);
-            operations(right, guards, out);
-            push(out);
+        Expr::Arith(_, left, right, _)
+        | Expr::Binary(_, left, right)
+        | Expr::Index(left, right, _) => {
+            each(left, out);
+            each(right, out);
         }
-        Expr::Neg(inner, _) => {
-            operations(inner, guards, out);
-            push(out);
-        }
-        Expr::Call(_, args, _) => {
-            for (_, arg) in args {
-                operations(arg, guards, out);
-            }
-            push(out);
-        }
-        Expr::Not(inner) => operations(inner, guards, out),
-        Expr::Binary(_, left, right) => {
-            operations(left, guards, out);
-            operations(right, guards, out);
-        }
+        Expr::Neg(inner, _) | Expr::Not(inner) | Expr::Length(inner, _) => each(inner, out),
+        Expr::Call(_, args, _) => args.iter().for_each(|(_, arg)| each(arg, out)),
+        Expr::List(items, ..) => items.iter().for_each(|item| each(item, out)),
         Expr::If(condition, then, otherwise) => {
-            operations(condition, guards, out);
+            each(condition, out);
             let guard = |holds| Guard {
                 condition: Some(condition),
                 holds,
             };
-            operations(then, &[guards, &[guard(true)]].concat(), out);
-            operations(otherwise, &[guards, &[guard(false)]].concat(), out);
+            operations(then, &[guards, &[guard(true)]].concat(), bound, out);
+            operations(otherwise, &[guards, &[guard(false)]].concat(), bound, out);
         }
-        Expr::List(items, ..) => {
-            for item in items {
-                operations(item, guards, out);
-            }
+        Expr::Quantified(_, _, range, condition, _) => {
+            each(range.list(), out);
+            operations(condition, guards, &[bound, &[expr]].concat(), out);
         }
         Expr::Bool(_) | Expr::Int(..) | Expr::Text(..) | Expr::Name(..) | Expr::Variant(..) => {}
     }
+    if carries_obligation(expr) {
+        out.push(Operation {
+            expr,
+            guards: guards.to_vec(),
+            bound: bound.to_vec(),
+        });
+    }
+}
+/// Every index in a specification, with the conditions under which it is
+/// evaluated: the right of `implies` and `and` where the left holds, the
+/// right of `or` where it doesn't, the branch of an `if` that runs, and a
+/// quantifier's condition for each index in range.
+pub(super) fn spec_indexes<'a>(
+    expr: &'a Expr,
+    guards: &[Guard<'a>],
+    bound: &[&'a Expr],
+    out: &mut Vec<Operation<'a>>,
+) {
+    let after = |left: &'a Expr, holds| {
+        [
+            guards,
+            &[Guard {
+                condition: Some(left),
+                holds,
+            }],
+        ]
+        .concat()
+    };
+    match expr {
+        Expr::Binary(op @ (Op::Implies | Op::And | Op::Or), left, right) => {
+            spec_indexes(left, guards, bound, out);
+            spec_indexes(right, &after(left, *op != Op::Or), bound, out);
+        }
+        Expr::If(condition, then, otherwise) => {
+            spec_indexes(condition, guards, bound, out);
+            spec_indexes(then, &after(condition, true), bound, out);
+            spec_indexes(otherwise, &after(condition, false), bound, out);
+        }
+        Expr::Quantified(_, _, range, condition, _) => {
+            spec_indexes(range.list(), guards, bound, out);
+            spec_indexes(condition, guards, &[bound, &[expr]].concat(), out);
+        }
+        Expr::Arith(_, left, right, _)
+        | Expr::Binary(_, left, right)
+        | Expr::Index(left, right, _) => {
+            spec_indexes(left, guards, bound, out);
+            spec_indexes(right, guards, bound, out);
+        }
+        Expr::Neg(inner, _) | Expr::Not(inner) | Expr::Length(inner, _) => {
+            spec_indexes(inner, guards, bound, out);
+        }
+        Expr::List(items, ..) => items
+            .iter()
+            .for_each(|i| spec_indexes(i, guards, bound, out)),
+        Expr::Call(_, args, _) => args
+            .iter()
+            .for_each(|(_, a)| spec_indexes(a, guards, bound, out)),
+        Expr::Bool(_) | Expr::Int(..) | Expr::Text(..) | Expr::Name(..) | Expr::Variant(..) => {}
+    }
+    if matches!(expr, Expr::Index(..)) {
+        out.push(Operation {
+            expr,
+            guards: guards.to_vec(),
+            bound: bound.to_vec(),
+        });
+    }
+}
+/// The names of the indices `bound`'s quantifiers range over, outermost
+/// first, and `claim` for some value of each: every index in range, and an
+/// element's name standing for the element at its index.
+pub(super) fn for_some(bound: &[&Expr], claim: String) -> (Vec<String>, String) {
+    let mut names = Vec::new();
+    let mut out = claim;
+    for quantified in bound.iter().rev() {
+        let Expr::Quantified(_, name, range, ..) = quantified else {
+            continue;
+        };
+        let index = index_name(name, range);
+        out = format!(
+            "(and {} {})",
+            in_bounds(&term(range.list()), &index),
+            at_index(name, range, &out)
+        );
+        names.insert(0, index);
+    }
+    (names, out)
+}
+/// `claim` for every index of `bound`'s quantifiers in range.
+pub(super) fn for_every(bound: &[&Expr], claim: String) -> String {
+    let mut out = claim;
+    for quantified in bound.iter().rev() {
+        let Expr::Quantified(_, name, range, ..) = quantified else {
+            continue;
+        };
+        let index = index_name(name, range);
+        out = format!(
+            "(forall (({index} Int)) (=> {} {}))",
+            in_bounds(&term(range.list()), &index),
+            at_index(name, range, &out)
+        );
+    }
+    out
 }
 /// That where `op` runs, its callee's `requires` holds; `None` for an
 /// operation that isn't a call to a function with a `requires`.
@@ -77,14 +181,15 @@ pub(super) fn assumption(program: &Program, op: &Operation) -> Option<String> {
         return None;
     }
     let guards = all("and", op.guards.iter().map(guard_term).collect(), "true");
-    Some(format!("(=> {guards} {})", requires_of(program, op.expr)))
+    let holds = format!("(=> {guards} {})", requires_of(program, op.expr));
+    Some(for_every(&op.bound, holds))
 }
 /// Every operation in `function`'s body, in the order they run; a decision
 /// table's rows run in order, each only when no earlier row's condition holds.
 pub(super) fn body_operations(function: &Function) -> Vec<Operation<'_>> {
     let mut ops = Vec::new();
     match &function.body {
-        Body::Expr(body) => operations(body, &[], &mut ops),
+        Body::Expr(body) => operations(body, &[], &[], &mut ops),
         Body::Decide(rows, _) => {
             for (index, row) in rows.iter().enumerate() {
                 let mut reaches: Vec<Guard> = rows[..index]
@@ -95,24 +200,23 @@ pub(super) fn body_operations(function: &Function) -> Vec<Operation<'_>> {
                     })
                     .collect();
                 if let Some(c) = &row.condition {
-                    operations(c, &reaches, &mut ops);
+                    operations(c, &reaches, &[], &mut ops);
                 }
                 reaches.push(Guard {
                     condition: row.condition.as_ref(),
                     holds: true,
                 });
-                operations(&row.result, &reaches, &mut ops);
+                operations(&row.result, &reaches, &[], &mut ops);
             }
         }
     }
     ops
 }
 /// Every call in `function`'s body, in the order they run.
-pub(crate) fn calls_in<'a>(function: &'a Function, out: &mut Vec<&'a Expr>) {
+pub(super) fn calls_in<'a>(function: &'a Function, out: &mut Vec<Operation<'a>>) {
     out.extend(
         body_operations(function)
             .into_iter()
-            .map(|op| op.expr)
-            .filter(|e| matches!(e, Expr::Call(..))),
+            .filter(|op| matches!(op.expr, Expr::Call(..))),
     );
 }

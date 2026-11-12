@@ -26,6 +26,15 @@ pub(super) fn limits(report: &Report, d: &Definition) -> Vec<(&'static str, &'st
             "The parser, obligation generator, solvers, and interpreter are trusted, not proved correct here.",
         ),
     ];
+    if d.params
+        .iter()
+        .any(|(_, ty)| matches!(ty, crate::Type::List(_)))
+    {
+        out.push((
+            "list_assumptions",
+            "Every list is assumed to hold at most 4,294,967,295 elements, as a TypeScript array does, and `count` is known to the solvers only through trusted axioms: its bounds, when it is zero and when it is the length.",
+        ));
+    }
     let verdicts: Vec<_> = report
         .verdicts
         .iter()

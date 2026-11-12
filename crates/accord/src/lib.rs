@@ -120,6 +120,8 @@ pub enum ObligationKind {
     Overflow,
     /// A call meets its callee's `requires`.
     Precondition,
+    /// An index is within its list.
+    Bounds,
 }
 
 impl ObligationKind {
@@ -131,6 +133,7 @@ impl ObligationKind {
             Self::RowReachability => "row_reachability",
             Self::Overflow => "overflow",
             Self::Precondition => "precondition",
+            Self::Bounds => "bounds",
         }
     }
 }

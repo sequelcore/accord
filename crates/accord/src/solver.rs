@@ -113,9 +113,17 @@ impl Solvers {
             self.timeout,
             params,
         );
+        // Without model-based quantifier instantiation, cvc5 finds no input
+        // for a claim with a quantifier (docs/design/measurements).
         let cvc5 = run(
             &self.cvc5,
-            &["--lang", "smt2", &format!("--tlimit-per={ms}"), "-"],
+            &[
+                "--lang",
+                "smt2",
+                "--mbqi",
+                &format!("--tlimit-per={ms}"),
+                "-",
+            ],
             script,
             self.timeout,
             params,

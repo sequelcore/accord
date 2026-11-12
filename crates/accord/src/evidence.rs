@@ -99,6 +99,7 @@ pub(crate) fn report(
                     obligation::Claim::Reaches(_) => ObligationKind::RowReachability,
                     obligation::Claim::InRange { .. } => ObligationKind::Overflow,
                     obligation::Claim::Requires { .. } => ObligationKind::Precondition,
+                    obligation::Claim::InBounds { .. } => ObligationKind::Bounds,
                 },
                 outcome: outcome_of(unit, &o, outcome),
                 function: unit.source.name.clone(),

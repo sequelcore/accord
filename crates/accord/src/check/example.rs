@@ -27,6 +27,8 @@ pub(super) fn check(
         result: None,
         spec: false,
         functions: None,
+        indexing: false,
+        bound: false,
     };
     for ((name, ty), mut expr) in function.params.iter().zip(ordered) {
         scope.value(

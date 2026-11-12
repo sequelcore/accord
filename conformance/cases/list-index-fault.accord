@@ -1,0 +1,6 @@
+// expect: refuted
+// Nothing says the list isn't empty.
+fn first_is_set(flags: List<Bool>) -> Bool
+{
+    flags[0]
+}

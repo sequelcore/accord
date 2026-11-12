@@ -1,0 +1,32 @@
+pub enum Standing { Decide, Gap, Holds, Opinion }
+
+pub fn decisions(standings: List<Standing>) -> i64
+    ensures result >= 0 and result <= length(standings)
+    ensures result == 0 implies not any s in standings: s == Decide
+    ensures (not any s in standings: s == Decide) implies result == 0
+{
+    count s in standings: s == Decide
+}
+
+pub fn partly_holds(standings: List<Standing>) -> Bool
+    ensures result implies any s in standings: s == Decide or s == Gap
+    ensures (any s in standings: s == Decide or s == Gap) implies result
+{
+    any s in standings: s == Decide or s == Gap
+}
+
+fn path_covered(proved: Bool, tested: Bool, exercised: Bool) -> Bool
+    ensures result == (proved or (tested and exercised))
+{
+    proved or (tested and exercised)
+}
+
+pub fn all_covered(proved: List<Bool>, tested: List<Bool>, exercised: List<Bool>) -> Bool
+    requires length(tested) == length(proved) and length(exercised) == length(proved)
+    ensures result implies all k in indices(proved): proved[k] or (tested[k] and exercised[k])
+    ensures (all k in indices(proved): proved[k] or (tested[k] and exercised[k])) implies result
+{
+    all k in indices(proved): path_covered(proved: proved[k], tested: tested[k], exercised: exercised[k])
+}
+
+example decisions(standings: [Decide, Gap, Decide]) == 2

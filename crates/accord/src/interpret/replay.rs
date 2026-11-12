@@ -4,8 +4,8 @@
 use super::eval::{Env, Mode, body, first_row};
 use super::{Names, Value, admitted, broken_requires, read};
 use crate::Inputs;
-use crate::obligation::{Claim, Obligation, term};
-use crate::syntax::Expr;
+use crate::obligation::{Claim, Guard, Obligation, term};
+use crate::syntax::{Expr, Range};
 
 /// How a solver's model of an obligation reproduces when the interpreter
 /// replays it.
@@ -49,18 +49,9 @@ fn reproduces(
             expr,
             width,
             guards,
-        } => {
-            let mut runs = true;
-            for guard in guards {
-                runs &= env.guard(guard)?;
-            }
-            runs && !(width.min()..=width.max()).contains(&env.int(expr)?)
-        }
+        } => runs(&env, guards)? && !(width.min()..=width.max()).contains(&env.int(expr)?),
         Claim::Requires { call, guards } => {
-            let mut runs = true;
-            for guard in guards {
-                runs &= env.guard(guard)?;
-            }
+            let runs = runs(&env, guards)?;
             let Expr::Call(name, args, _) = call else {
                 return Ok(false);
             };
@@ -75,14 +66,79 @@ fn reproduces(
                 .collect::<Result<Vec<_>, String>>()?;
             runs && broken_requires(callee, &names)?.is_some()
         }
+        Claim::InBounds {
+            index,
+            guards,
+            ensures,
+        } => {
+            let result = if *ensures {
+                Some(body(function, &env)?)
+            } else {
+                None
+            };
+            let env = Env {
+                result: result.as_ref(),
+                ..env
+            };
+            let Expr::Index(list, at, _) = index else {
+                return Ok(false);
+            };
+            runs(&env, guards)? && {
+                let length = env.list(list)?.len() as i128;
+                !(0..length).contains(&env.int(at)?)
+            }
+        }
     })
+}
+
+/// Whether every guard holds, each evaluated whatever the others give.
+fn runs(env: &Env, guards: &[Guard]) -> Result<bool, String> {
+    let mut runs = true;
+    for guard in guards {
+        runs &= env.guard(guard)?;
+    }
+    Ok(runs)
+}
+
+/// `names` with each quantifier's name bound to the element or index the
+/// model gives, outermost first, provided each index is in range.
+fn bind(obligation: &Obligation, inputs: &Inputs, mut names: Names) -> Result<Names, String> {
+    for (index, quantified) in &obligation.bound {
+        let Expr::Quantified(_, name, range, ..) = quantified else {
+            continue;
+        };
+        let raw = inputs
+            .iter()
+            .find(|(n, _)| n == index)
+            .map(|(_, v)| v.as_str())
+            .ok_or(format!("no value for `{index}`"))?;
+        let at: usize = raw.parse().map_err(|_| format!("`{raw}` isn't an index"))?;
+        let env = Env {
+            names: &names,
+            result: None,
+            mode: Mode::Math,
+            functions: obligation.functions,
+            assumed: None,
+        };
+        let items = env.list(range.list())?;
+        let item = items
+            .get(at)
+            .cloned()
+            .ok_or(format!("the model's index {at} is out of range"))?;
+        let value = match range {
+            Range::Elements(_) => item,
+            Range::Indices(_) => Value::Int(at as i128),
+        };
+        names.push((name.clone(), value));
+    }
+    Ok(names)
 }
 
 /// Replays a solver's model of an obligation's script: how the inputs do
 /// what the solver says they do (break a universal claim, or satisfy an
 /// existential one), or why they don't.
 pub(crate) fn replay(obligation: &Obligation, inputs: &Inputs) -> Result<Replay, String> {
-    let names = admitted(obligation.function, inputs)?;
+    let names = bind(obligation, inputs, admitted(obligation.function, inputs)?)?;
     if reproduces(obligation, &names, None)? {
         return Ok(Replay::Runs);
     }

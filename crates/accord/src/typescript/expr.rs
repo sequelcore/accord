@@ -5,7 +5,7 @@
 //! specification every integer is a `bigint`, since specification arithmetic
 //! is mathematical.
 
-use crate::syntax::{Arith, Expr, Function, Op, Type, Width};
+use crate::syntax::{Arith, Expr, Function, Op, Quantifier, Type, Width};
 
 /// Where an expression is evaluated.
 #[derive(Clone, Copy, PartialEq)]
@@ -22,6 +22,8 @@ pub(super) struct Scope<'a> {
     pub context: Context,
     /// The functions a call may name.
     pub functions: &'a [Function],
+    /// The indices quantifiers range over here, each a `number`.
+    pub indices: &'a [String],
 }
 
 /// `snake_case` as `camelCase`.
@@ -58,7 +60,7 @@ pub(super) fn string(text: &str) -> String {
 }
 
 impl Scope<'_> {
-    fn param(&self, name: &str) -> Option<&Type> {
+    pub(super) fn param(&self, name: &str) -> Option<&Type> {
         self.params
             .iter()
             .find(|(n, _)| n == name)
@@ -81,6 +83,7 @@ impl Scope<'_> {
                 _ => None,
             },
             Expr::Arith(.., site) | Expr::Neg(_, site) => site.width,
+            Expr::Length(..) | Expr::Quantified(Quantifier::Count, ..) => Some(Width::I64),
             Expr::If(_, then, otherwise) => self.width(then).or_else(|| self.width(otherwise)),
             _ => None,
         }
@@ -95,7 +98,7 @@ impl Scope<'_> {
     }
 
     /// `expr`, parenthesized when it is an operator applied to operands.
-    fn wrapped(&self, expr: &Expr, want: Option<Width>) -> String {
+    pub(super) fn wrapped(&self, expr: &Expr, want: Option<Width>) -> String {
         let operator = match expr {
             Expr::Binary(op, ..) => *op != Op::In,
             Expr::Arith(..) | Expr::If(..) => true,
@@ -119,6 +122,7 @@ impl Scope<'_> {
                 let items: Vec<String> = items.iter().map(|i| self.bare(i, None)).collect();
                 format!("[{}]", items.join(", "))
             }
+            Expr::Name(name, _) if self.is_index(name) => format!("BigInt({})", camel(name)),
             Expr::Name(name, _) => match (self.context, self.param(name)) {
                 (Context::Spec, Some(Type::Int(_))) => format!("BigInt({})", camel(name)),
                 _ => camel(name),
@@ -160,6 +164,11 @@ impl Scope<'_> {
                     .collect();
                 format!("{}$({})", camel(name), args.join(", "))
             }
+            Expr::Quantified(quantifier, name, range, condition, _) => {
+                self.quantified(*quantifier, name, range, condition)
+            }
+            Expr::Length(list, _) => self.length(list),
+            Expr::Index(list, index, _) => self.index(list, index),
         }
     }
 

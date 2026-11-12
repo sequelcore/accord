@@ -88,7 +88,8 @@ Each definition has these fields:
 | `not_proved[]` | Limits, each with a stable kind and explanatory message |
 
 An obligation carries `kind` (postcondition, coverage, row_reachability,
-overflow, or precondition: a call meets its callee's `requires`), `polarity`
+overflow, precondition: a call meets its callee's `requires`, or bounds: an
+index is within its list), `polarity`
 (existential for row reachability, otherwise universal), `clause`, `line`,
 `key`, `reused`, and `outcome`. Its key hashes the exact normalized SMT-LIB
 script. Outcomes are proved, refuted, undecided, unsupported, or weak_callee.
@@ -158,7 +159,8 @@ only the finite reported mutation sample was checked.
 and trusted compiler components as outside this proof. It also lists applicable
 limits such as excluded inputs, absent examples, missing postconditions,
 refuted/undecided/unsupported obligations, obligations blocked by a weak callee
-contract, unverified callees, failed examples, open cases, declared
+contract, unverified callees, the assumptions about lists (their greatest
+length and `count`'s axioms), failed examples, open cases, declared
 freedoms, unrun or incomplete mutation analysis, and surviving mutants. These
 are scope statements, not additional solver proofs or approvals.
 

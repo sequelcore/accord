@@ -126,6 +126,56 @@ pub(crate) enum Expr {
     /// written, and where the call is. The checker puts the arguments in the
     /// order of the parameters, each labelled.
     Call(String, Vec<(Option<String>, Expr)>, Site),
+    /// `all`, `any` or `count`: the name it binds, what that name ranges
+    /// over, the condition, and its line.
+    Quantified(Quantifier, String, Range, Box<Expr>, usize),
+    /// `length(list)`, with its line.
+    Length(Box<Expr>, usize),
+    /// `list[index]`, and where it is.
+    Index(Box<Expr>, Box<Expr>, Site),
+}
+
+/// What a quantifier over a list gives: whether the condition holds of every
+/// element, of some element, or of how many.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) enum Quantifier {
+    All,
+    Any,
+    Count,
+}
+
+impl Quantifier {
+    /// The quantifier as written.
+    pub fn name(self) -> &'static str {
+        match self {
+            Quantifier::All => "all",
+            Quantifier::Any => "any",
+            Quantifier::Count => "count",
+        }
+    }
+}
+
+/// What a quantifier's name ranges over: a list's elements, or its indices.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) enum Range {
+    Elements(Box<Expr>),
+    Indices(Box<Expr>),
+}
+
+impl Range {
+    /// The list the name ranges over.
+    pub fn list(&self) -> &Expr {
+        match self {
+            Range::Elements(list) | Range::Indices(list) => list,
+        }
+    }
+
+    /// The list the name ranges over, to change it.
+    pub fn list_mut(&mut self) -> &mut Expr {
+        match self {
+            Range::Elements(list) | Range::Indices(list) => list,
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]

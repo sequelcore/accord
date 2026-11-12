@@ -44,7 +44,11 @@ Inside, a decision table is an `if` chain in row order. Where no row is
 `otherwise`, the chain ends in a `throw` that proved coverage makes
 unreachable. `and` and `or` are `&&` and `||`; both evaluation orders are
 safe, since each operand is proved not to overflow whatever the other's value.
-`in` is `.includes()`. Lists compare element by element.
+`in` is `.includes()`. Lists compare element by element. `all`, `any` and
+`count` are `every`, `some` and `filter(…).length`, `length(list)` is
+`list.length`, and both are `bigint`s, since they are `i64`s. An index a
+quantifier ranges over is the callback's `number`, read as a `bigint`
+except where it indexes an array.
 
 A call runs the callee's body directly, with no boundary check, since each
 call's `requires` is proved. Every function a module's exported functions call,

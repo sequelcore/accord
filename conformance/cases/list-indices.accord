@@ -1,0 +1,20 @@
+// expect: proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, passed, passed
+// `all` by index over three parallel lists, calling a function at each index,
+// as Tesota's `runStanding` does. Every index is in range: `k` ranges over
+// `proved`'s, and the `requires` makes the lengths equal.
+fn path_covered(proved: Bool, tested: Bool, exercised: Bool) -> Bool
+    ensures result == (proved or (tested and exercised))
+{
+    proved or (tested and exercised)
+}
+
+fn all_covered(proved: List<Bool>, tested: List<Bool>, exercised: List<Bool>) -> Bool
+    requires length(tested) == length(proved) and length(exercised) == length(proved)
+    ensures result implies all k in indices(proved): proved[k] or (tested[k] and exercised[k])
+    ensures (all k in indices(proved): proved[k] or (tested[k] and exercised[k])) implies result
+{
+    all k in indices(proved): path_covered(proved: proved[k], tested: tested[k], exercised: exercised[k])
+}
+
+example all_covered(proved: [true, false], tested: [false, true], exercised: [false, false]) == false
+example all_covered(proved: [], tested: [], exercised: []) == true

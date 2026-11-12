@@ -1,0 +1,9 @@
+// expect: proved, passed
+// An index is in range where the `requires` says the list isn't empty.
+fn first_is_set(flags: List<Bool>) -> Bool
+    requires length(flags) > 0
+{
+    flags[0]
+}
+
+example first_is_set(flags: [true]) == true

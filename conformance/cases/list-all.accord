@@ -1,0 +1,13 @@
+// expect: proved, proved, passed, passed
+// `all` by element, beside `in`: both are encoded over the list's indices.
+enum Light { Red, Amber, Green }
+
+fn all_red(lights: List<Light>) -> Bool
+    ensures result implies not Amber in lights and not Green in lights
+    ensures not Amber in lights and not Green in lights implies result
+{
+    all light in lights: light == Red
+}
+
+example all_red(lights: [Red, Red]) == true
+example all_red(lights: []) == true

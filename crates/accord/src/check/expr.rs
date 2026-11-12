@@ -15,6 +15,10 @@ pub(super) struct Scope<'a> {
     pub spec: bool,
     /// The functions a call may name; `None` where no call is allowed.
     pub functions: Option<&'a [Signature]>,
+    /// Whether a list may be indexed here.
+    pub indexing: bool,
+    /// Whether this is inside a quantifier's condition.
+    pub bound: bool,
 }
 
 impl Scope<'_> {
@@ -190,6 +194,11 @@ impl Scope<'_> {
             }
             Expr::Binary(op, left, right) => self.binary(*op, left, right),
             Expr::Call(name, args, site) => self.call(name, args, site.line),
+            Expr::Quantified(quantifier, name, range, condition, line) => {
+                self.quantified(*quantifier, name, range, condition, *line)
+            }
+            Expr::Length(list, line) => self.length(list, *line),
+            Expr::Index(list, index, site) => self.index(list, index, site.line),
             Expr::If(condition, then, otherwise) => {
                 self.condition(condition)?;
                 let a = self.infer(then, expected)?;
@@ -242,8 +251,13 @@ pub(super) fn line_of(expr: &Expr) -> usize {
         | Expr::Variant(_, _, line)
         | Expr::Int(_, line)
         | Expr::Text(_, line)
-        | Expr::List(_, _, line) => *line,
-        Expr::Arith(.., site) | Expr::Neg(_, site) | Expr::Call(.., site) => site.line,
+        | Expr::List(_, _, line)
+        | Expr::Quantified(.., line)
+        | Expr::Length(_, line) => *line,
+        Expr::Arith(.., site)
+        | Expr::Neg(_, site)
+        | Expr::Call(.., site)
+        | Expr::Index(.., site) => site.line,
         Expr::Not(inner) => line_of(inner),
         Expr::Binary(_, left, _) | Expr::If(left, _, _) => line_of(left),
         Expr::Bool(_) => 0,
