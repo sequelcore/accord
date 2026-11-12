@@ -4,9 +4,15 @@
 //! It evaluates in one of two modes. Code that runs is evaluated with each
 //! arithmetic result checked against its width; specifications, and the
 //! solvers' scripts, use mathematical integers.
+//!
+//! A call runs the callee's body, after checking its `requires`. A solver's
+//! model of a caller is replayed twice when it doesn't reproduce as run:
+//! once more with each call taking the value the model gives it, which tells
+//! a counterexample to the code from one that rests on a callee's contract
+//! being weaker than its body.
 
 use crate::Inputs;
-use crate::obligation::{Claim, Guard, Obligation};
+use crate::obligation::{Claim, Guard, Obligation, term};
 use crate::syntax::{Arith, Body, ClauseKind, Example, Expr, Function, Op, Type};
 
 #[derive(Clone, Debug, PartialEq)]
@@ -49,6 +55,24 @@ struct Env<'a> {
     names: &'a [(String, Value)],
     result: Option<&'a Value>,
     mode: Mode,
+    /// The functions a call may run.
+    functions: &'a [Function],
+    /// When replaying a model, each call's value as the model gives it, by
+    /// the call's term; a call then takes that value instead of running.
+    assumed: Option<&'a [(String, Value)]>,
+}
+
+impl<'a> Env<'a> {
+    /// An environment with no functions to call and no assumed values.
+    fn plain(names: &'a [(String, Value)], result: Option<&'a Value>, mode: Mode) -> Env<'a> {
+        Env {
+            names,
+            result,
+            mode,
+            functions: &[],
+            assumed: None,
+        }
+    }
 }
 
 impl Env<'_> {
@@ -126,6 +150,36 @@ impl Env<'_> {
                     site,
                 )
             }
+            Expr::Call(name, args, site) => {
+                if let Some(assumed) = self.assumed {
+                    let key = term(expr);
+                    return assumed
+                        .iter()
+                        .find(|(t, _)| *t == key)
+                        .map(|(_, v)| v.clone())
+                        .ok_or(format!("the model gives `{}` no value", site.text));
+                }
+                let Some(callee) = self.functions.iter().find(|f| f.name == *name) else {
+                    return Err(format!("`{name}` can't be run here"));
+                };
+                let names = callee
+                    .params
+                    .iter()
+                    .zip(args)
+                    .map(|((param, _), (_, arg))| Ok((param.clone(), self.eval(arg)?)))
+                    .collect::<Result<Vec<_>, String>>()?;
+                if let Some(clause) = broken_requires(callee, &names)? {
+                    return Err(format!("`{}` breaks `{clause}`", site.text));
+                }
+                let env = Env {
+                    names: &names,
+                    result: None,
+                    mode: self.mode,
+                    functions: self.functions,
+                    assumed: None,
+                };
+                body(callee, &env)
+            }
         }
     }
 
@@ -195,11 +249,7 @@ pub(crate) fn broken_requires(
     function: &Function,
     names: &[(String, Value)],
 ) -> Result<Option<String>, String> {
-    let env = Env {
-        names,
-        result: None,
-        mode: Mode::Math,
-    };
+    let env = Env::plain(names, None, Mode::Math);
     for clause in function
         .clauses
         .iter()
@@ -213,13 +263,13 @@ pub(crate) fn broken_requires(
 }
 
 /// Runs an example: `Ok` when the call gives the expected result, otherwise
-/// why it doesn't.
-pub(crate) fn run(example: &Example, function: &Function) -> Result<(), String> {
-    let constants = Env {
-        names: &[],
-        result: None,
-        mode: Mode::Code,
-    };
+/// why it doesn't. `functions` are those its function may call.
+pub(crate) fn run(
+    example: &Example,
+    function: &Function,
+    functions: &[Function],
+) -> Result<(), String> {
+    let constants = Env::plain(&[], None, Mode::Code);
     let names = example
         .args
         .iter()
@@ -232,6 +282,8 @@ pub(crate) fn run(example: &Example, function: &Function) -> Result<(), String> 
         names: &names,
         result: None,
         mode: Mode::Code,
+        functions,
+        assumed: None,
     };
     let got = body(function, &env)?;
     let want = constants.eval(&example.expected)?;
@@ -312,23 +364,26 @@ pub(crate) fn admitted(function: &Function, inputs: &Inputs) -> Result<Names, St
 /// Parameter names with their values.
 pub(crate) type Names = Vec<(String, Value)>;
 
-/// `function`'s result for `names`, with mathematical integers.
-pub(crate) fn result(function: &Function, names: &Names) -> Result<Value, String> {
+/// `function`'s result for `names`, with mathematical integers; it may call
+/// `functions`.
+pub(crate) fn result(
+    function: &Function,
+    names: &Names,
+    functions: &[Function],
+) -> Result<Value, String> {
     let env = Env {
         names,
         result: None,
         mode: Mode::Math,
+        functions,
+        assumed: None,
     };
     body(function, &env)
 }
 
 /// Whether some `open when` of `function` covers `names`.
 pub(crate) fn covered(function: &Function, names: &Names) -> Result<bool, String> {
-    let env = Env {
-        names,
-        result: None,
-        mode: Mode::Math,
-    };
+    let env = Env::plain(names, None, Mode::Math);
     for clause in function
         .clauses
         .iter()
@@ -343,11 +398,7 @@ pub(crate) fn covered(function: &Function, names: &Names) -> Result<bool, String
 
 /// Whether every `ensures` of `contract` holds of `result` for `names`.
 pub(crate) fn meets(contract: &Function, names: &Names, result: &Value) -> Result<bool, String> {
-    let env = Env {
-        names,
-        result: Some(result),
-        mode: Mode::Math,
-    };
+    let env = Env::plain(names, Some(result), Mode::Math);
     for clause in contract
         .clauses
         .iter()
@@ -360,21 +411,39 @@ pub(crate) fn meets(contract: &Function, names: &Names, result: &Value) -> Resul
     Ok(true)
 }
 
-pub(crate) fn replay(obligation: &Obligation, inputs: &Inputs) -> Result<(), String> {
+/// How a solver's model of an obligation reproduces when the interpreter
+/// replays it.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) enum Replay {
+    /// It does what the solver says when the code runs as written.
+    Runs,
+    /// It does only when each call takes the value the model gives it: the
+    /// model rests on a callee's contract allowing a result its body never
+    /// gives.
+    Assumed,
+}
+
+/// Whether `inputs` do what the solver says of `obligation`, with each call
+/// running, or taking the model's value when `assumed` is given.
+fn reproduces(
+    obligation: &Obligation,
+    names: &Names,
+    assumed: Option<&[(String, Value)]>,
+) -> Result<bool, String> {
     let function = obligation.function;
-    let names = admitted(function, inputs)?;
     let env = Env {
-        names: &names,
+        names,
         result: None,
         mode: Mode::Math,
+        functions: obligation.functions,
+        assumed,
     };
-    let reproduces = match &obligation.claim {
+    Ok(match &obligation.claim {
         Claim::Ensures(clause) => {
             let result = body(function, &env)?;
             let with_result = Env {
-                names: &names,
                 result: Some(&result),
-                mode: Mode::Math,
+                ..env
             };
             !with_result.boolean(clause)?
         }
@@ -391,9 +460,57 @@ pub(crate) fn replay(obligation: &Obligation, inputs: &Inputs) -> Result<(), Str
             }
             runs && !(width.min()..=width.max()).contains(&env.int(expr)?)
         }
-    };
-    if reproduces {
-        Ok(())
+        Claim::Requires { call, guards } => {
+            let mut runs = true;
+            for guard in guards {
+                runs &= env.guard(guard)?;
+            }
+            let Expr::Call(name, args, _) = call else {
+                return Ok(false);
+            };
+            let Some(callee) = obligation.functions.iter().find(|f| f.name == *name) else {
+                return Ok(false);
+            };
+            let names = callee
+                .params
+                .iter()
+                .zip(args)
+                .map(|((param, _), (_, arg))| Ok((param.clone(), env.eval(arg)?)))
+                .collect::<Result<Vec<_>, String>>()?;
+            runs && broken_requires(callee, &names)?.is_some()
+        }
+    })
+}
+
+/// Replays a solver's model of an obligation's script: how the inputs do
+/// what the solver says they do (break a universal claim, or satisfy an
+/// existential one), or why they don't.
+pub(crate) fn replay(obligation: &Obligation, inputs: &Inputs) -> Result<Replay, String> {
+    let names = admitted(obligation.function, inputs)?;
+    if reproduces(obligation, &names, None)? {
+        return Ok(Replay::Runs);
+    }
+    if obligation.calls.is_empty() {
+        return Err("the interpreter disagrees".to_string());
+    }
+    let mut assumed = Vec::new();
+    for (constant, call) in &obligation.calls {
+        let Expr::Call(name, ..) = call else {
+            continue;
+        };
+        let Some(callee) = obligation.functions.iter().find(|f| f.name == *name) else {
+            continue;
+        };
+        let raw = inputs
+            .iter()
+            .find(|(n, _)| n == constant)
+            .map(|(_, v)| v.as_str())
+            .ok_or(format!("no value for `{constant}`"))?;
+        let value = read(raw, &callee.ret).ok_or(format!("`{raw}` isn't a result of `{name}`"))?;
+        assumed.push((term(call), value));
+    }
+    if reproduces(obligation, &names, Some(&assumed))? {
+        Ok(Replay::Assumed)
     } else {
         Err("the interpreter disagrees".to_string())
     }
@@ -420,7 +537,7 @@ mod tests {
             .iter()
             .find(|o| o.clause.contains(clause))
             .expect("the obligation exists");
-        replay(obligation, &inputs(model))
+        replay(obligation, &inputs(model)).map(|_| ())
     }
 
     const TABLE: &str = "enum Light { Red, Amber, Green }

@@ -1,0 +1,11 @@
+// expect: error
+fn successor(n: i32) -> i32
+    requires n < 100
+{
+    n + 1
+}
+
+fn wrong(flag: Bool) -> i32
+{
+    successor(flag)
+}

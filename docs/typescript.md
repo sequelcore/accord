@@ -32,7 +32,7 @@ Node runs them directly.
 | --- | --- |
 | `enum Light { Red, Amber }` | `export type Light = "red" \| "amber";`: each variant's `snake_case` |
 | `pub fn` | An exported function, named in `camelCase`, with its parameters in `camelCase` and in order |
-| `fn` without `pub` | Nothing: no function calls another yet |
+| `fn` without `pub` | Nothing, unless a function the module exports calls it |
 | `Bool`, `Text` | `boolean`, `string` |
 | `i32` | `number` |
 | `i64` | `number` for the caller, `bigint` inside |
@@ -45,6 +45,12 @@ Inside, a decision table is an `if` chain in row order. Where no row is
 unreachable. `and` and `or` are `&&` and `||`; both evaluation orders are
 safe, since each operand is proved not to overflow whatever the other's value.
 `in` is `.includes()`. Lists compare element by element.
+
+A call runs the callee's body directly, with no boundary check, since each
+call's `requires` is proved. Every function a module's exported functions call,
+directly or not, is written into that module unexported, even when another
+file declares it: no module exports a body without its checks, and modules
+never import each other's functions.
 
 `i32` arithmetic in `number` is exact: every operation's result is proved to
 fit `i32`, so it is well inside the integers a `number` holds exactly. `i64`

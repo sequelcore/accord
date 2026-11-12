@@ -1,5 +1,6 @@
 //! Expressions, by precedence: `implies`, `or`, `and`, `not`, comparison,
-//! `+` and `-`, `*`, unary `-`, then literals, names, `if` and parentheses.
+//! `+` and `-`, `*`, unary `-`, then literals, names, calls, `if` and
+//! parentheses.
 
 use super::parser::Parser;
 use super::token::Token;
@@ -172,10 +173,15 @@ impl Parser<'_> {
             self.pos += 1;
             return Ok(Expr::Name("result".to_string(), line));
         }
+        let start = self.pos;
         let name = self.name()?;
         if self.at_sym(".") {
             self.pos += 1;
             return Ok(Expr::Variant(name, self.name()?, line));
+        }
+        if self.at_sym("(") {
+            let args = self.arguments()?;
+            return Ok(Expr::Call(name, args, self.site(start)));
         }
         Ok(Expr::Name(name, line))
     }

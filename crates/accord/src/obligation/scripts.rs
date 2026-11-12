@@ -1,20 +1,36 @@
 //! Scripts for analyses beside obligations: judging a mutant, and searching
 //! for an open case.
 
-use super::smt::{all, ending, in_range, prelude, sort, term, value};
-use crate::syntax::{ClauseKind, Function, Type};
+use super::smt::{all, call_facts, declarations, ending, in_range, prelude, sort, term, value};
+use crate::syntax::{ClauseKind, Function, Program, Type};
 
 /// The two scripts that judge a mutant of `original` against its contract.
 /// `survives` asserts that the mutant breaks some `ensures`, so `unsat` means
 /// the contract can't tell it apart. `differs` asserts an admitted input on
 /// which the two give different results, `r0` and `r1`, so `unsat` means the
-/// mutant is equivalent. Both use `original`'s parameters and `requires`.
+/// mutant is equivalent. Both use `original`'s parameters and `requires`,
+/// and know the functions either body calls, in `program`, only through
+/// their contracts.
 pub(crate) fn mutant_scripts(
     original: &Function,
     mutant: &Function,
+    program: &Program,
     datatypes: &str,
 ) -> (String, String) {
-    let prelude = prelude(original, datatypes);
+    let mut calls = Vec::new();
+    for function in [original, mutant] {
+        super::calls_in(function, &mut calls);
+    }
+    let mut callees = Vec::new();
+    for call in &calls {
+        crate::check::callees(call, &mut callees);
+    }
+    let prelude = format!(
+        "{}{}{}",
+        prelude(original, datatypes),
+        declarations(program, &callees),
+        call_facts(program, &calls).0
+    );
     let params: Vec<String> = original.params.iter().map(|(n, _)| n.clone()).collect();
     let ret = sort(&original.ret);
     let (theirs, their_cover) = value(mutant);

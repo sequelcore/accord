@@ -1,0 +1,16 @@
+// expect: proved, proved, proved, refuted, refuted
+// `twice` admits inputs up to 149, so the inner call breaks `successor`'s
+// `requires` from 100, and the outer one from 99.
+fn successor(n: i32) -> i32
+    requires n < 100
+    ensures result == n + 1
+{
+    n + 1
+}
+
+fn twice(n: i32) -> i32
+    requires n >= 0 and n < 150
+    ensures result == n + 2
+{
+    successor(successor(n))
+}

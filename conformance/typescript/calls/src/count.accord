@@ -1,0 +1,8 @@
+pub fn two_steps(n: i32) -> i32
+    requires n < 50
+    ensures result == n + 2
+{
+    successor(successor(n))
+}
+
+example two_steps(n: 4) == 6

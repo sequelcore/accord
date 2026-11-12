@@ -1,0 +1,15 @@
+// expect: proved, proved, proved, proved
+// A call's `requires` must hold only where the call runs: here, the branch
+// of the `if` whose condition holds.
+fn successor(n: i32) -> i32
+    requires n < 100
+    ensures result == n + 1
+{
+    n + 1
+}
+
+fn capped_successor(n: i32) -> i32
+    ensures result <= 100
+{
+    if n < 100 { successor(n) } else { 100 }
+}

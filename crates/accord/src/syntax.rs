@@ -1,6 +1,7 @@
 //! The syntax tree for the subset Accord compiles today: enums, and functions
-//! over `Bool`, fixed-width integers and enums with `requires`, `ensures` and
-//! a body that is an expression or a decision table.
+//! over `Bool`, fixed-width integers, enums, texts and lists with `requires`,
+//! `ensures` and a body that is an expression or a decision table, which may
+//! call other functions.
 
 mod expr;
 mod parser;
@@ -120,6 +121,10 @@ pub(crate) enum Expr {
     Arith(Arith, Box<Expr>, Box<Expr>, Site),
     Neg(Box<Expr>, Site),
     If(Box<Expr>, Box<Expr>, Box<Expr>),
+    /// A call: the function's name, each argument with its label where
+    /// written, and where the call is. The checker puts the arguments in the
+    /// order of the parameters, each labelled.
+    Call(String, Vec<(Option<String>, Expr)>, Site),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]

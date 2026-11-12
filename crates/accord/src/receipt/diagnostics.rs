@@ -27,6 +27,7 @@ pub(super) fn findings(report: &Report) -> Vec<Value> {
                 Outcome::Refuted { .. } => Some(C::ObligationRefuted),
                 Outcome::Undecided { .. } => Some(C::ObligationUndecided),
                 Outcome::Unsupported { .. } => Some(C::ObligationUnsupported),
+                Outcome::WeakCallee { .. } => Some(C::WeakCalleeContract),
             };
             if let Some(code) = code {
                 add(
@@ -75,6 +76,13 @@ pub(super) fn findings(report: &Report) -> Vec<Value> {
                     format!("/definitions/{index}/strength"),
                 );
             }
+        }
+        if !d.unverified_callees.is_empty() {
+            add(
+                C::UnverifiedCallee,
+                d.line,
+                format!("/definitions/{index}/unverified_callees"),
+            );
         }
         if d.standing == Standing::Unverified {
             add(C::NoEvidence, d.line, format!("/definitions/{index}"));

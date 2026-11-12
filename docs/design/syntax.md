@@ -160,7 +160,12 @@ condition can never be the first to hold.
 | Comparison | `==`, `!=` on any type; `<`, `<=`, `>`, `>=` on integers; `in` from an element to a list |
 | Arithmetic | `+`, `-`, `*`, and `-` before a value; `/` and `%` truncate toward zero (`-7 / 2 == -3`, `-7 % 2 == -1`), in code and in specifications, with a zero divisor and `MIN / -1` obligations. `/` and `%` aren't compiled yet |
 | Choice | `if condition { a } else { b }`, always with `else` |
-| Call | `name(label: value, …)`; labels are required when the function has more than one parameter. Calls appear only in `example` declarations: a function body can't call another function yet |
+| Call | `name(label: value, …)`; labels are required when the function has more than one parameter. A body or a decision table can call any function of its program; a specification and an example's arguments can't yet. A function can't call itself, directly or through others |
+
+A call is proved through the callee's contract, never its body: the caller
+must meet the callee's `requires` wherever the call runs, and knows of the
+result only what the callee's `ensures` say. Changing a callee's body alone
+leaves its callers' proofs current; changing its contract doesn't.
 
 Blocks are expressions: the last expression is the block's value. There is no
 `return`: an early exit is a decision table.

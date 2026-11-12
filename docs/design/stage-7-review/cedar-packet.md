@@ -21,7 +21,7 @@ see the retained [notice](../../../conformance/programs/cedar/NOTICE).
 
 ```text
 function     fn partial_decision(satisfied_forbid: Bool, satisfied_permit: Bool, residual_permit: Bool, residual_forbid: Bool) -> PartialDecision (partial-decision.accord)
-review_hash  754aa4130fb66040cc4daea7168fed0976fa7dfd056b27f9ef5d23324f6b077a
+review_hash  f92c4f8f341c7109abc0d2edcdd42e85612146acefdf4304009015eaefc21524
 type         enum PartialDecision { Deny, Allow, Unknown }
 intent       partial_decision (partial-decision.accord) (unchecked): Deny on a satisfied forbid or no possible permit; allow on a satisfied permit with no possible forbid; otherwise keep the decision unknown.
 specification line 21: ensures result == Deny implies satisfied_forbid or (not satisfied_permit and not residual_permit)

@@ -1,0 +1,13 @@
+// expect: error
+// Labels are required at a call to a function with more than one parameter.
+fn sum(a: i32, b: i32) -> i32
+    requires a >= 0 and a < 100 and b >= 0 and b < 100
+{
+    a + b
+}
+
+fn double(n: i32) -> i32
+    requires n >= 0 and n < 100
+{
+    sum(n, n)
+}

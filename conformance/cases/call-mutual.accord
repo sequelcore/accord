@@ -1,0 +1,13 @@
+// expect: error
+// Nor can two functions call each other.
+fn even(n: i32) -> Bool
+    requires n >= 0
+{
+    if n == 0 { true } else { odd(n - 1) }
+}
+
+fn odd(n: i32) -> Bool
+    requires n >= 0
+{
+    if n == 0 { false } else { even(n - 1) }
+}

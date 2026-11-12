@@ -166,7 +166,9 @@ fn at_least_as_strong(
             evidence: crate::Refutation::Counterexample(inputs),
         } => return Ok(Some(Loosening::Rejects(unit.source_inputs(&inputs)))),
         Outcome::Undecided { reason } | Outcome::Unsupported { reason } => return Err(reason),
-        Outcome::Refuted { .. } => return Err("no counterexample".to_string()),
+        Outcome::Refuted { .. } | Outcome::WeakCallee { .. } => {
+            return Err("no counterexample".to_string());
+        }
     }
 
     // On those inputs, the stronger contract promises what the weaker does.
@@ -216,7 +218,9 @@ fn at_least_as_strong(
             Ok(Some(Loosening::Allows(unit.source_inputs(&inputs), result)))
         }
         Outcome::Undecided { reason } | Outcome::Unsupported { reason } => Err(reason),
-        Outcome::Refuted { .. } => Err("no counterexample".to_string()),
+        Outcome::Refuted { .. } | Outcome::WeakCallee { .. } => {
+            Err("no counterexample".to_string())
+        }
     }
 }
 

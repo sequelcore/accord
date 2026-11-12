@@ -114,6 +114,7 @@ pub(super) fn wrapper(program: &Program, function: &Function) -> (String, bool) 
     let spec = Scope {
         params: &function.params,
         context: Context::Spec,
+        functions: &[],
     };
     for clause in function
         .clauses

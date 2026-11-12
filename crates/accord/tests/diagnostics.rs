@@ -49,7 +49,7 @@ fn json_rejection_and_missing_prerequisites_are_structured_without_a_proof() {
         assert_eq!(output.status.code(), Some(4));
         let j: serde_json::Value =
             serde_json::from_slice(&output.stdout).expect("structured error on stdout");
-        assert_eq!(j["receipt"], 2);
+        assert_eq!(j["receipt"], 3);
         assert_eq!(j["status"], status);
         assert!(j["standing"].is_null());
         assert!(j["definitions"].as_array().unwrap().is_empty());

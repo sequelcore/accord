@@ -48,6 +48,21 @@ pub(super) fn limits(report: &Report, d: &Definition) -> Vec<(&'static str, &'st
     }
     if verdicts
         .iter()
+        .any(|v| matches!(v.outcome, Outcome::WeakCallee { .. }))
+    {
+        out.push((
+            "weak_callee_contract",
+            "At least one obligation was not proved because a callee's contract allows results its body never gives.",
+        ));
+    }
+    if !d.unverified_callees.is_empty() {
+        out.push((
+            "unverified_callee",
+            "It calls a function that isn't verified; its own proofs assume that function's contract.",
+        ));
+    }
+    if verdicts
+        .iter()
         .any(|v| matches!(v.outcome, Outcome::Unsupported { .. }))
     {
         out.push((

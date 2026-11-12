@@ -13,7 +13,7 @@ use crate::{
 };
 
 /// The receipt schema's version.
-pub const VERSION: u32 = 2;
+pub const VERSION: u32 = 3;
 
 impl Standing {
     /// The standing's name, as the receipt writes it.
@@ -70,6 +70,15 @@ fn verdict_text(verdict: &Verdict) -> String {
         Outcome::Unsupported { reason } => {
             format!("unsupported  {place}\n             {reason}")
         }
+        Outcome::WeakCallee { inputs, calls } => format!(
+            "weak callee  {place}\n             not proved from the contracts it calls: fails with {} only when {}, which the callee's contract allows and its body doesn't give",
+            values(inputs),
+            calls
+                .iter()
+                .map(|(call, value)| format!("`{call}` gives {value}"))
+                .collect::<Vec<_>>()
+                .join(" and ")
+        ),
     }
 }
 
@@ -238,8 +247,21 @@ pub fn text(report: &Report) -> String {
         for (kind, message) in review::limits(report, definition) {
             lines.push(format!("not_proved   {kind}: {message}"));
         }
+        let callees = if definition.unverified_callees.is_empty() {
+            String::new()
+        } else {
+            format!(
+                " (calls {}, not verified)",
+                definition
+                    .unverified_callees
+                    .iter()
+                    .map(|name| format!("`{name}`"))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            )
+        };
         lines.push(format!(
-            "standing     {}{file}: {}",
+            "standing     {}{file}: {}{callees}",
             definition.name,
             definition.standing.name()
         ));
