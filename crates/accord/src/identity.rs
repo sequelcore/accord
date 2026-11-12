@@ -13,11 +13,13 @@
 //! What the solvers say about a normalized function is translated back to
 //! source names only for people to read.
 
+mod normalize;
+mod source;
+
+use normalize::{Renamer, canonical};
 use sha2::{Digest, Sha256};
 
-use crate::interpret::{self, Value};
-use crate::syntax::{Body, ClauseKind, Enum, Expr, Function, Program, Type};
-use crate::{Inputs, Outcome, Refutation};
+use crate::syntax::{Enum, Function, Program};
 
 /// One function, normalized, with what's needed to read results back.
 pub(crate) struct Unit<'a> {
@@ -52,159 +54,6 @@ pub(crate) fn hash_bytes(bytes: &[u8]) -> String {
         .iter()
         .map(|byte| format!("{byte:02x}"))
         .collect()
-}
-
-struct Renamer<'a> {
-    program: &'a Program,
-    enums: Vec<&'a Enum>,
-    functions: Vec<&'a Function>,
-}
-
-impl<'a> Renamer<'a> {
-    fn enum_index(&mut self, name: &str) -> usize {
-        if let Some(index) = self.enums.iter().position(|e| e.name == name) {
-            return index;
-        }
-        let Some(e) = self.program.enums.iter().find(|e| e.name == name) else {
-            unreachable!("`check` rejects the unknown enum `{name}`")
-        };
-        self.enums.push(e);
-        self.enums.len() - 1
-    }
-
-    fn function_index(&mut self, name: &str) -> usize {
-        if let Some(index) = self.functions.iter().position(|f| f.name == name) {
-            return index;
-        }
-        let Some(f) = self.program.functions.iter().find(|f| f.name == name) else {
-            unreachable!("`check` rejects the unknown function `{name}`")
-        };
-        self.functions.push(f);
-        self.functions.len() - 1
-    }
-
-    fn ty(&mut self, ty: &Type) -> Type {
-        match ty {
-            Type::Enum(name) => Type::Enum(format!("E{}", self.enum_index(name))),
-            Type::List(element) => Type::List(Box::new(self.ty(element))),
-            other => other.clone(),
-        }
-    }
-
-    fn expr(&mut self, expr: &mut Expr, params: &[(String, Type)]) {
-        match expr {
-            Expr::Name(name, _) if name != "result" => {
-                if let Some(index) = params.iter().position(|(n, _)| n == name) {
-                    *name = format!("p{index}");
-                }
-            }
-            Expr::Variant(owner, variant, _) => {
-                let index = self.enum_index(owner);
-                let position = self.enums[index]
-                    .variants
-                    .iter()
-                    .position(|v| v == variant)
-                    .unwrap_or_default();
-                *owner = format!("E{index}");
-                *variant = format!("v{position}");
-            }
-            Expr::Not(inner) | Expr::Neg(inner, _) => self.expr(inner, params),
-            Expr::Binary(_, left, right) | Expr::Arith(_, left, right, _) => {
-                self.expr(left, params);
-                self.expr(right, params);
-            }
-            Expr::If(condition, then, otherwise) => {
-                self.expr(condition, params);
-                self.expr(then, params);
-                self.expr(otherwise, params);
-            }
-            Expr::List(items, element, _) => {
-                for item in items {
-                    self.expr(item, params);
-                }
-                if let Some(t) = element {
-                    *t = self.ty(t);
-                }
-            }
-            Expr::Call(name, args, _) => {
-                for (label, arg) in args {
-                    self.expr(arg, params);
-                    *label = None;
-                }
-                *name = format!("f{}", self.function_index(name));
-            }
-            Expr::Bool(_) | Expr::Int(..) | Expr::Text(..) | Expr::Name(..) => {}
-        }
-    }
-
-    /// `source` with its parameters, types and clauses normalized, and its
-    /// body as written.
-    fn contract(&mut self, source: &Function) -> Function {
-        let mut function = source.clone();
-        function.params = source
-            .params
-            .iter()
-            .enumerate()
-            .map(|(index, (_, ty))| (format!("p{index}"), self.ty(ty)))
-            .collect();
-        function.ret = self.ty(&source.ret);
-        for clause in &mut function.clauses {
-            self.expr(&mut clause.expr, &source.params);
-        }
-        function
-    }
-
-    /// Normalizes the body of `function`, whose source parameters are `params`.
-    fn body(&mut self, function: &mut Function, params: &[(String, Type)]) {
-        match &mut function.body {
-            Body::Expr(body) => self.expr(body, params),
-            Body::Decide(rows, _) => {
-                for row in rows {
-                    if let Some(condition) = &mut row.condition {
-                        self.expr(condition, params);
-                    }
-                    self.expr(&mut row.result, params);
-                }
-            }
-        }
-    }
-}
-
-/// The canonical text of a normalized function's specification and body,
-/// or of its contract alone.
-fn canonical(function: &Function, with_body: bool) -> String {
-    let mut out = String::new();
-    for (_, ty) in &function.params {
-        out += &format!(" (param {ty:?})");
-    }
-    out += &format!(" (returns {:?})", function.ret);
-    for clause in &function.clauses {
-        if with_body || clause.kind != ClauseKind::Open {
-            out += &format!(
-                " ({:?} {})",
-                clause.kind,
-                crate::obligation::term(&clause.expr)
-            );
-        }
-    }
-    if !with_body {
-        return out;
-    }
-    match &function.body {
-        Body::Expr(body) => out += &format!(" (body {})", crate::obligation::term(body)),
-        Body::Decide(rows, _) => {
-            out += " (decide";
-            for row in rows {
-                let condition = row
-                    .condition
-                    .as_ref()
-                    .map_or("otherwise".to_string(), crate::obligation::term);
-                out += &format!(" ({condition} {})", crate::obligation::term(&row.result));
-            }
-            out += ")";
-        }
-    }
-    out
 }
 
 /// Every function of a checked program, normalized, in source order.
@@ -291,98 +140,6 @@ pub(crate) fn units(program: &Program) -> Vec<Unit<'_>> {
         .collect()
 }
 
-impl Unit<'_> {
-    /// Source names and variants of the enums this unit uses.
-    pub fn source_enums(&self) -> Vec<(String, Vec<String>)> {
-        self.enums
-            .iter()
-            .map(|e| (e.name.clone(), e.variants.clone()))
-            .collect()
-    }
-
-    /// A solver's inputs for the normalized function, in source terms.
-    pub fn source_inputs(&self, inputs: &Inputs) -> Inputs {
-        inputs
-            .iter()
-            .map(|(name, value)| {
-                let index = name.strip_prefix('p').and_then(|i| i.parse::<usize>().ok());
-                let source_name = index
-                    .and_then(|i| self.source.params.get(i))
-                    .map_or(name.clone(), |(source, _)| source.clone());
-                let source_value = self
-                    .program
-                    .functions
-                    .first()
-                    .and_then(|f| index.and_then(|i| f.params.get(i)))
-                    .map_or_else(
-                        || value.clone(),
-                        |(_, ty)| self.source_typed_value(value, ty),
-                    );
-                (source_name, source_value)
-            })
-            .collect()
-    }
-
-    /// A normalized value, such as `E0.v1`, in source terms.
-    pub fn source_value(&self, value: &str) -> String {
-        self.program.functions.first().map_or_else(
-            || value.to_string(),
-            |f| self.source_typed_value(value, &f.ret),
-        )
-    }
-
-    /// A normalized value of type `ty`, in source terms.
-    pub fn source_typed_value(&self, value: &str, ty: &Type) -> String {
-        interpret::read(value, ty)
-            .map_or_else(|| value.to_string(), |v| self.source_value_tree(v).source())
-    }
-
-    fn source_value_tree(&self, value: Value) -> Value {
-        match value {
-            Value::List(items) => Value::List(
-                items
-                    .into_iter()
-                    .map(|v| self.source_value_tree(v))
-                    .collect(),
-            ),
-            Value::Variant(owner, variant) => {
-                let source = (|| {
-                    let e = self
-                        .enums
-                        .get(owner.strip_prefix('E')?.parse::<usize>().ok()?)?;
-                    let name = e
-                        .variants
-                        .get(variant.strip_prefix('v')?.parse::<usize>().ok()?)?;
-                    Some(Value::Variant(e.name.clone(), name.clone()))
-                })();
-                source.unwrap_or(Value::Variant(owner, variant))
-            }
-            other => other,
-        }
-    }
-
-    /// An outcome about the normalized function, in source terms.
-    pub fn source_outcome(&self, outcome: Outcome) -> Outcome {
-        match outcome {
-            Outcome::Proved {
-                witness: Some(inputs),
-            } => Outcome::Proved {
-                witness: Some(self.source_inputs(&inputs)),
-            },
-            Outcome::Refuted {
-                evidence: Refutation::Counterexample(inputs),
-            } => Outcome::Refuted {
-                evidence: Refutation::Counterexample(self.source_inputs(&inputs)),
-            },
-            Outcome::WeakCallee { inputs, calls } => Outcome::WeakCallee {
-                inputs: self.source_inputs(&inputs),
-                calls,
-            },
-            other => other,
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::{hash, units};
@@ -442,7 +199,6 @@ decide {
     | s == Go   => Wait
     | otherwise => Stop
 }
-
 
 fn sum(x: i32, y: i32) -> i32
     requires x + y < 100 and x + y > 0
