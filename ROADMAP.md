@@ -26,6 +26,17 @@ Taken on 2026-11-12:
   programs, compiles them natively and has a measurement against Rust to
   show.
 
+- **Stage 9's list syntax.** `all x in items: …`, `any` and `count` in the
+  same form, and `all k in indices(items): …` for an index, as in parallel
+  lists; `length(items)` and `items[k]`, with an obligation that each index
+  is in range. They are allowed in code and in specifications. A
+  counterexample that rests on a callee's contract inside a quantifier is
+  undecided, with its reason, until a target needs its replay. Evidence: a
+  [probe](docs/design/probes/2026-11-12-list-syntax/README.md), which didn't
+  separate this form from Dafny's, and a second run of the
+  [list-encoding measurement](docs/design/measurements/2026-11-12-list-encoding/README.md),
+  which proves and refutes a call inside `all`.
+
 - **Stage 9's semantics, before its code** ([#69](https://github.com/sequelcore/accord/issues/69)).
   A call is proved through the callee's contract, and a caller's proofs bind
   to that contract's hash. Lists are traversed by `all`, `any` and `count`,
