@@ -59,12 +59,14 @@ impl Scope<'_> {
         format!("BigInt({}.length)", self.wrapped(list, None))
     }
 
+    /// An element, asserted present: every index is proved within its list,
+    /// so the module typechecks under `noUncheckedIndexedAccess`.
     pub(super) fn index(&self, list: &Expr, index: &Expr) -> String {
         let at = match index {
             Expr::Name(name, _) if self.indices.contains(name) => super::camel(name),
             _ => format!("Number({})", self.bare(index, Some(Width::I64))),
         };
-        format!("{}[{at}]", self.wrapped(list, None))
+        format!("{}[{at}]!", self.wrapped(list, None))
     }
 
     /// Whether `name` is an index a quantifier ranges over.

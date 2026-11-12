@@ -30,7 +30,7 @@ Node runs them directly.
 
 | Accord | TypeScript |
 | --- | --- |
-| `enum Light { Red, Amber }` | `export type Light = "red" \| "amber";`: each variant's `snake_case` |
+| `enum Light { Red, Amber }` | `export type Light = "red" \| "amber";`: each variant's `snake_case`, or the value it gives (`Red = "RED"`) |
 | `pub fn` | An exported function, named in `camelCase`, with its parameters in `camelCase` and in order |
 | `fn` without `pub` | Nothing, unless a function the module exports calls it |
 | `Bool`, `Text` | `boolean`, `string` |
@@ -48,7 +48,9 @@ safe, since each operand is proved not to overflow whatever the other's value.
 `count` are `every`, `some` and `filter(…).length`, `length(list)` is
 `list.length`, and both are `bigint`s, since they are `i64`s. An index a
 quantifier ranges over is the callback's `number`, read as a `bigint`
-except where it indexes an array.
+except where it indexes an array. `list[k]` is `list[k]!`: every index is
+proved within its list, so a module typechecks under
+`noUncheckedIndexedAccess`.
 
 A call runs the callee's body directly, with no boundary check, since each
 call's `requires` is proved. Every function a module's exported functions call,
