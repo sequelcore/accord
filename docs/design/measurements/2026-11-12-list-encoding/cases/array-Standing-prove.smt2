@@ -1,0 +1,6 @@
+(set-logic ALL)
+(declare-datatype Standing ((Decide) (Gap) (Holds) (Opinion)))
+(declare-const s (Array Int Standing)) (declare-const n Int) (assert (>= n 0))
+(assert (not (=> (forall ((k Int)) (=> (and (<= 0 k) (< k n)) (not (= (select s k) Decide))))
+                 (not (exists ((k Int)) (and (<= 0 k) (< k n) (= (select s k) Decide)))))))
+(check-sat)

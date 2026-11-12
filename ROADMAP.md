@@ -13,6 +13,17 @@ change as the earlier ones teach us.
 
 Taken on 2026-11-12:
 
+- **Stage 9's semantics, before its code** ([#69](https://github.com/sequelcore/accord/issues/69)).
+  A call is proved through the callee's contract, and a caller's proofs bind
+  to that contract's hash. Lists are traversed by `all`, `any` and `count`,
+  not by loops, so no `decreases` is needed; `count`'s properties are
+  trusted axioms. Lists are immutable values. The encoding and solver
+  options follow a [measurement](docs/design/measurements/2026-11-12-list-encoding/README.md).
+  The [native code constraints](docs/design/native-code-constraints.md#decide-these-before-the-stage-that-needs-them)
+  record each decision. The rule from outside Tesota is Cedar's evaluation
+  of a policy set: denied when a `forbid` applies, allowed when a `permit`
+  does.
+
 - **Stage 7's readability check moves to the public phase.** A reader who
   wrote or maintains Accord can't show that its review is readable without
   the code, and no outside reader is available yet. Stage 7 closes with its
@@ -65,7 +76,7 @@ Taken on 2026-11-07:
 | 6. Data | `Text`, `List<T>` with `in` (no quantifiers), and a folder as one program: what `gate-rule` needs | `gate-rule` ported and proved | Done ([#33](https://github.com/sequelcore/accord/issues/33)): `conformance/programs/tesota/`, with text, lists and a folder as one program; records, sum types and `match` moved to the stage that needs them |
 | 7. Intents and the review view | `intent` declarations; the human view (intent, specification, examples, counterexamples, open cases, surviving mutants, what wasn't proved); the agent view as structured diagnostics | The review of `gate-rule` and an outside-domain rule is readable without their code | Built, check moved to the public phase ([#46](https://github.com/sequelcore/accord/issues/46)): the [gate and Cedar packets](docs/design/stage-7-review/README.md) await a reader from outside the project |
 | 8. TypeScript output | Accord compiled to a TypeScript module | Tesota's own tests pass with the generated rule in place of the original | Done ([#47](https://github.com/sequelcore/accord/issues/47)): `accord build` ([reference](docs/typescript.md)), checked against the interpreter; Tesota's typecheck and tests pass with the generated rules (`scripts/check-tesota.sh`), and axios-retry's lint and specs with its generated request predicates (`scripts/check-axios-retry.sh`) |
-| 9. Whole rules | Calls between functions, proved through the callee's contract; quantifiers over lists; length and indexing; loops with `decreases`: what `verdict-rule`, the largest rule, needs | `verdict-rule` ported and proved | Next ([#69](https://github.com/sequelcore/accord/issues/69)) |
+| 9. Whole rules | Calls between functions, proved through the callee's contract; `all`, `any` and `count` over lists; length and indexing: what `verdict-rule`, the largest rule, and Cedar's policy-set evaluation need | `verdict-rule` and Cedar's policy-set evaluation ported and proved | Next ([#69](https://github.com/sequelcore/accord/issues/69)) |
 | 10. State machines | `machine` declarations, invariants, explicit-state model checking, planted faults | A Tesota design model ported, its faults detected | |
 
 **Public phase**, after these stages: what needs people outside the project.

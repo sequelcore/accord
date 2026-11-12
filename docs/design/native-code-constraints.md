@@ -27,6 +27,13 @@ native backend later. Terms are defined in the [concepts](../concepts.md).
 - **Division** truncates toward zero, and a zero divisor and `MIN / -1` are
   obligations ([roadmap](../../ROADMAP.md#decisions)). The tokenizer still
   rejects `/` and `%`.
+- **Lists in stage 9** ([#69](https://github.com/sequelcore/accord/issues/69)):
+  a list is a sequence in SMT-LIB, and `in` is encoded over indices like
+  `all`, `any` and `count`, since neither solver connects `seq.contains` to a
+  quantifier over indices. cvc5 runs with `--mbqi`, without which it refutes
+  no quantified claim. `count`'s bounds and its zero case are axioms the
+  compiler states, listed in the receipt as trusted
+  ([measurement](measurements/2026-11-12-list-encoding/README.md)).
 - **No new surface syntax** without evidence that the current one limits
   comprehension or productivity.
 - **A structured interface for agents** comes after
@@ -140,12 +147,12 @@ before the stage that first depends on it. Rows are in dependency order.
 | 1 | Integer semantics | Enforced | — | — | Every proof and all stored evidence |
 | 2 | Purity as the default; the semantics of effects | Purity enforced; effects undecided | 1 | The first target that needs input or output | Freedom of evaluation order, reordering, proofs of calls |
 | 3 | Freedom of evaluation order for `and` and `or` | Enforced | 1, 2 | Effects | Generated code that evaluates eagerly |
-| 4 | Totality, and how termination is proved | Holds trivially: no recursion or loops | 2 | Recursion or loops | What "proved" means for code that may not return |
-| 5 | Value semantics: no aliasing a program can observe | Agreed direction | 2 | Records, or updates to lists | Every memory strategy at once |
+| 4 | Totality, and how termination is proved | Decided: no recursion and no general loop. A list is traversed only by `all`, `any` and `count`, which end on every finite list, so termination holds without `decreases` | 2 | Recursion or loops | What "proved" means for code that may not return |
+| 5 | Value semantics: no aliasing a program can observe | Decided: a list is an immutable value, `==` compares contents, and no operation updates a list or exposes its identity | 2 | Records, or updates to lists | Every memory strategy at once |
 | 6 | The encoding of `Text` | Decided for equality: a sequence of characters up to U+2FFFF, the solvers' alphabet, which the [boundary](../typescript.md#the-boundary) enforces. Length and ordering undecided | 5 | The first `Text` operation beyond equality, and stage 8's boundary, since TypeScript strings are UTF-16 | Every `Text` proof and boundary check |
-| 7 | Proving calls: callers rely on the callee's contract, not its body | Undecided: no calls between functions | 1, 2, 4 | Calls between functions | The cost of proofs, separate compilation, inlining |
+| 7 | Proving calls: callers rely on the callee's contract, not its body | Decided: at each call, the callee's `requires` is an obligation and its `ensures` an assumption; the call graph has no cycles | 1, 2, 4 | Calls between functions | The cost of proofs, separate compilation, inlining |
 | 8 | Normalization and hashing | Enforced | 1 | Any change to the normal form | Every stored hash and piece of evidence |
-| 9 | An identity for a specification apart from its implementation | Undecided | 7, 8 | Several implementations of one specification | How approval and evidence bind |
+| 9 | An identity for a specification apart from its implementation | Partly decided: a caller's proofs bind to a hash of the callee's contract, so a change to the callee's body alone leaves them current. How approval binds is undecided | 7, 8 | Calls between functions; several implementations of one specification | How approval and evidence bind |
 | 10 | The boundary contract: what is checked and which error a failed check returns | Decided: [types, ranges and each `requires`](../typescript.md#the-boundary), with `TypeError` or `RangeError` | 1, 5, 6 | Stage 8's first published output | A public interface, once others call it |
 
 ## Keep these optimizations possible

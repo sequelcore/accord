@@ -1,0 +1,6 @@
+(set-logic ALL)
+(declare-datatype Standing ((Decide) (Gap) (Holds) (Opinion)))
+(declare-const s (Seq Standing))
+(assert (not (=> (forall ((k Int)) (=> (and (<= 0 k) (< k (seq.len s))) (not (= (seq.nth s k) Decide))))
+                 (not (exists ((k Int)) (and (<= 0 k) (< k (seq.len s)) (= (seq.nth s k) Decide)))))))
+(check-sat)
