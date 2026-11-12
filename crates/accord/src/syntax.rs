@@ -3,6 +3,7 @@
 //! `ensures` and a body that is an expression or a decision table, which may
 //! call other functions.
 
+mod declarations;
 mod expr;
 mod parser;
 mod token;
