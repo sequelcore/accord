@@ -52,7 +52,9 @@ never records acceptance; that stays with the person.
 
 - **Obligation:** one logical statement the compiler derives from the code
   and its specification that must hold: a postcondition on one path, the
-  absence of overflow in one addition, a precondition at one call. Some come
+  absence of overflow in one addition, a precondition at one call, an index
+  in range. An operation inside a quantifier's condition carries its
+  obligation for every index the quantifier ranges over. Some come
   from the specification; others are implicit in the language.
 - **Polarity** of an obligation: **universal** when it must hold for every
   admitted input, as a postcondition must, or **existential** when it needs
@@ -87,9 +89,9 @@ never records acceptance; that stays with the person.
   zero; a condition negated; a membership test negated (`in` becomes `not
   in`); and, in a decision table, two adjacent rows swapped, a row's `Bool`
   or enum result replaced, or a row removed where `otherwise` keeps the
-  table complete. Nothing else is mutated: not arithmetic operators, texts
-  or lists, so a contract's strength says nothing about those parts of a
-  body. At most 64 mutants are tried per
+  table complete. Nothing else is mutated: not arithmetic operators, texts,
+  lists or quantifiers themselves, though the conditions inside a quantifier
+  are, so a contract's strength says nothing about those parts of a body. At most 64 mutants are tried per
   function; the rest are counted as not tried.
 - **Weakening:** two revisions of one contract compared: weaker, stronger,
   equivalent, incomparable or undecided, decided by the solvers. A weaker

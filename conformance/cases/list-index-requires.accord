@@ -1,0 +1,7 @@
+// expect: error
+// A `requires` can't index a list yet.
+fn first_is_set(flags: List<Bool>) -> Bool
+    requires flags[0]
+{
+    true
+}

@@ -1,0 +1,5 @@
+// expect: error
+fn all_set(n: i64) -> Bool
+{
+    all x in n: x
+}

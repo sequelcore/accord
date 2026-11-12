@@ -2,7 +2,7 @@
 
 use super::{Value, broken_requires};
 use crate::obligation::{Guard, term};
-use crate::syntax::{Arith, Body, Expr, Function, Op};
+use crate::syntax::{Arith, Body, Expr, Function, Op, Quantifier, Range};
 
 #[derive(Clone, Copy, PartialEq)]
 pub(super) enum Mode {
@@ -143,7 +143,56 @@ impl Env<'_> {
                 };
                 body(callee, &env)
             }
+            Expr::Quantified(quantifier, name, range, condition, _) => {
+                self.quantified(*quantifier, name, range, condition)
+            }
+            Expr::Length(list, _) => Ok(Value::Int(self.list(list)?.len() as i128)),
+            Expr::Index(list, index, site) => {
+                let items = self.list(list)?;
+                usize::try_from(self.int(index)?)
+                    .ok()
+                    .and_then(|at| items.get(at).cloned())
+                    .ok_or(format!("`{}` is out of range", site.text))
+            }
         }
+    }
+
+    pub(super) fn list(&self, expr: &Expr) -> Result<Vec<Value>, String> {
+        match self.eval(expr)? {
+            Value::List(items) => Ok(items),
+            _ => Err("expected a list".to_string()),
+        }
+    }
+
+    /// `all`, `any` or `count` over `range`, evaluating the condition for
+    /// every element, as its obligations hold for every element.
+    fn quantified(
+        &self,
+        quantifier: Quantifier,
+        name: &str,
+        range: &Range,
+        condition: &Expr,
+    ) -> Result<Value, String> {
+        let items = self.list(range.list())?;
+        let mut holds = 0;
+        for (index, item) in items.iter().enumerate() {
+            let bound = match range {
+                Range::Elements(_) => item.clone(),
+                Range::Indices(_) => Value::Int(index as i128),
+            };
+            let mut names = self.names.to_vec();
+            names.push((name.to_string(), bound));
+            let env = Env {
+                names: &names,
+                ..*self
+            };
+            holds += usize::from(env.boolean(condition)?);
+        }
+        Ok(match quantifier {
+            Quantifier::All => Value::Bool(holds == items.len()),
+            Quantifier::Any => Value::Bool(holds > 0),
+            Quantifier::Count => Value::Int(holds as i128),
+        })
     }
 
     fn fits(&self, value: i128, site: &crate::syntax::Site) -> Result<Value, String> {

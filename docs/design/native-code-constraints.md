@@ -28,12 +28,17 @@ native backend later. Terms are defined in the [concepts](../concepts.md).
   obligations ([roadmap](../../ROADMAP.md#decisions)). The tokenizer still
   rejects `/` and `%`.
 - **Lists in stage 9** ([#69](https://github.com/sequelcore/accord/issues/69)):
-  a list is a sequence in SMT-LIB, and `in` is encoded over indices like
-  `all`, `any` and `count`, since neither solver connects `seq.contains` to a
-  quantifier over indices. cvc5 runs with `--mbqi`, without which it refutes
-  no quantified claim. `count`'s bounds and its zero case are axioms the
-  compiler states, listed in the receipt as trusted
-  ([measurement](measurements/2026-11-12-list-encoding/README.md)).
+  a list is a sequence in SMT-LIB. `all`, `any`, `count`, `length` and
+  indexing read it by index. `in` stays `seq.contains`, or a disjunction
+  over a literal list, and a script that also reads lists by index states
+  how each `in` relates to the indices, since neither solver connects the
+  two ([measurement](measurements/2026-11-12-list-encoding/README.md)).
+  Encoding every `in` by index, as first decided, made Z3 give up on
+  inputs for Tesota's gate rule, whose `not failure in sent` became a
+  `forall`. cvc5 runs with `--mbqi`, without which it refutes no quantified
+  claim. `count`'s bounds, its zero case and its full case are axioms the
+  compiler states, and every list holds at most 4,294,967,295 elements;
+  the receipt lists both as trusted.
 - **No new surface syntax** without evidence that the current one limits
   comprehension or productivity.
 - **A structured interface for agents** comes after

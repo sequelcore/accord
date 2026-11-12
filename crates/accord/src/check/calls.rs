@@ -118,6 +118,15 @@ pub(crate) fn callees(expr: &Expr, out: &mut Vec<String>) {
             callees(otherwise, out);
         }
         Expr::List(items, ..) => items.iter().for_each(|item| callees(item, out)),
+        Expr::Quantified(_, _, range, condition, _) => {
+            callees(range.list(), out);
+            callees(condition, out);
+        }
+        Expr::Length(list, _) => callees(list, out),
+        Expr::Index(list, index, _) => {
+            callees(list, out);
+            callees(index, out);
+        }
         Expr::Bool(_) | Expr::Int(..) | Expr::Text(..) | Expr::Name(..) | Expr::Variant(..) => {}
     }
 }

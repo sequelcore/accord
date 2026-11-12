@@ -9,6 +9,7 @@ mod boundary;
 #[cfg(test)]
 mod differential;
 mod expr;
+mod lists;
 
 use std::collections::BTreeMap;
 
@@ -251,6 +252,7 @@ fn core(function: &Function, functions: &[Function]) -> String {
         params: &function.params,
         context: Context::Code,
         functions,
+        indices: &[],
     };
     let want = match function.ret {
         Type::Int(width) => Some(width),

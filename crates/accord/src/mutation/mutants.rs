@@ -58,8 +58,13 @@ fn line_of(expr: &Expr) -> usize {
         | Expr::Variant(_, _, line)
         | Expr::Int(_, line)
         | Expr::Text(_, line)
-        | Expr::List(_, _, line) => *line,
-        Expr::Arith(.., site) | Expr::Neg(_, site) | Expr::Call(.., site) => site.line,
+        | Expr::List(_, _, line)
+        | Expr::Quantified(.., line)
+        | Expr::Length(_, line) => *line,
+        Expr::Arith(.., site)
+        | Expr::Neg(_, site)
+        | Expr::Call(.., site)
+        | Expr::Index(.., site) => site.line,
         Expr::Not(inner) => line_of(inner),
         Expr::Binary(_, left, _) | Expr::If(left, _, _) => line_of(left),
         Expr::Bool(_) => 0,
@@ -119,6 +124,11 @@ fn mutate_expr(expr: &mut Expr, n: &mut usize) -> Option<Change> {
         Expr::Arith(_, left, right, _) => mutate_expr(left, n).or_else(|| mutate_expr(right, n)),
         Expr::List(items, ..) => items.iter_mut().find_map(|item| mutate_expr(item, n)),
         Expr::Call(_, args, _) => args.iter_mut().find_map(|(_, arg)| mutate_expr(arg, n)),
+        Expr::Quantified(_, _, range, condition, _) => {
+            mutate_expr(range.list_mut(), n).or_else(|| mutate_expr(condition, n))
+        }
+        Expr::Length(list, _) => mutate_expr(list, n),
+        Expr::Index(list, index, _) => mutate_expr(list, n).or_else(|| mutate_expr(index, n)),
         Expr::Bool(_) | Expr::Text(..) | Expr::Name(..) | Expr::Variant(..) => None,
     }
 }

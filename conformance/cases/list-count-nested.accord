@@ -1,0 +1,6 @@
+// expect: error
+// `count` can't be inside another quantifier yet.
+fn each_once(xs: List<Bool>, ys: List<Bool>) -> Bool
+{
+    all x in xs: (count y in ys: y == x) > 0
+}

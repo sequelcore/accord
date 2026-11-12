@@ -1,0 +1,12 @@
+// expect: refuted, passed
+// The count is of the wrong standing: a list with a `Decide` and no `Gap`
+// counts zero.
+enum Standing { Decide, Gap, Holds, Opinion }
+
+fn decisions(standings: List<Standing>) -> i64
+    ensures result == 0 implies not any s in standings: s == Decide
+{
+    count s in standings: s == Gap
+}
+
+example decisions(standings: [Gap]) == 1

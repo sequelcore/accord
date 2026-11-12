@@ -1,0 +1,15 @@
+// expect: proved, undecided
+// `covered`'s contract allows `true` for an unset flag. `all_flags` holds when
+// run, but replaying the solvers' input would need `covered`'s value at each
+// element, which a model doesn't list, so it is undecided rather than refuted.
+fn covered(flag: Bool) -> Bool
+    ensures flag implies result
+{
+    flag
+}
+
+fn all_flags(flags: List<Bool>) -> Bool
+    ensures result implies all f in flags: f
+{
+    all f in flags: covered(flag: f)
+}

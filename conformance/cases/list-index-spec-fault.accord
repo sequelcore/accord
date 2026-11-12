@@ -1,0 +1,10 @@
+// expect: proved, refuted, refuted
+// A specification's index must be in range too: `k` ranges over `proved`'s
+// indices, and nothing makes `tested` as long. The clause would hold
+// whatever an out-of-range index stood for, which is why the index is an
+// obligation of its own.
+fn any_tested(proved: List<Bool>, tested: List<Bool>) -> Bool
+    ensures all k in indices(proved): tested[k] == tested[k]
+{
+    true
+}

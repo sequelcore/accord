@@ -82,6 +82,21 @@ impl<'a> Renamer<'a> {
                 }
                 *name = format!("f{}", self.function_index(name));
             }
+            // A quantifier's name takes the next position after those in
+            // scope, so its normalized name is unique where it is bound. Only
+            // names are looked up here, so the type beside it is a stand-in.
+            Expr::Quantified(_, name, range, condition, _) => {
+                self.expr(range.list_mut(), params);
+                let mut inner = params.to_vec();
+                inner.push((std::mem::take(name), Type::Bool));
+                *name = format!("p{}", params.len());
+                self.expr(condition, &inner);
+            }
+            Expr::Length(list, _) => self.expr(list, params),
+            Expr::Index(list, index, _) => {
+                self.expr(list, params);
+                self.expr(index, params);
+            }
             Expr::Bool(_) | Expr::Int(..) | Expr::Text(..) | Expr::Name(..) => {}
         }
     }

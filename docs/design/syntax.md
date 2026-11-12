@@ -136,7 +136,11 @@ condition can never be the first to hold.
   context where its elements don't give it, as `[]` always does. Lists are
   compared with `==` and `!=`, and `x in list` asks whether `x` is one of the
   elements; it binds like a comparison, so `not tool in readers` needs no
-  parentheses. There is no indexing or quantifier over a list yet.
+  parentheses. `length(list)` is an `i64`, and `list[k]` is the element at
+  index `k`, an `i64` from 0, which must be in range: that is an obligation
+  wherever the index is evaluated, in code or in an `ensures`. A `requires`
+  or `open when` can't index a list yet. Every list is assumed to hold at
+  most 4,294,967,295 elements, as a TypeScript array does.
 - `i32`, `i64`: signed integers of that width. Arithmetic that could leave the
   range is an obligation; the program can't overflow. The obligation holds
   under the conditions that make the operation run: only the branch of an
@@ -160,6 +164,8 @@ condition can never be the first to hold.
 | Comparison | `==`, `!=` on any type; `<`, `<=`, `>`, `>=` on integers; `in` from an element to a list |
 | Arithmetic | `+`, `-`, `*`, and `-` before a value; `/` and `%` truncate toward zero (`-7 / 2 == -3`, `-7 % 2 == -1`), in code and in specifications, with a zero divisor and `MIN / -1` obligations. `/` and `%` aren't compiled yet |
 | Choice | `if condition { a } else { b }`, always with `else` |
+| Quantifier | `all x in list: condition`, `any x in list: condition` and `count x in list: condition`, by element; `all k in indices(list): condition` and the same for `any` and `count`, by index. `all` and `any` are `Bool`, `count` an `i64`. The condition extends as far as an expression does, so `(all x in xs: x) and ready` needs its parentheses. The name can't be a parameter's, and `count` can't be inside another quantifier yet |
+| Length and index | `length(list)`, `list[k]` |
 | Call | `name(label: value, …)`; labels are required when the function has more than one parameter. A body or a decision table can call any function of its program; a specification and an example's arguments can't yet. A function can't call itself, directly or through others |
 
 A call is proved through the callee's contract, never its body: the caller

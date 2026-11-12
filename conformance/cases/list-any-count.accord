@@ -1,0 +1,21 @@
+// expect: proved, proved, proved, proved, proved, passed, passed
+// `count` and `any`, as Tesota's `decisions` and `partlyHolds` use them.
+enum Standing { Decide, Gap, Holds, Opinion }
+
+fn decisions(standings: List<Standing>) -> i64
+    ensures result >= 0 and result <= length(standings)
+    ensures result == 0 implies not any s in standings: s == Decide
+    ensures (not any s in standings: s == Decide) implies result == 0
+{
+    count s in standings: s == Decide
+}
+
+fn partly_holds(standings: List<Standing>) -> Bool
+    ensures result implies any s in standings: s == Decide or s == Gap
+    ensures (any s in standings: s == Decide or s == Gap) implies result
+{
+    any s in standings: s == Decide or s == Gap
+}
+
+example decisions(standings: [Decide, Gap, Decide]) == 2
+example partly_holds(standings: [Holds, Opinion]) == false

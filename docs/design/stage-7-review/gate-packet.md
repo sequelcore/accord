@@ -35,7 +35,7 @@ not_proved   trusted_components: The parser, obligation generator, solvers, and 
 not_proved   mutation_sample: Only the reported finite sample of mutants was checked; contract adequacy is not proved.
 standing     verification_required (gate-rule.accord): verified
 function     fn tool_may_change_files(tool_name: Text, native_question: Bool, read_only: Bool) -> Bool (gate-rule.accord)
-review_hash  32819b89bac6757884992d8f88b81c1fc7247c4e352993386dc5d00df0e15b58
+review_hash  43221376c406f4e87a583318de751390dd257071e71bba4aef0d0d66dc2f2847
 intent       tool_may_change_files (gate-rule.accord) (unchecked): A started tool may change files unless it asks a native question, runs read-only, or is a trusted reader.
 specification line 24: ensures result implies not native_question and not read_only and not tool_name in ["read", "grep", "find", "ls", "update_tasks"]
 specification line 25: ensures not native_question and not read_only and not tool_name in ["read", "grep", "find", "ls", "update_tasks"] implies result
@@ -52,7 +52,7 @@ not_proved   trusted_components: The parser, obligation generator, solvers, and 
 not_proved   mutation_sample: Only the reported finite sample of mutants was checked; contract adequacy is not proved.
 standing     tool_may_change_files (gate-rule.accord): verified
 function     fn gate_verdict(outcome: ProofOutcome, failure: Text, sent: List<Text>) -> GateVerdict (gate-rule.accord)
-review_hash  9f2233712ff270ff26aa156d2c1c3f04ba2e57506c377c2953dcdd7b08b017e0
+review_hash  ffdf0d56e16147700ae458102a502fe43048d0ebd7c2e8b37fe56c5c59c2b147
 type         enum ProofOutcome { Passed, Failed, Vacuous, TimedOut, Cancelled, NotStarted }
 type         enum GateVerdict { Proved, SendBack, NoProgress, Operator }
 intent       gate_verdict (gate-rule.accord) (unchecked): Accept a passed proof; send a failed or vacuous proof back once per failure; identify repetition as no progress; ask the operator about interrupted or unstarted work.
@@ -93,10 +93,11 @@ strength     gate_verdict: 25 mutants: 25 caught, 0 equivalent, 0 surviving, 0 u
 not_proved   intent_alignment: The compiler does not prove that the specification captures the intended requirement.
 not_proved   integration: Callers, external interpretation of inputs, and surrounding system behavior were not checked.
 not_proved   trusted_components: The parser, obligation generator, solvers, and interpreter are trusted, not proved correct here.
+not_proved   list_assumptions: Every list is assumed to hold at most 4,294,967,295 elements, as a TypeScript array does, and `count` is known to the solvers only through trusted axioms: its bounds, when it is zero and when it is the length.
 not_proved   mutation_sample: Only the reported finite sample of mutants was checked; contract adequacy is not proved.
 standing     gate_verdict (gate-rule.accord): verified
 function     fn command_verdict(outcome: ProofOutcome, failure: Text, sent: List<Text>, preexisting: Bool) -> GateVerdict (gate-rule.accord)
-review_hash  7b41c38460d453b8e27582cafdce173a5b3cca19ce61049ab56b929fbf22e488
+review_hash  9f57b3330ee07790b393de7b688c99079060c48e8ea52ae54962ce6157a917e8
 type         enum ProofOutcome { Passed, Failed, Vacuous, TimedOut, Cancelled, NotStarted }
 type         enum GateVerdict { Proved, SendBack, NoProgress, Operator }
 intent       command_verdict (gate-rule.accord) (unchecked): Treat an already present command failure as the operator's; otherwise accept passed proofs, send failures back once, and identify interrupted work or repetition.
@@ -126,7 +127,7 @@ proved       command_verdict (line 61): some admitted input reaches this row fir
 proved       command_verdict (line 62): some admitted input reaches this row first (existential)
              reached with outcome = ProofOutcome.Failed, failure = "!0!", sent = ["!0!"], preexisting = false
 proved       command_verdict (line 63): some admitted input reaches this row first (existential)
-             reached with outcome = ProofOutcome.Failed, failure = "!0!", sent = [], preexisting = false
+             reached with outcome = ProofOutcome.Vacuous, failure = "!0!", sent = [], preexisting = false
 counterexamples none reported (this alone is not a proof)
 passed       command_verdict (line 77): example command_verdict(outcome: Failed, failure: "exit 1", sent: [], preexisting: true) == Operator
 passed       command_verdict (line 86): example command_verdict(outcome: Vacuous, failure: "no checks", sent: [], preexisting: true) == SendBack
@@ -136,10 +137,11 @@ strength     command_verdict: 33 mutants: 32 caught, 1 equivalent, 0 surviving, 
 not_proved   intent_alignment: The compiler does not prove that the specification captures the intended requirement.
 not_proved   integration: Callers, external interpretation of inputs, and surrounding system behavior were not checked.
 not_proved   trusted_components: The parser, obligation generator, solvers, and interpreter are trusted, not proved correct here.
+not_proved   list_assumptions: Every list is assumed to hold at most 4,294,967,295 elements, as a TypeScript array does, and `count` is known to the solvers only through trusted axioms: its bounds, when it is zero and when it is the length.
 not_proved   mutation_sample: Only the reported finite sample of mutants was checked; contract adequacy is not proved.
 standing     command_verdict (gate-rule.accord): verified
 function     fn keeps_working(verdicts: List<GateVerdict>) -> Bool (gate-rule.accord)
-review_hash  8dd0e1fd59d9ec8bef01451b771265650644242c2664b53d37f6d591750a1af1
+review_hash  4149d6320a0fc5b135f398296d139e64c35d473249d221a4875bda3ef6532482
 type         enum GateVerdict { Proved, SendBack, NoProgress, Operator }
 intent       keeps_working (gate-rule.accord) (unchecked): Continue while at least one verdict requests another attempt.
 specification line 69: ensures result implies SendBack in verdicts
@@ -155,6 +157,7 @@ strength     keeps_working: 1 mutant: 1 caught, 0 equivalent, 0 surviving, 0 und
 not_proved   intent_alignment: The compiler does not prove that the specification captures the intended requirement.
 not_proved   integration: Callers, external interpretation of inputs, and surrounding system behavior were not checked.
 not_proved   trusted_components: The parser, obligation generator, solvers, and interpreter are trusted, not proved correct here.
+not_proved   list_assumptions: Every list is assumed to hold at most 4,294,967,295 elements, as a TypeScript array does, and `count` is known to the solvers only through trusted axioms: its bounds, when it is zero and when it is the length.
 not_proved   mutation_sample: Only the reported finite sample of mutants was checked; contract adequacy is not proved.
 standing     keeps_working (gate-rule.accord): verified
 

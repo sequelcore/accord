@@ -4,7 +4,7 @@
 
 use super::parser::Parser;
 use super::token::Token;
-use super::{Arith, Expr, Op};
+use super::{Arith, Expr, Op, Quantifier, Range};
 use crate::Diagnostic;
 
 impl Parser<'_> {
@@ -108,7 +108,60 @@ impl Parser<'_> {
         Ok(Expr::Neg(Box::new(inner), self.site(start)))
     }
 
+    /// An atom, then any `[index]` after it.
     fn primary(&mut self) -> Result<Expr, Diagnostic> {
+        let start = self.pos;
+        let mut expr = self.atom()?;
+        while self.at_sym("[") {
+            self.pos += 1;
+            let index = self.expr()?;
+            self.expect_sym("]")?;
+            expr = Expr::Index(Box::new(expr), Box::new(index), self.site(start));
+        }
+        Ok(expr)
+    }
+
+    /// `all name in range: condition`, `any …` or `count …`: the condition
+    /// extends as far as an expression does.
+    fn quantified(&mut self, quantifier: Quantifier) -> Result<Expr, Diagnostic> {
+        let line = self.line();
+        self.pos += 1;
+        let name = self.name()?;
+        self.expect_word("in")?;
+        let range = if self.at_word("indices") {
+            self.pos += 1;
+            self.expect_sym("(")?;
+            let list = self.expr()?;
+            self.expect_sym(")")?;
+            Range::Indices(Box::new(list))
+        } else {
+            Range::Elements(Box::new(self.additive()?))
+        };
+        self.expect_sym(":")?;
+        let condition = self.expr()?;
+        Ok(Expr::Quantified(
+            quantifier,
+            name,
+            range,
+            Box::new(condition),
+            line,
+        ))
+    }
+
+    fn atom(&mut self) -> Result<Expr, Diagnostic> {
+        for quantifier in [Quantifier::All, Quantifier::Any, Quantifier::Count] {
+            if self.at_word(quantifier.name()) {
+                return self.quantified(quantifier);
+            }
+        }
+        if self.at_word("length") {
+            let line = self.line();
+            self.pos += 1;
+            self.expect_sym("(")?;
+            let list = self.expr()?;
+            self.expect_sym(")")?;
+            return Ok(Expr::Length(Box::new(list), line));
+        }
         if self.at_sym("(") {
             self.pos += 1;
             let inner = self.expr()?;

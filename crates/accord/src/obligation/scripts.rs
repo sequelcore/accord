@@ -1,7 +1,10 @@
 //! Scripts for analyses beside obligations: judging a mutant, and searching
 //! for an open case.
 
-use super::smt::{all, call_facts, declarations, ending, in_range, prelude, sort, term, value};
+use super::calls::{call_facts, declarations};
+use super::lists::list_facts;
+use super::operations::calls_in;
+use super::smt::{all, ending, in_range, prelude, sort, term, value};
 use crate::syntax::{ClauseKind, Function, Program, Type};
 
 /// The two scripts that judge a mutant of `original` against its contract.
@@ -19,15 +22,16 @@ pub(crate) fn mutant_scripts(
 ) -> (String, String) {
     let mut calls = Vec::new();
     for function in [original, mutant] {
-        super::calls_in(function, &mut calls);
+        calls_in(function, &mut calls);
     }
     let mut callees = Vec::new();
     for call in &calls {
-        crate::check::callees(call, &mut callees);
+        crate::check::callees(call.expr, &mut callees);
     }
     let prelude = format!(
-        "{}{}{}",
+        "{}{}{}{}",
         prelude(original, datatypes),
+        list_facts(&[original, mutant]),
         declarations(program, &callees),
         call_facts(program, &calls).0
     );
@@ -102,8 +106,9 @@ pub(crate) fn open_script(function: &Function, datatypes: &str) -> String {
     let mut named: Vec<String> = function.params.iter().map(|(n, _)| n.clone()).collect();
     named.extend(["r0".to_string(), "r1".to_string()]);
     format!(
-        "{}(define-fun contract ((result {ret})) Bool {ensures})\n{results}(assert (and (not {free}) (contract r0) (contract r1) (not (= r0 r1))))\n{}",
+        "{}{}(define-fun contract ((result {ret})) Bool {ensures})\n{results}(assert (and (not {free}) (contract r0) (contract r1) (not (= r0 r1))))\n{}",
         prelude(function, datatypes),
+        list_facts(&[function]),
         ending(&named)
     )
 }

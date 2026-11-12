@@ -115,6 +115,7 @@ pub(super) fn wrapper(program: &Program, function: &Function) -> (String, bool) 
         params: &function.params,
         context: Context::Spec,
         functions: &[],
+        indices: &[],
     };
     for clause in function
         .clauses
