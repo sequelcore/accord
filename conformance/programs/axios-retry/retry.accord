@@ -7,10 +7,10 @@
 // https://github.com/softonic/axios-retry/blob/a748627fdc5e22e659055b6cfb44e35ad5801bf4/src/index.ts
 // The project is archived. Accord has no records, so an AxiosError arrives as
 // its fields: `code` ("" when absent), whether a response came, its status
-// (0 when none) and the request's method ("" when absent). A body can't call
-// another function yet, so the request predicates state the retry rule
-// themselves. Licensed under Apache-2.0; see LICENSE-APACHE at the
-// repository root.
+// (0 when none) and the request's method ("" when absent). The request
+// predicates call the retry rule; their contracts restate it, since a
+// specification can't call a function yet. Licensed under Apache-2.0; see
+// LICENSE-APACHE at the repository root.
 
 /// A failed request may be retried: it wasn't aborted, and no response came
 /// or the server answered 429 or 5xx.
@@ -28,7 +28,7 @@ pub fn safe_request_error(code: Text, has_response: Bool, status: i32, method: T
     ensures result implies method in ["get", "head", "options"] and code != "ECONNABORTED" and (not has_response or status == 429 or status >= 500 and status <= 599)
     ensures method in ["get", "head", "options"] and code != "ECONNABORTED" and (not has_response or status == 429 or status >= 500 and status <= 599) implies result
 {
-    method in ["get", "head", "options"] and code != "ECONNABORTED" and (not has_response or status == 429 or status >= 500 and status <= 599)
+    method in ["get", "head", "options"] and retryable_error(code: code, has_response: has_response, status: status)
 }
 
 /// A retryable failure of an idempotent request: a safe one, PUT or DELETE.
@@ -37,7 +37,7 @@ pub fn idempotent_request_error(code: Text, has_response: Bool, status: i32, met
     ensures result implies method in ["get", "head", "options", "put", "delete"] and code != "ECONNABORTED" and (not has_response or status == 429 or status >= 500 and status <= 599)
     ensures method in ["get", "head", "options", "put", "delete"] and code != "ECONNABORTED" and (not has_response or status == 429 or status >= 500 and status <= 599) implies result
 {
-    method in ["get", "head", "options", "put", "delete"] and code != "ECONNABORTED" and (not has_response or status == 429 or status >= 500 and status <= 599)
+    method in ["get", "head", "options", "put", "delete"] and retryable_error(code: code, has_response: has_response, status: status)
 }
 
 example retryable_error(code: "ECONNRESET", has_response: false, status: 0) == true

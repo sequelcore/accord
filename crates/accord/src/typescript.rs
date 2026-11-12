@@ -127,7 +127,12 @@ fn module(program: &Program, names: &[String], file: usize, openness: &[Determin
         let (wrapper, uses_text) = wrapper(program, function);
         text |= uses_text;
         items.push(wrapper);
-        items.push(core(function));
+        items.push(core(function, &program.functions));
+    }
+    // A called function's body is written into every module that calls it,
+    // unexported, so no module exports an unchecked entry point.
+    for function in called(program, &functions) {
+        items.push(core(function, &program.functions));
     }
     if text {
         items.push(TEXT_CHECK.to_string());
@@ -137,6 +142,30 @@ fn module(program: &Program, names: &[String], file: usize, openness: &[Determin
         out += &item;
     }
     out
+}
+
+/// Every function `functions` call, directly or not, that isn't among them,
+/// in program order.
+fn called<'a>(program: &'a Program, functions: &[&Function]) -> Vec<&'a Function> {
+    let mut names: Vec<String> = Vec::new();
+    let mut pending: Vec<String> = functions
+        .iter()
+        .flat_map(|f| crate::check::body_callees(f))
+        .collect();
+    while let Some(name) = pending.pop() {
+        if names.contains(&name) || functions.iter().any(|f| f.name == name) {
+            continue;
+        }
+        if let Some(callee) = program.functions.iter().find(|f| f.name == name) {
+            pending.extend(crate::check::body_callees(callee));
+        }
+        names.push(name);
+    }
+    program
+        .functions
+        .iter()
+        .filter(|f| names.contains(&f.name))
+        .collect()
 }
 
 /// `import type` lines for the enums `functions`' signatures use that
@@ -215,12 +244,13 @@ fn signature(function: &Function, name: &str, ty: fn(&Type) -> String) -> String
     format!("{name}({}): {}", params.join(", "), ty(&function.ret))
 }
 
-/// The function's body, unexported.
-fn core(function: &Function) -> String {
+/// The function's body, unexported; it may call `functions`.
+fn core(function: &Function, functions: &[Function]) -> String {
     let name = format!("{}$", camel(&function.name));
     let code = Scope {
         params: &function.params,
         context: Context::Code,
+        functions,
     };
     let want = match function.ret {
         Type::Int(width) => Some(width),

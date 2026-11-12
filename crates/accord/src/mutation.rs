@@ -108,7 +108,7 @@ fn line_of(expr: &Expr) -> usize {
         | Expr::Int(_, line)
         | Expr::Text(_, line)
         | Expr::List(_, _, line) => *line,
-        Expr::Arith(.., site) | Expr::Neg(_, site) => site.line,
+        Expr::Arith(.., site) | Expr::Neg(_, site) | Expr::Call(.., site) => site.line,
         Expr::Not(inner) => line_of(inner),
         Expr::Binary(_, left, _) | Expr::If(left, _, _) => line_of(left),
         Expr::Bool(_) => 0,
@@ -167,6 +167,7 @@ fn mutate_expr(expr: &mut Expr, n: &mut usize) -> Option<Change> {
         Expr::Not(inner) | Expr::Neg(inner, _) => mutate_expr(inner, n),
         Expr::Arith(_, left, right, _) => mutate_expr(left, n).or_else(|| mutate_expr(right, n)),
         Expr::List(items, ..) => items.iter_mut().find_map(|item| mutate_expr(item, n)),
+        Expr::Call(_, args, _) => args.iter_mut().find_map(|(_, arg)| mutate_expr(arg, n)),
         Expr::Bool(_) | Expr::Text(..) | Expr::Name(..) | Expr::Variant(..) => None,
     }
 }
@@ -307,12 +308,13 @@ fn judge(unit: &Unit, solvers: &Solvers) -> Option<Strength> {
             continue;
         }
         strength.tried += 1;
-        let (survives, differs) = obligation::mutant_scripts(original, &mutant, &datatypes);
+        let (survives, differs) =
+            obligation::mutant_scripts(original, &mutant, &unit.program, &datatypes);
         // A counterexample here must be an input on which the mutant breaks
         // the contract.
         let breaks = |inputs: &Inputs| -> Result<(), String> {
             let names = interpret::admitted(original, inputs)?;
-            let result = interpret::result(&mutant, &names)?;
+            let result = interpret::result(&mutant, &names, &unit.program.functions)?;
             match interpret::meets(original, &names, &result)? {
                 false => Ok(()),
                 true => Err("the mutant meets the contract there".to_string()),
@@ -334,8 +336,8 @@ fn judge(unit: &Unit, solvers: &Solvers) -> Option<Strength> {
         let apart = |inputs: &Inputs| -> Result<(), String> {
             let names = interpret::admitted(original, inputs)?;
             let (ours, theirs) = (
-                interpret::result(original, &names)?,
-                interpret::result(&mutant, &names)?,
+                interpret::result(original, &names, &unit.program.functions)?,
+                interpret::result(&mutant, &names, &unit.program.functions)?,
             );
             if ours == theirs {
                 Err("the two agree there".to_string())
@@ -358,8 +360,8 @@ fn judge(unit: &Unit, solvers: &Solvers) -> Option<Strength> {
                     .collect();
                 let results = interpret::admitted(original, &inputs).and_then(|names| {
                     Ok((
-                        interpret::result(original, &names)?,
-                        interpret::result(&mutant, &names)?,
+                        interpret::result(original, &names, &unit.program.functions)?,
+                        interpret::result(&mutant, &names, &unit.program.functions)?,
                     ))
                 });
                 match results {

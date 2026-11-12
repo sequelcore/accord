@@ -225,23 +225,7 @@ impl Parser<'_> {
         let (text, line) = self.rest_of_line();
         self.expect_word("example")?;
         let function = self.name()?;
-        self.expect_sym("(")?;
-        let mut args = Vec::new();
-        while !self.at_sym(")") {
-            let labelled = matches!(self.tokens.get(self.pos + 1), Some((Token::Sym(":"), ..)));
-            let label = if labelled {
-                let label = self.name()?;
-                self.expect_sym(":")?;
-                Some(label)
-            } else {
-                None
-            };
-            args.push((label, self.expr()?));
-            if !self.at_sym(")") {
-                self.expect_sym(",")?;
-            }
-        }
-        self.expect_sym(")")?;
+        let args = self.arguments()?;
         self.expect_sym("==")?;
         let expected = self.expr()?;
         // A call written over several lines reads as one.
@@ -263,6 +247,28 @@ impl Parser<'_> {
             text,
             line,
         })
+    }
+
+    /// A call's parenthesized arguments, each with its label where written.
+    pub(super) fn arguments(&mut self) -> Result<Vec<(Option<String>, super::Expr)>, Diagnostic> {
+        self.expect_sym("(")?;
+        let mut args = Vec::new();
+        while !self.at_sym(")") {
+            let labelled = matches!(self.tokens.get(self.pos + 1), Some((Token::Sym(":"), ..)));
+            let label = if labelled {
+                let label = self.name()?;
+                self.expect_sym(":")?;
+                Some(label)
+            } else {
+                None
+            };
+            args.push((label, self.expr()?));
+            if !self.at_sym(")") {
+                self.expect_sym(",")?;
+            }
+        }
+        self.expect_sym(")")?;
+        Ok(args)
     }
 
     fn decide(&mut self) -> Result<Body, Diagnostic> {

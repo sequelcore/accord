@@ -5,7 +5,7 @@
 //! specification every integer is a `bigint`, since specification arithmetic
 //! is mathematical.
 
-use crate::syntax::{Arith, Expr, Op, Type, Width};
+use crate::syntax::{Arith, Expr, Function, Op, Type, Width};
 
 /// Where an expression is evaluated.
 #[derive(Clone, Copy, PartialEq)]
@@ -20,6 +20,8 @@ pub(super) enum Context {
 pub(super) struct Scope<'a> {
     pub params: &'a [(String, Type)],
     pub context: Context,
+    /// The functions a call may name.
+    pub functions: &'a [Function],
 }
 
 /// `snake_case` as `camelCase`.
@@ -63,9 +65,17 @@ impl Scope<'_> {
             .map(|(_, ty)| ty)
     }
 
+    fn callee(&self, name: &str) -> Option<&Function> {
+        self.functions.iter().find(|f| f.name == name)
+    }
+
     /// The integer width of `expr`, where it has one of its own.
     fn width(&self, expr: &Expr) -> Option<Width> {
         match expr {
+            Expr::Call(name, ..) => match self.callee(name).map(|f| &f.ret) {
+                Some(Type::Int(width)) => Some(*width),
+                _ => None,
+            },
             Expr::Name(name, _) => match self.param(name) {
                 Some(Type::Int(width)) => Some(*width),
                 _ => None,
@@ -135,6 +145,21 @@ impl Scope<'_> {
                 self.wrapped(otherwise, want)
             ),
             Expr::Binary(op, left, right) => self.binary(*op, left, right),
+            Expr::Call(name, args, _) => {
+                let params = self.callee(name).map_or(&[][..], |f| &f.params);
+                let args: Vec<String> = args
+                    .iter()
+                    .enumerate()
+                    .map(|(index, (_, arg))| {
+                        let want = match params.get(index) {
+                            Some((_, Type::Int(width))) => Some(*width),
+                            _ => None,
+                        };
+                        self.bare(arg, want)
+                    })
+                    .collect();
+                format!("{}$({})", camel(name), args.join(", "))
+            }
         }
     }
 

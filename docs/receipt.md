@@ -1,6 +1,6 @@
 # The receipt and review view
 
-**Status: version 2, unstable until the first release.** `accord check <file or
+**Status: version 3, unstable until the first release.** `accord check <file or
 folder>` produces a per-function terminal review view. Add `--json` for the
 same facts as a structured record with stable diagnostic codes. Both report
 only checks actually performed; neither records human approval.
@@ -48,15 +48,16 @@ they are not failed proof attempts. In text mode pre-check errors go to stderr
 with an ACC code. A crash, interrupted command, empty output, or unreadable JSON
 must never be accepted as verified.
 
-## JSON version 2
+## JSON version 3
 
 Object keys have no fixed order; arrays keep source order. This replaces receipt
-version 1; there is no legacy-format switch. `accord diff` retains its separately
+version 2, which had no calls between functions; there is no legacy-format
+switch. `accord diff` retains its separately
 versioned [comparison format](diff.md).
 
 | Field | Meaning |
 | --- | --- |
-| `receipt` | Schema version, now 2 |
+| `receipt` | Schema version, now 3 |
 | `accord` | Compiler package version |
 | `file` | Input path as passed to check |
 | `status` | checked, rejected, or unavailable |
@@ -78,20 +79,28 @@ Each definition has these fields:
 | `specification[]` | Each source clause, with text and 1-based line |
 | `hash` | SHA-256 of normalized checked semantics; names and intent do not affect it |
 | `review_hash` | SHA-256 of this definition's review facts, excluding cache-use markers |
-| `standing` | The function's standing, independent of other functions |
+| `standing` | The function's standing: verified only when every function it calls, directly or not, is verified too |
+| `unverified_callees[]` | Functions it calls, directly or not, that aren't verified; its own proofs assume their contracts |
 | `obligations[]` | Every proof obligation with its outcome |
 | `examples[]` | Every declared example with its execution result |
 | `openness` | Open-case search result and all declared freedoms; null if no ensures |
 | `strength` | Mutation result; null when not run |
 | `not_proved[]` | Limits, each with a stable kind and explanatory message |
 
-An obligation carries `kind` (postcondition, coverage, row_reachability, or
-overflow), `polarity` (existential for row reachability, otherwise universal),
-`clause`, `line`, `key`, `reused`, and `outcome`. Its key hashes the exact
-normalized SMT-LIB script. Outcomes are proved, refuted, undecided, or unsupported.
+An obligation carries `kind` (postcondition, coverage, row_reachability,
+overflow, or precondition: a call meets its callee's `requires`), `polarity`
+(existential for row reachability, otherwise universal), `clause`, `line`,
+`key`, `reused`, and `outcome`. Its key hashes the exact normalized SMT-LIB
+script. Outcomes are proved, refuted, undecided, unsupported, or weak_callee.
 Proved existential checks carry `witness`; refuted universal checks carry
 `counterexample`; refuted existential checks carry `no_such_input: true`.
 Undecided and unsupported outcomes carry a human explanation in `reason`.
+A weak_callee outcome wasn't proved from the contracts of the functions it
+calls, although the code may be right: its `counterexample` fails only when
+each call in `calls[]` (the call as written, and the `value` the counterexample
+gives it) takes a result its callee's contract allows and its body never gives.
+Strengthening that contract can settle it; it makes standing incomplete, not
+failed.
 An agent routes undecided checks as unresolved regardless of that prose;
 ACC0003 does not promise that a timeout retry will succeed.
 
@@ -148,7 +157,8 @@ only the finite reported mutation sample was checked.
 `not_proved` always identifies intent alignment, surrounding-system integration,
 and trusted compiler components as outside this proof. It also lists applicable
 limits such as excluded inputs, absent examples, missing postconditions,
-refuted/undecided/unsupported obligations, failed examples, open cases, declared
+refuted/undecided/unsupported obligations, obligations blocked by a weak callee
+contract, unverified callees, failed examples, open cases, declared
 freedoms, unrun or incomplete mutation analysis, and surviving mutants. These
 are scope statements, not additional solver proofs or approvals.
 
@@ -175,6 +185,8 @@ there is no source location. Lines are 1-based; columns are not invented.
 | ACC0010 | Open-case search undecided | inspect_solver |
 | ACC0011 | Input cannot be read | repair_environment |
 | ACC0012 | No checked evidence for a function or program | add_checks |
+| ACC0013 | Obligation not proved because a callee's contract allows results its body never gives | strengthen_callee_contract |
+| ACC0014 | A function calls one that isn't verified | verify_callee |
 
 Numbers identify conditions, never source lines, hashes, or particular solvers.
 They are never reassigned. Prose may change. ACC0004 supports the public Outcome
@@ -191,8 +203,10 @@ is not proof of anything. Human acceptance remains a separate decision.
 
 ## Cache and freshness
 
-The ledger in `.accord/` caches only proved and refuted outcomes, keyed by the
-normalized script and compiler/solver builds. An unreadable or nonmatching entry
+The ledger in `.accord/` caches only proved, refuted and weak_callee outcomes,
+keyed by the normalized script and compiler/solver builds. A script holds a
+callee's contract, never its body; an outcome resting on a replayed model, which
+runs the body, is also keyed by every callee's body. An unreadable or nonmatching entry
 is recomputed; undecided checks run again. Examples always execute. Deleting
 the ledger costs time only.
 

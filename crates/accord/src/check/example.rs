@@ -1,9 +1,9 @@
 //! Checks an `example`'s call: the function it names, its labels and the
 //! types of its arguments and expected result.
 
-use super::{Scope, type_name};
+use super::{Scope, ordered, type_name};
 use crate::Diagnostic;
-use crate::syntax::{Enum, Example, Expr, Function};
+use crate::syntax::{Enum, Example, Function};
 
 /// Checks an example's call against its function, and puts its arguments in
 /// the order of the parameters, each labelled.
@@ -19,54 +19,16 @@ pub(super) fn check(
             format!("unknown function `{}`", example.function),
         ));
     };
-    let count = function.params.len();
-    if example.args.len() != count {
-        return Err(Diagnostic::new(
-            line,
-            format!("`{}` takes {count} arguments", function.name),
-        ));
-    }
-    if count > 1 && example.args.iter().any(|(label, _)| label.is_none()) {
-        return Err(Diagnostic::new(
-            line,
-            format!(
-                "label every argument: `{}` has more than one parameter",
-                function.name
-            ),
-        ));
-    }
-    let mut ordered: Vec<Option<Expr>> = vec![None; count];
-    for (label, expr) in example.args.drain(..) {
-        let index = match &label {
-            None => 0,
-            Some(label) => function
-                .params
-                .iter()
-                .position(|(name, _)| name == label)
-                .ok_or_else(|| {
-                    Diagnostic::new(
-                        line,
-                        format!("`{}` has no parameter `{label}`", function.name),
-                    )
-                })?,
-        };
-        if ordered[index].replace(expr).is_some() {
-            return Err(Diagnostic::new(
-                line,
-                format!("`{}` is given twice", function.params[index].0),
-            ));
-        }
-    }
+    let args = std::mem::take(&mut example.args);
+    let ordered = ordered(&function.name, &function.params, args, line)?;
     let scope = Scope {
         enums,
         params: &[],
         result: None,
         spec: false,
+        functions: None,
     };
-    for ((name, ty), expr) in function.params.iter().zip(ordered) {
-        let Some(mut expr) = expr else {
-            return Err(Diagnostic::new(line, format!("`{name}` is missing")));
-        };
+    for ((name, ty), mut expr) in function.params.iter().zip(ordered) {
         scope.value(
             &mut expr,
             ty,

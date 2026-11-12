@@ -43,7 +43,7 @@ fn value_text(variant: &str) -> String {
 }
 
 /// What the generated function must do for `names`.
-fn expected(function: &Function, names: &interpret::Names) -> Json {
+fn expected(function: &Function, names: &interpret::Names, functions: &[Function]) -> Json {
     let unsafe_i64 = |ty: &Type, v: &Value| {
         *ty == Type::Int(Width::I64) && matches!(v, Value::Int(n) if n.abs() > SAFE)
     };
@@ -60,7 +60,7 @@ fn expected(function: &Function, names: &interpret::Names) -> Json {
         Ok(None) => {}
         Err(reason) => panic!("{}: requires can't be evaluated: {reason}", function.name),
     }
-    match interpret::result(function, names) {
+    match interpret::result(function, names, functions) {
         Ok(result) if unsafe_i64(&function.ret, &result) => json!({"error": "RangeError"}),
         Ok(result) => json!({"ok": to_json(&result)}),
         Err(reason) => panic!(
@@ -167,7 +167,7 @@ fn generated_modules_agree_with_the_interpreter() {
                 wanted.push((
                     name.clone(),
                     function.name.clone(),
-                    expected(function, &names),
+                    expected(function, &names, &program.functions),
                 ));
                 calls.push(json!({
                     "module": module.display().to_string(),

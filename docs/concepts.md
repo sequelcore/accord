@@ -67,7 +67,13 @@ never records acceptance; that stays with the person.
     an unknown answer, or the solvers disagreeing (which is also raised as
     an alarm);
   - **unsupported:** the obligation uses something outside what the compiler
-    can check yet.
+    can check yet;
+  - **weak callee:** not proved from the contracts of the functions it calls,
+    though the code may be right: the solvers' counterexample fails only when
+    a call takes a result its callee's contract allows and its body never
+    gives. The interpreter tells the two apart by replaying the
+    counterexample twice, once running every call and once giving each call
+    the solvers' value.
 - **Example run:** passed or failed.
 - **Strength** of a contract: small, plausible mistakes are planted in the
   body (mutants), and each is **caught** (the contract rules it out),
@@ -119,8 +125,12 @@ weaker one count without a person.
 | --- | --- |
 | **failed** | An obligation is refuted or an example failed |
 | **verified** | Every obligation is proved, every example passed, all evidence is current, no open case remains and every assumption is approved |
-| **incomplete** | Nothing failed, but something keeps it from verified: an undecided or unsupported obligation, stale evidence, an open case, or an unapproved assumption |
+| **incomplete** | Nothing failed, but something keeps it from verified: an undecided, unsupported or weak-callee obligation, stale evidence, an open case, an unapproved assumption, or a function it calls that isn't verified |
 | **unverified** | No current evidence |
+
+A call is proved through its callee's contract, never its body, so a
+caller's proofs hold only if its callees keep their contracts: a definition is
+verified only when every function it calls, directly or not, is verified too.
 
 An obligation is *proved*; a definition is *verified*. A weak contract is
 reported but doesn't change standing, since mutation tries only a sample of

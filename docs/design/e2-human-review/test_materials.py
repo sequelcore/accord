@@ -6,13 +6,13 @@ import materials
 
 class WireTests(unittest.TestCase):
     def setUp(self):
-        self.report = dict(receipt=2, status="checked", definitions=[], diagnostics=[dict(code="ACC0012", evidence="/definitions")])
+        self.report = dict(receipt=3, status="checked", definitions=[], diagnostics=[dict(code="ACC0012", evidence="/definitions")])
 
     def test_known_wire_contract_has_resolvable_evidence(self):
         materials.validate_wire(self.report)
 
     def test_unknown_schema_and_code_are_rejected(self):
-        for update in (dict(receipt=3), dict(diagnostics=[dict(code="ACC9999", evidence="/definitions")])):
+        for update in (dict(receipt=2), dict(diagnostics=[dict(code="ACC9999", evidence="/definitions")])):
             with self.assertRaises(AssertionError):
                 materials.validate_wire(dict(self.report, **update))
 

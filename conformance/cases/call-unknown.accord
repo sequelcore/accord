@@ -1,0 +1,5 @@
+// expect: error
+fn plus_one(n: i32) -> i32
+{
+    successor(n)
+}

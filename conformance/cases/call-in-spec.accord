@@ -1,0 +1,15 @@
+// expect: error
+// Calls aren't allowed in specifications yet.
+fn successor(n: i32) -> i32
+    requires n < 100
+    ensures result == n + 1
+{
+    n + 1
+}
+
+fn plus_one(n: i32) -> i32
+    requires n < 100
+    ensures result == successor(n)
+{
+    n + 1
+}

@@ -108,6 +108,7 @@ fn to_json(outcome: &Outcome) -> Option<Value> {
         Outcome::Refuted {
             evidence: Refutation::NoSuchInput,
         } => json!({ "refuted": null }),
+        Outcome::WeakCallee { inputs, .. } => json!({ "weak_callee": inputs_to_json(inputs) }),
         Outcome::Undecided { .. } | Outcome::Unsupported { .. } => return None,
     })
 }
@@ -120,6 +121,12 @@ fn from_json(value: &Value) -> Option<Outcome> {
             } else {
                 Some(inputs_from_json(witness)?)
             },
+        });
+    }
+    if let Some(inputs) = value.get("weak_callee") {
+        return Some(Outcome::WeakCallee {
+            inputs: inputs_from_json(inputs)?,
+            calls: Vec::new(),
         });
     }
     let refuted = value.get("refuted")?;
@@ -150,6 +157,10 @@ mod tests {
             },
             Outcome::Refuted {
                 evidence: Refutation::NoSuchInput,
+            },
+            Outcome::WeakCallee {
+                inputs: inputs.clone(),
+                calls: Vec::new(),
             },
         ] {
             let stored = to_json(&outcome).expect("evidence is stored");

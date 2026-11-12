@@ -89,6 +89,14 @@ fn verdict_json(verdict: &Verdict, definition: &Definition) -> Value {
         } => json!({ "outcome": "refuted", "no_such_input": true }),
         Outcome::Undecided { reason } => json!({ "outcome": "undecided", "reason": reason }),
         Outcome::Unsupported { reason } => json!({ "outcome": "unsupported", "reason": reason }),
+        Outcome::WeakCallee { inputs, calls } => json!({
+            "outcome": "weak_callee",
+            "counterexample": inputs_json(inputs, definition),
+            "calls": calls
+                .iter()
+                .map(|(call, value)| json!({ "call": call, "value": value }))
+                .collect::<Vec<_>>(),
+        }),
     };
     if let (Some(out), Some(fields)) = (out.as_object_mut(), fields.as_object()) {
         out.extend(fields.clone());
@@ -180,6 +188,7 @@ pub(super) fn definition_json(report: &Report, definition: &Definition) -> Value
         "kind": "function",
         "hash": definition.hash,
         "standing": definition.standing.name(),
+        "unverified_callees": definition.unverified_callees,
         "obligations": report
             .verdicts
             .iter()

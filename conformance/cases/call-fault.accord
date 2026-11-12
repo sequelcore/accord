@@ -1,0 +1,15 @@
+// expect: proved, proved, refuted, proved
+// `twice` calls `successor` once: the code is wrong, and running it shows it.
+fn successor(n: i32) -> i32
+    requires n < 100
+    ensures result == n + 1
+{
+    n + 1
+}
+
+fn twice(n: i32) -> i32
+    requires n >= 0 and n < 50
+    ensures result == n + 2
+{
+    successor(n)
+}

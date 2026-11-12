@@ -5,6 +5,7 @@ use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
 
+use crate::interpret::Replay;
 use crate::ledger::Ledger;
 use crate::obligation::Polarity;
 use crate::{Inputs, Outcome, Refutation};
@@ -80,8 +81,34 @@ impl Solvers {
         polarity: Polarity,
         replay: impl Fn(&Inputs) -> Result<(), String>,
     ) -> (Outcome, bool) {
-        if let Some(outcome) = self.ledger.as_ref().and_then(|l| l.get(script)) {
-            return (outcome, true);
+        self.decide_calls(script, "", params, polarity, |model| {
+            replay(model).map(|()| Replay::Runs)
+        })
+    }
+
+    /// As [`Solvers::decide`], for a script about code that calls other
+    /// functions, whose bodies `callees` identifies. The script holds only
+    /// their contracts, so an outcome that rests on `unsat` is stored by the
+    /// script alone; one that rests on a replayed model also depends on the
+    /// bodies, and is stored with them.
+    pub(crate) fn decide_calls(
+        &self,
+        script: &str,
+        callees: &str,
+        params: &[String],
+        polarity: Polarity,
+        replay: impl Fn(&Inputs) -> Result<Replay, String>,
+    ) -> (Outcome, bool) {
+        let with_bodies = format!("{script}; callees {callees}\n");
+        let keys: Vec<&str> = if callees.is_empty() {
+            vec![script]
+        } else {
+            vec![script, &with_bodies]
+        };
+        for key in &keys {
+            if let Some(outcome) = self.ledger.as_ref().and_then(|l| l.get(key)) {
+                return (outcome, true);
+            }
         }
         let ms = self.timeout.as_millis().max(1);
         let z3 = run(
@@ -100,19 +127,35 @@ impl Solvers {
         );
         let outcome = confirm(combine(&z3, &cvc5, polarity), &z3, &cvc5, replay);
         if let Some(ledger) = &self.ledger {
-            ledger.put(script, &outcome);
+            let rests_on_a_model = matches!(
+                outcome,
+                Outcome::Proved { witness: Some(_) }
+                    | Outcome::Refuted {
+                        evidence: Refutation::Counterexample(_)
+                    }
+                    | Outcome::WeakCallee { .. }
+            );
+            let key = if rests_on_a_model {
+                keys[keys.len() - 1]
+            } else {
+                script
+            };
+            ledger.put(key, &outcome);
         }
         (outcome, false)
     }
 }
 
 /// An outcome that rests on models stands only if `replay` reproduces each
-/// solver's model; otherwise it is undecided.
+/// solver's model; otherwise it is undecided. A counterexample that
+/// reproduces only with each call taking the model's value rests on a
+/// callee's contract, not on the code: unless the other solver's reproduces
+/// as the code runs, the outcome is that a callee's contract is too weak.
 pub(crate) fn confirm(
     outcome: Outcome,
     z3: &Answer,
     cvc5: &Answer,
-    replay: impl Fn(&Inputs) -> Result<(), String>,
+    replay: impl Fn(&Inputs) -> Result<Replay, String>,
 ) -> Outcome {
     let kind = match &outcome {
         Outcome::Proved { witness: Some(_) } => "witness",
@@ -121,16 +164,48 @@ pub(crate) fn confirm(
         } => "counterexample",
         _ => return outcome,
     };
+    let (mut runs, mut assumed) = (None, None);
     for (solver, answer) in [("Z3", z3), ("cvc5", cvc5)] {
-        if let Answer::Sat(model) = answer
-            && let Err(why) = replay(model)
-        {
-            return Outcome::Undecided {
-                reason: format!("{solver}'s {kind} doesn't reproduce: {why}"),
-            };
+        let Answer::Sat(model) = answer else {
+            continue;
+        };
+        match replay(model) {
+            Ok(Replay::Runs) => {
+                runs.get_or_insert_with(|| model.clone());
+            }
+            Ok(Replay::Assumed) if kind == "counterexample" => {
+                assumed.get_or_insert_with(|| model.clone());
+            }
+            Ok(Replay::Assumed) => {
+                return Outcome::Undecided {
+                    reason: format!(
+                        "{solver}'s witness reaches it only with a call result its callee's contract allows and its body doesn't give"
+                    ),
+                };
+            }
+            Err(why) => {
+                return Outcome::Undecided {
+                    reason: format!("{solver}'s {kind} doesn't reproduce: {why}"),
+                };
+            }
         }
     }
-    outcome
+    match (outcome, runs, assumed) {
+        (
+            Outcome::Refuted {
+                evidence: Refutation::Counterexample(_),
+            },
+            Some(model),
+            _,
+        ) => Outcome::Refuted {
+            evidence: Refutation::Counterexample(model),
+        },
+        (_, None, Some(model)) => Outcome::WeakCallee {
+            inputs: model,
+            calls: Vec::new(),
+        },
+        (outcome, ..) => outcome,
+    }
 }
 
 fn locate(variable: &str, program: &str) -> Result<PathBuf, String> {
@@ -379,7 +454,7 @@ pub(crate) fn combine(z3: &Answer, cvc5: &Answer, polarity: Polarity) -> Outcome
 
 #[cfg(test)]
 mod tests {
-    use super::{Answer, Solvers, combine, confirm, parse_answer};
+    use super::{Answer, Replay, Solvers, combine, confirm, parse_answer};
     use crate::obligation::Polarity::{Existential, Universal};
     use crate::{Outcome, Refutation};
     use std::path::PathBuf;
@@ -477,7 +552,7 @@ mod tests {
         let a = |v: &str| Answer::Sat(vec![("a".to_string(), v.to_string())]);
         let (good, bad) = (a("1"), a("2"));
         let replay = |model: &crate::Inputs| match model[0].1.as_str() {
-            "1" => Ok(()),
+            "1" => Ok(Replay::Runs),
             _ => Err("no".to_string()),
         };
         for polarity in [Universal, Existential] {

@@ -48,9 +48,9 @@ in their place. It needs `bun` and network access, so CI doesn't run it.
 [`programs/axios-retry/`](programs/axios-retry) ports `isRetryableError`,
 `isSafeRequestError` and `isIdempotentRequestError` from axios-retry 4.5.0 at
 commit `a748627fdc5e22e659055b6cfb44e35ad5801bf4`; the project is archived.
-Accord has no records, so an `AxiosError` arrives as its fields, and a body
-can't call another function, so each request predicate states the retry rule
-itself. `axios-retry-status-fault` widens the server-error range to 600 under
+Accord has no records, so an `AxiosError` arrives as its fields. Each request
+predicate calls the retry rule, and its contract restates it, since a
+specification can't call a function yet. `axios-retry-status-fault` widens the server-error range to 600 under
 the unchanged contract.
 
 [`adapter.patch`](programs/axios-retry/adapter.patch) is written by hand: it

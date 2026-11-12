@@ -1,0 +1,20 @@
+// expect: proved, proved, proved, proved, proved, proved, proved, proved, passed
+// A call in a decision table's condition; its `requires` holds where the row
+// is tried.
+fn successor(n: i32) -> i32
+    requires n < 100
+    ensures result == n + 1
+{
+    n + 1
+}
+
+fn above_fifty(n: i32) -> Bool
+    requires n < 100
+    ensures result implies n >= 50
+    ensures n >= 50 implies result
+decide {
+    | successor(n) > 50 => true
+    | otherwise         => false
+}
+
+example above_fifty(n: 60) == true

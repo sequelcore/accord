@@ -95,7 +95,7 @@ fn search(unit: &Unit, solvers: &Solvers) -> Option<Determinacy> {
                 .collect();
             let found = (|| {
                 let names = interpret::admitted(function, &inputs)?;
-                let code = interpret::result(function, &names)?;
+                let code = interpret::result(function, &names, &unit.program.functions)?;
                 Ok::<_, String>((read(&witness, "r0")?, read(&witness, "r1")?, code))
             })();
             match found {
@@ -113,7 +113,9 @@ fn search(unit: &Unit, solvers: &Solvers) -> Option<Determinacy> {
         Outcome::Undecided { reason } | Outcome::Unsupported { reason } => {
             Openness::Undecided { reason }
         }
-        Outcome::Proved { witness: None } | Outcome::Refuted { .. } => Openness::Undecided {
+        Outcome::Proved { witness: None }
+        | Outcome::Refuted { .. }
+        | Outcome::WeakCallee { .. } => Openness::Undecided {
             reason: "the search gave no witness".to_string(),
         },
     };

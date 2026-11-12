@@ -17,7 +17,7 @@ program. Interaction: run the check and read its output.
 
 ```text
 function     fn verification_required(changed: Bool, selected: Bool) -> Bool (gate-rule.accord)
-review_hash  fd745e1359064c0aa10bc5b1074d4fb55d6dd67c8a4f7e9b20327bc7df1dc18d
+review_hash  b158b29cad9c8bd79c5033fd08ae9e5410eb6734d700ca6bc220870b38f62c7e
 intent       verification_required (gate-rule.accord) (unchecked): Require verification after changed files or a selected design check.
 specification line 15: ensures result implies changed or selected
 specification line 16: ensures changed or selected implies result
@@ -35,7 +35,7 @@ not_proved   trusted_components: The parser, obligation generator, solvers, and 
 not_proved   mutation_sample: Only the reported finite sample of mutants was checked; contract adequacy is not proved.
 standing     verification_required (gate-rule.accord): verified
 function     fn tool_may_change_files(tool_name: Text, native_question: Bool, read_only: Bool) -> Bool (gate-rule.accord)
-review_hash  d2abc127c4c852e48de25aa41027f8bae8c857c74b2f3973c8b633e8c83c8536
+review_hash  32819b89bac6757884992d8f88b81c1fc7247c4e352993386dc5d00df0e15b58
 intent       tool_may_change_files (gate-rule.accord) (unchecked): A started tool may change files unless it asks a native question, runs read-only, or is a trusted reader.
 specification line 24: ensures result implies not native_question and not read_only and not tool_name in ["read", "grep", "find", "ls", "update_tasks"]
 specification line 25: ensures not native_question and not read_only and not tool_name in ["read", "grep", "find", "ls", "update_tasks"] implies result
@@ -52,7 +52,7 @@ not_proved   trusted_components: The parser, obligation generator, solvers, and 
 not_proved   mutation_sample: Only the reported finite sample of mutants was checked; contract adequacy is not proved.
 standing     tool_may_change_files (gate-rule.accord): verified
 function     fn gate_verdict(outcome: ProofOutcome, failure: Text, sent: List<Text>) -> GateVerdict (gate-rule.accord)
-review_hash  cfc746aad5162446ad746e9e5dd9eb33d4bb88b8ccf7c66290fa8f2d84186ed0
+review_hash  9f2233712ff270ff26aa156d2c1c3f04ba2e57506c377c2953dcdd7b08b017e0
 type         enum ProofOutcome { Passed, Failed, Vacuous, TimedOut, Cancelled, NotStarted }
 type         enum GateVerdict { Proved, SendBack, NoProgress, Operator }
 intent       gate_verdict (gate-rule.accord) (unchecked): Accept a passed proof; send a failed or vacuous proof back once per failure; identify repetition as no progress; ask the operator about interrupted or unstarted work.
@@ -96,7 +96,7 @@ not_proved   trusted_components: The parser, obligation generator, solvers, and 
 not_proved   mutation_sample: Only the reported finite sample of mutants was checked; contract adequacy is not proved.
 standing     gate_verdict (gate-rule.accord): verified
 function     fn command_verdict(outcome: ProofOutcome, failure: Text, sent: List<Text>, preexisting: Bool) -> GateVerdict (gate-rule.accord)
-review_hash  f49e0c5d79594f23ffaa78ea097a6b67eafce65c15ef7b4a1612d9b619940304
+review_hash  7b41c38460d453b8e27582cafdce173a5b3cca19ce61049ab56b929fbf22e488
 type         enum ProofOutcome { Passed, Failed, Vacuous, TimedOut, Cancelled, NotStarted }
 type         enum GateVerdict { Proved, SendBack, NoProgress, Operator }
 intent       command_verdict (gate-rule.accord) (unchecked): Treat an already present command failure as the operator's; otherwise accept passed proofs, send failures back once, and identify interrupted work or repetition.
@@ -139,7 +139,7 @@ not_proved   trusted_components: The parser, obligation generator, solvers, and 
 not_proved   mutation_sample: Only the reported finite sample of mutants was checked; contract adequacy is not proved.
 standing     command_verdict (gate-rule.accord): verified
 function     fn keeps_working(verdicts: List<GateVerdict>) -> Bool (gate-rule.accord)
-review_hash  3e5ce9f4c1c7dd8f27374d5f9ecd2f4eaa2ddefe2cc0e5d1c20c4f0da601e647
+review_hash  8dd0e1fd59d9ec8bef01451b771265650644242c2664b53d37f6d591750a1af1
 type         enum GateVerdict { Proved, SendBack, NoProgress, Operator }
 intent       keeps_working (gate-rule.accord) (unchecked): Continue while at least one verdict requests another attempt.
 specification line 69: ensures result implies SendBack in verdicts

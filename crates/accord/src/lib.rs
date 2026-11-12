@@ -83,6 +83,16 @@ pub enum Outcome {
         /// What isn't supported.
         reason: String,
     },
+    /// Not proved from the contracts of the functions it calls, though the
+    /// code may be right: the solvers' counterexample fails only when a call
+    /// takes a result its callee's contract allows and its body never gives.
+    /// Strengthening that contract can settle it.
+    WeakCallee {
+        /// The counterexample's inputs.
+        inputs: Inputs,
+        /// Each call as written, with the result the counterexample gives it.
+        calls: Inputs,
+    },
 }
 
 /// What shows that an obligation fails.
@@ -105,6 +115,8 @@ pub enum ObligationKind {
     RowReachability,
     /// An executable arithmetic operation stays within its type.
     Overflow,
+    /// A call meets its callee's `requires`.
+    Precondition,
 }
 
 impl ObligationKind {
@@ -115,6 +127,7 @@ impl ObligationKind {
             Self::Coverage => "coverage",
             Self::RowReachability => "row_reachability",
             Self::Overflow => "overflow",
+            Self::Precondition => "precondition",
         }
     }
 }
@@ -202,8 +215,12 @@ pub struct Definition {
     pub file: Option<String>,
     /// The hash of the normalized function.
     pub hash: String,
-    /// What its obligations and examples add up to.
+    /// What its obligations and examples add up to, and those of every
+    /// function it calls: it is verified only when they all are.
     pub standing: Standing,
+    /// The functions it calls, directly or not, that aren't verified; its
+    /// own proofs assume their contracts.
+    pub unverified_callees: Vec<String>,
 }
 
 /// Everything one check of a file established.
@@ -243,7 +260,9 @@ fn standing_of<'a>(
         match verdict.outcome {
             Outcome::Proved { .. } => {}
             Outcome::Refuted { .. } => failed = true,
-            Outcome::Undecided { .. } | Outcome::Unsupported { .. } => open = true,
+            Outcome::Undecided { .. }
+            | Outcome::Unsupported { .. }
+            | Outcome::WeakCallee { .. } => open = true,
         }
     }
     for example in examples {
@@ -324,8 +343,58 @@ fn program_of(files: &[(String, String)]) -> Result<(syntax::Program, Vec<String
     Ok((program, names))
 }
 
+/// What the solvers established about `o`, in source terms: a model's call
+/// values are kept only to show what a weak callee contract allowed.
+fn outcome_of(unit: &identity::Unit, o: &obligation::Obligation, outcome: Outcome) -> Outcome {
+    let is_param = |name: &str| o.function.params.iter().any(|(p, _)| p == name);
+    let params = |inputs: &Inputs| -> Inputs {
+        inputs
+            .iter()
+            .filter(|(name, _)| is_param(name))
+            .cloned()
+            .collect()
+    };
+    let outcome = match outcome {
+        Outcome::Proved {
+            witness: Some(inputs),
+        } => Outcome::Proved {
+            witness: Some(params(&inputs)),
+        },
+        Outcome::Refuted {
+            evidence: Refutation::Counterexample(inputs),
+        } => Outcome::Refuted {
+            evidence: Refutation::Counterexample(params(&inputs)),
+        },
+        Outcome::WeakCallee { inputs, .. } => {
+            let calls = o
+                .calls
+                .iter()
+                .filter_map(|(constant, call)| {
+                    let syntax::Expr::Call(name, _, site) = call else {
+                        return None;
+                    };
+                    let value = inputs.iter().find(|(n, _)| n == constant)?.1.clone();
+                    let callee = o.functions.iter().find(|f| f.name == *name)?;
+                    Some((
+                        site.text.clone(),
+                        unit.source_typed_value(&value, &callee.ret),
+                    ))
+                })
+                .collect();
+            Outcome::WeakCallee {
+                inputs: params(&inputs),
+                calls,
+            }
+        }
+        other => other,
+    };
+    unit.source_outcome(outcome)
+}
+
 /// Everything a check establishes about a checked program's functions: all
-/// of them, or only those declared in file `target`.
+/// of them, or only those declared in file `target`. The functions they call
+/// are checked too, since a caller is verified only when its callees are,
+/// but only the target's are reported.
 fn report(
     program: &syntax::Program,
     target: Option<usize>,
@@ -333,24 +402,38 @@ fn report(
     solvers: &Solvers,
 ) -> Report {
     let file_of = |file: usize| names.get(file).cloned();
-    let units: Vec<_> = identity::units(program)
+    let all_units = identity::units(program);
+    let targeted = |unit: &identity::Unit| target.is_none_or(|t| unit.source.file == t);
+    let needed: Vec<String> = all_units
+        .iter()
+        .filter(|unit| targeted(unit))
+        .flat_map(|unit| {
+            std::iter::once(unit.source.name.clone()).chain(unit.callees.iter().cloned())
+        })
+        .collect();
+    let units: Vec<_> = all_units
         .into_iter()
-        .filter(|unit| target.is_none_or(|t| unit.source.file == t))
+        .filter(|unit| needed.contains(&unit.source.name))
         .collect();
     let mut verdicts = Vec::new();
     for unit in &units {
-        for o in obligation::obligations(&unit.program) {
-            let (outcome, reused) = solvers.decide(&o.script, &o.params, o.polarity, |model| {
-                interpret::replay(&o, model)
-            });
+        for o in obligation::unit_obligations(&unit.program) {
+            let (outcome, reused) = solvers.decide_calls(
+                &o.script,
+                &unit.callee_bodies,
+                &o.params,
+                o.polarity,
+                |model| interpret::replay(&o, model),
+            );
             verdicts.push(Verdict {
                 kind: match o.claim {
                     obligation::Claim::Ensures(_) => ObligationKind::Postcondition,
                     obligation::Claim::Covered => ObligationKind::Coverage,
                     obligation::Claim::Reaches(_) => ObligationKind::RowReachability,
                     obligation::Claim::InRange { .. } => ObligationKind::Overflow,
+                    obligation::Claim::Requires { .. } => ObligationKind::Precondition,
                 },
-                outcome: unit.source_outcome(outcome),
+                outcome: outcome_of(unit, &o, outcome),
                 function: unit.source.name.clone(),
                 key: identity::hash(&o.script),
                 definition: unit.hash.clone(),
@@ -360,54 +443,107 @@ fn report(
             });
         }
     }
-    let examples = program
+    // Each run with whether it is reported: an example in the target's files.
+    let runs = program
         .examples
         .iter()
-        .filter(|example| target.is_none_or(|t| example.file == t))
-        .filter_map(|example| {
+        .map(|example| (example, target.is_none_or(|t| example.file == t)))
+        .filter(|(example, reported)| *reported || needed.contains(&example.function))
+        .filter_map(|(example, reported)| {
             let function = program
                 .functions
                 .iter()
                 .find(|f| f.name == example.function)?;
-            Some(ExampleRun {
+            let run = ExampleRun {
                 function: function.name.clone(),
                 text: example.text.clone(),
                 line: example.line,
-                run: match interpret::run(example, function) {
+                run: match interpret::run(example, function, &program.functions) {
                     Ok(()) => Run::Passed,
                     Err(reason) => Run::Failed { reason },
                 },
-            })
+            };
+            Some((run, reported))
         })
         .collect::<Vec<_>>();
     let openness = openness::determinacy(&units, solvers);
+    let own = |unit: &identity::Unit| {
+        standing_of(
+            verdicts.iter().filter(|v| v.function == unit.source.name),
+            runs.iter()
+                .map(|(run, _)| run)
+                .filter(|e| e.function == unit.source.name),
+            openness
+                .iter()
+                .find(|d| d.function == unit.source.name)
+                .map(|d| &d.openness),
+        )
+    };
+    let own_standings: Vec<(String, Standing)> = units
+        .iter()
+        .map(|unit| (unit.source.name.clone(), own(unit)))
+        .collect();
+    let standing_of_name = |name: &str| {
+        own_standings
+            .iter()
+            .find(|(n, _)| n == name)
+            .map_or(Standing::Unverified, |(_, s)| *s)
+    };
     let definitions: Vec<Definition> = units
         .iter()
-        .map(|unit| Definition {
-            name: unit.source.name.clone(),
-            intent: unit.source.intent.clone(),
-            line: unit.source.line,
-            params: unit.source.params.clone(),
-            result_type: unit.source.ret.clone(),
-            specification: unit
-                .source
-                .clauses
+        .map(|unit| {
+            let unverified_callees: Vec<String> = unit
+                .callees
                 .iter()
-                .map(|c| (c.line, c.text.clone()))
-                .collect(),
-            enums: unit.source_enums(),
-            file: file_of(unit.source.file),
-            hash: unit.hash.clone(),
-            standing: standing_of(
-                verdicts.iter().filter(|v| v.function == unit.source.name),
-                examples.iter().filter(|e| e.function == unit.source.name),
-                openness
+                .filter(|name| standing_of_name(name) != Standing::Verified)
+                .cloned()
+                .collect();
+            let mut standing = standing_of_name(&unit.source.name);
+            if standing == Standing::Verified && !unverified_callees.is_empty() {
+                standing = Standing::Incomplete;
+            }
+            Definition {
+                name: unit.source.name.clone(),
+                intent: unit.source.intent.clone(),
+                line: unit.source.line,
+                params: unit.source.params.clone(),
+                result_type: unit.source.ret.clone(),
+                specification: unit
+                    .source
+                    .clauses
                     .iter()
-                    .find(|d| d.function == unit.source.name)
-                    .map(|d| &d.openness),
-            ),
+                    .map(|c| (c.line, c.text.clone()))
+                    .collect(),
+                enums: unit.source_enums(),
+                file: file_of(unit.source.file),
+                hash: unit.hash.clone(),
+                standing,
+                unverified_callees,
+            }
         })
         .collect();
+    let reported = |name: &str| {
+        units
+            .iter()
+            .any(|unit| unit.source.name == name && targeted(unit))
+    };
+    let definitions: Vec<Definition> = definitions
+        .into_iter()
+        .filter(|d| reported(&d.name))
+        .collect();
+    let verdicts: Vec<Verdict> = verdicts
+        .into_iter()
+        .filter(|v| reported(&v.function))
+        .collect();
+    let examples: Vec<ExampleRun> = runs
+        .into_iter()
+        .filter_map(|(run, reported)| reported.then_some(run))
+        .collect();
+    let openness: Vec<Determinacy> = openness
+        .into_iter()
+        .filter(|d| reported(&d.function))
+        .collect();
+    let units: Vec<_> = units.into_iter().filter(|unit| targeted(unit)).collect();
     let standing = file_standing(&definitions);
     let strength = if solvers.mutates() {
         let proved_units: Vec<_> = units
@@ -515,6 +651,7 @@ mod tests {
                     file: None,
                     hash: String::new(),
                     standing,
+                    unverified_callees: Vec::new(),
                 })
                 .collect();
             file_standing(&definitions)

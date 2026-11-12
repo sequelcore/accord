@@ -27,11 +27,17 @@ pub enum DiagnosticCode {
     InputUnavailable,
     /// A function has no checked obligation or example.
     NoEvidence,
+    /// An obligation wasn't proved from a callee's contract, which allows a
+    /// result its body never gives.
+    WeakCalleeContract,
+    /// A function calls one that isn't verified, whose contract its proofs
+    /// assume.
+    UnverifiedCallee,
 }
 
 impl DiagnosticCode {
     /// The entire allocated catalog, including conditions with no current source producer.
-    pub const ALL: [Self; 12] = [
+    pub const ALL: [Self; 14] = [
         Self::SourceRejected,
         Self::ObligationRefuted,
         Self::ObligationUndecided,
@@ -44,6 +50,8 @@ impl DiagnosticCode {
         Self::OpennessUndecided,
         Self::InputUnavailable,
         Self::NoEvidence,
+        Self::WeakCalleeContract,
+        Self::UnverifiedCallee,
     ];
 
     /// The permanent machine identifier, independent of severity and wording.
@@ -61,6 +69,8 @@ impl DiagnosticCode {
             Self::OpennessUndecided => "ACC0010",
             Self::InputUnavailable => "ACC0011",
             Self::NoEvidence => "ACC0012",
+            Self::WeakCalleeContract => "ACC0013",
+            Self::UnverifiedCallee => "ACC0014",
         }
     }
 
@@ -76,6 +86,8 @@ impl DiagnosticCode {
             Self::MutationIncomplete => "inspect_strength_limits",
             Self::SolverUnavailable | Self::InputUnavailable => "repair_environment",
             Self::NoEvidence => "add_checks",
+            Self::WeakCalleeContract => "strengthen_callee_contract",
+            Self::UnverifiedCallee => "verify_callee",
         }
     }
 }
