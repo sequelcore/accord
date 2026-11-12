@@ -1,17 +1,29 @@
 # Roadmap
 
 Each stage runs end to end, from source to a result, and ends on a check
-anyone can rerun. The targets that grow the language are real rules that are
-already proved or tested elsewhere, smallest first: each stage adds only what
-its next rule needs. Tesota's proved rules were the first source; from stage 7
-each stage also takes a rule from outside Tesota, so the language isn't
-shaped by one product's needs. Issues exist
-for the current stage and the next one; later stages are planned here and will
-change as the earlier ones teach us.
+anyone can rerun. The targets that grow the language are real programs that
+are already proved or tested elsewhere, and each stage adds only what its
+target needs. The stages lead to a general-purpose language: verified rules
+first, then state machines, data, complete programs with effects, a standard
+library and native code. Tesota's proved rules were the first source; from
+stage 7 each stage also takes a target from outside Tesota, so the language
+isn't shaped by one product's needs. Every stage's target is chosen here in
+advance; issues exist for the current stage and the next one, and later
+stages will change as the earlier ones teach us.
 
 ## Decisions
 
 Taken on 2026-11-12:
+
+- **Every stage's target is planned in advance**, up to a general-purpose
+  language. Each stage still builds only what its target needs, but the
+  targets, from stage 10 to stage 15, are chosen now, so the path to whole
+  programs and native code is explicit rather than decided one stage at a
+  time. Each target is an outside project with its own tests and a license
+  that allows porting, checked on 2026-11-12; how much of each test suite
+  can run against the port is checked in that stage's issue, before its
+  code. The public phase moves after stage 12, the first stage at which
+  Accord writes complete programs.
 
 - **Stage 9's semantics, before its code** ([#69](https://github.com/sequelcore/accord/issues/69)).
   A call is proved through the callee's contract, and a caller's proofs bind
@@ -77,17 +89,22 @@ Taken on 2026-11-07:
 | 7. Intents and the review view | `intent` declarations; the human view (intent, specification, examples, counterexamples, open cases, surviving mutants, what wasn't proved); the agent view as structured diagnostics | The review of `gate-rule` and an outside-domain rule is readable without their code | Built, check moved to the public phase ([#46](https://github.com/sequelcore/accord/issues/46)): the [gate and Cedar packets](docs/design/stage-7-review/README.md) await a reader from outside the project |
 | 8. TypeScript output | Accord compiled to a TypeScript module | Tesota's own tests pass with the generated rule in place of the original | Done ([#47](https://github.com/sequelcore/accord/issues/47)): `accord build` ([reference](docs/typescript.md)), checked against the interpreter; Tesota's typecheck and tests pass with the generated rules (`scripts/check-tesota.sh`), and axios-retry's lint and specs with its generated request predicates (`scripts/check-axios-retry.sh`) |
 | 9. Whole rules | Calls between functions, proved through the callee's contract; `all`, `any` and `count` over lists; length and indexing: what `verdict-rule`, the largest rule, and Cedar's policy-set evaluation need | `verdict-rule` and Cedar's policy-set evaluation ported and proved | In progress ([#69](https://github.com/sequelcore/accord/issues/69)): calls between functions, proved through the callee's contract (`conformance/cases/call*.accord`) |
-| 10. State machines | `machine` declarations, invariants, explicit-state model checking, planted faults | A Tesota design model ported, its faults detected | |
+| 10. State machines | `machine` declarations, invariants, explicit-state model checking, planted faults | A Tesota design model ported, its faults detected; the circuit breaker of [opossum](https://github.com/nodeshift/opossum) (Apache-2.0), closed, open and half-open, proved, and opossum's tests pass with the generated module | |
+| 11. Structured data | Records, sum types and `match`, recursion with `decreases`, `Text` operations beyond equality | Version comparison from [node-semver](https://github.com/npm/node-semver) (ISC) proved, and node-semver's tests for it pass with the generated module | |
+| 12. Complete programs | Effects (files, standard input and output, exit codes) declared in types, errors as values, a `main` | `wc` from [uutils/coreutils](https://github.com/uutils/coreutils) (MIT) written only in Accord, its effects in its types and its proofs still fail-closed; uutils' tests for `wc` pass against it | |
+| 13. Standard library and modules | Maps and sets, generic types, imports between packages, as stages 11 and 12's programs need them | Accord's own E2 tooling (`docs/design/e2-human-review/materials.py` and `score.py`) rewritten in Accord; their self-tests and CI check pass | |
+| 14. Native code | A native backend (LLVM), and validation of its output before it relies on a proof | Stage 12's `wc` compiled natively; uutils' tests pass, and a published measurement against uutils' Rust `wc`, with the same algorithm and each side's safety checks stated | |
+| 15. Tools | A language server, a formatter, packages | Stages 11 to 14's programs maintained with them, without knowledge of the compiler | |
 
-**Public phase**, after these stages: what needs people outside the project.
+**Public phase**, after stage 12: what needs people outside the project.
 Stage 7's readability check runs first, then E2 and E4 run, a first public
-alpha is published, and the project opens a place for public discussion. Agent experiments (E3's full run, E1 on larger
-contracts) run when capacity allows, each recording the compiler revision it
-used.
+alpha is published, and the project opens a place for public discussion.
+Stages 13 to 15 follow in public. Agent experiments (E3's full run, E1 on
+larger contracts) run when capacity allows, each recording the compiler
+revision it used.
 
-Later, each when a stage needs it: escape routes to Lean and Dafny, an LLVM
-backend, effects, a language server, translation validation of the compiler's
-own output.
+Later, each when a stage needs it: escape routes to Lean and Dafny for what
+SMT can't decide, and translation validation of the compiler's own output.
 
 ## Experiments
 
