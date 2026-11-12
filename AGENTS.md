@@ -22,8 +22,9 @@ each term means.
   [native code constraints](docs/design/native-code-constraints.md) and
   settle any decision it lists as costly to reverse.
 - **Grow by the roadmap's target.** Add only what the current stage's target
-  needs; the next rule to port decides the next construct. From stage 7 each
-  stage takes at least one rule from outside Tesota.
+  needs. The roadmap plans every stage's target in advance; a change to a
+  target is a roadmap change, not a decision made inside a stage. From stage
+  7 each stage takes at least one target from outside Tesota.
 - **Independent of Tesota.** No Tesota code or vocabulary in Accord's API.
 - **Design on merit.** How Tesota or quint-ts solves something is a reference,
   not a template; a Tesota rule is a target to port, not a design to copy.
