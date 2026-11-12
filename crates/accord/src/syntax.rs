@@ -252,8 +252,29 @@ pub(crate) struct Function {
 pub(crate) struct Enum {
     pub name: String,
     pub variants: Vec<String>,
+    /// Each variant's value outside Accord, where written: `Cancelled = "CANCELLED"`.
+    pub values: Vec<Option<String>>,
     pub line: usize,
     pub file: usize,
+}
+
+impl Enum {
+    /// The string a variant is outside Accord, as in TypeScript: its written
+    /// value, or else its `PascalCase` name in `snake_case`.
+    pub fn text(&self, variant: &str) -> String {
+        let index = self.variants.iter().position(|v| v == variant);
+        if let Some(Some(value)) = index.map(|i| &self.values[i]) {
+            return value.clone();
+        }
+        let mut out = String::new();
+        for (index, c) in variant.chars().enumerate() {
+            if c.is_uppercase() && index > 0 {
+                out.push('_');
+            }
+            out.extend(c.to_lowercase());
+        }
+        out
+    }
 }
 
 /// `example name(label: value, ...) == value`: a concrete call and the

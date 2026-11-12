@@ -98,6 +98,7 @@ pub(crate) fn units(program: &Program) -> Vec<Unit<'_>> {
                 .map(|(index, e)| Enum {
                     name: format!("E{index}"),
                     variants: (0..e.variants.len()).map(|v| format!("v{v}")).collect(),
+                    values: vec![None; e.variants.len()],
                     line: 0,
                     file: 0,
                 })

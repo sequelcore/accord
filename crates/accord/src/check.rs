@@ -40,6 +40,16 @@ fn check_enums(enums: &[Enum]) -> Result<(), Diagnostic> {
                     format!("`{}` lists `{variant}` twice", e.name),
                 ));
             }
+            let text = e.text(variant);
+            if let Some(other) = e.variants[..i].iter().find(|o| e.text(o) == text) {
+                return Err(Diagnostic::new(
+                    e.line,
+                    format!(
+                        "`{other}` and `{variant}` of `{}` are both \"{text}\"",
+                        e.name
+                    ),
+                ));
+            }
         }
     }
     Ok(())

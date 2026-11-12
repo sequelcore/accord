@@ -1,0 +1,9 @@
+// expect: error
+// A variant's value is a string.
+enum Light { Red = 1, Green }
+
+fn lit(light: Light) -> Bool
+    ensures result
+{
+    true
+}
