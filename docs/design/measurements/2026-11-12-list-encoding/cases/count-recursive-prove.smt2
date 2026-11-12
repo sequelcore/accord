@@ -1,0 +1,6 @@
+(set-logic ALL)
+(declare-datatype Standing ((Decide) (Gap) (Holds) (Opinion)))
+(define-fun-rec cnt ((s (Seq Standing))) Int (ite (= (seq.len s) 0) 0 (+ (ite (= (seq.nth s 0) Decide) 1 0) (cnt (seq.extract s 1 (- (seq.len s) 1))))))
+(declare-const s (Seq Standing))
+(assert (not (and (<= 0 (cnt s)) (<= (cnt s) (seq.len s)) (= (= (cnt s) 0) (not (seq.contains s (seq.unit Decide)))))))
+(check-sat)
