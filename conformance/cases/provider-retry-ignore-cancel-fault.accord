@@ -1,0 +1,104 @@
+// expect: proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, refuted, proved, proved, proved, proved, proved, proved, proved, proved
+// The model's `IgnoreCancel` fault: the post-wait guard ignores cancellation,
+// so a retry that starts after `cancel` makes another call.
+
+/// Where a retried model call stands.
+enum RetryPhase { Failed, Waiting, Calling, Ended }
+
+/// A failed model call, retried within a budget and a time window.
+machine ProviderRetry {
+    intent "Retry a failed model call at most three times within its window, wait before each retry, never call again after cancellation, and never repeat a completed tool."
+
+    state {
+        phase: RetryPhase,
+        time: i32,
+        due: i32,
+        retries: i32,
+        calls: i32,
+        stopped: Bool,
+        calls_at_stop: i32,
+        terminal: Bool,
+        last_start: i32,
+        last_due: i32,
+        tools: i32,
+    }
+
+    init start(is_terminal: Bool) {
+        next {
+            phase: Failed,
+            time: 0,
+            due: 0,
+            retries: 0,
+            calls: 1,
+            stopped: false,
+            calls_at_stop: 0,
+            terminal: is_terminal,
+            last_start: 0,
+            last_due: 0,
+            tools: 1,
+        }
+    }
+
+    event schedule(delay: i32)
+        requires phase == Failed
+        requires delay == 1 or delay == 60 or delay == 121
+    {
+        if not terminal and not stopped and retries < 3 and time + delay < 120 {
+            next { phase: Waiting, due: time + delay, retries: retries + 1 }
+        } else {
+            next { phase: Ended }
+        }
+    }
+
+    event advance_to_due()
+        requires phase == Waiting and time < 120 and due >= time
+    {
+        next { time: due }
+    }
+
+    event advance_to_end()
+        requires phase == Waiting and time < 120
+    {
+        next { time: 120 }
+    }
+
+    event cancel()
+        requires not stopped and phase != Ended
+    {
+        next { stopped: true, calls_at_stop: calls }
+    }
+
+    event start_call()
+        requires phase == Waiting and time >= due and time < 120
+    {
+        next { phase: Calling, calls: calls + 1, last_start: time, last_due: due }
+    }
+
+    event stop_wait()
+        requires phase == Waiting and (stopped or time >= 120)
+    {
+        next { phase: Ended }
+    }
+
+    event failure(is_terminal: Bool)
+        requires phase == Calling
+    {
+        next { phase: Failed, terminal: is_terminal }
+    }
+
+    event success()
+        requires phase == Calling
+    {
+        next { phase: Ended }
+    }
+
+    invariant bounds: retries <= 3 and calls <= 4 and last_start < 120
+    invariant cancel_stops_calls: stopped implies calls == calls_at_stop
+    invariant wait_respected: last_start >= last_due
+    invariant tools_stay: tools == 1
+
+    helper invariant calls_follow_retries: calls <= retries + 1
+    helper invariant waiting_before_call: phase == Waiting implies calls <= retries
+    helper invariant time_in_window: time <= 120
+    helper invariant due_in_window: due <= 120
+}
