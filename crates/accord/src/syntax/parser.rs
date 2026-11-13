@@ -134,7 +134,6 @@ pub(super) fn is_keyword(word: &str) -> bool {
             | "result"
             | "all"
             | "any"
-            | "count"
             | "length"
             | "indices"
     )
@@ -150,7 +149,9 @@ pub(crate) fn parse(source: &str) -> Result<Program, Diagnostic> {
     let mut program = Program {
         enums: Vec::new(),
         functions: Vec::new(),
+        machines: Vec::new(),
         examples: Vec::new(),
+        machine_examples: Vec::new(),
     };
     while parser.peek().is_some() {
         // Within a folder every file sees every declaration; `pub` decides
@@ -161,8 +162,20 @@ pub(crate) fn parse(source: &str) -> Result<Program, Diagnostic> {
         }
         if parser.at_word("enum") {
             program.enums.push(parser.enumeration()?);
+        } else if parser.at_word("machine") {
+            let mut machine = parser.machine()?;
+            machine.public = public;
+            program.machines.push(machine);
         } else if parser.at_word("example") {
-            program.examples.push(parser.example()?);
+            // `example f(…) == v` calls a function; `example M` runs a machine.
+            if matches!(
+                parser.tokens.get(parser.pos + 2),
+                Some((Token::Sym("("), ..))
+            ) {
+                program.examples.push(parser.example()?);
+            } else {
+                program.machine_examples.push(parser.machine_example()?);
+            }
         } else {
             let mut function = parser.function()?;
             function.public = public;

@@ -33,11 +33,14 @@ pub enum DiagnosticCode {
     /// A function calls one that isn't verified, whose contract its proofs
     /// assume.
     UnverifiedCallee,
+    /// A machine's obligation fails from a state that meets every invariant
+    /// and helper invariant, and no run from an init was found to reach it.
+    NotInductive,
 }
 
 impl DiagnosticCode {
     /// The entire allocated catalog, including conditions with no current source producer.
-    pub const ALL: [Self; 14] = [
+    pub const ALL: [Self; 15] = [
         Self::SourceRejected,
         Self::ObligationRefuted,
         Self::ObligationUndecided,
@@ -52,6 +55,7 @@ impl DiagnosticCode {
         Self::NoEvidence,
         Self::WeakCalleeContract,
         Self::UnverifiedCallee,
+        Self::NotInductive,
     ];
 
     /// The permanent machine identifier, independent of severity and wording.
@@ -71,6 +75,7 @@ impl DiagnosticCode {
             Self::NoEvidence => "ACC0012",
             Self::WeakCalleeContract => "ACC0013",
             Self::UnverifiedCallee => "ACC0014",
+            Self::NotInductive => "ACC0015",
         }
     }
 
@@ -88,6 +93,7 @@ impl DiagnosticCode {
             Self::NoEvidence => "add_checks",
             Self::WeakCalleeContract => "strengthen_callee_contract",
             Self::UnverifiedCallee => "verify_callee",
+            Self::NotInductive => "add_helper_invariant",
         }
     }
 }

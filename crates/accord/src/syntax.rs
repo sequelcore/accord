@@ -5,6 +5,7 @@
 
 mod declarations;
 mod expr;
+mod machines;
 mod parser;
 mod token;
 
@@ -133,6 +134,10 @@ pub(crate) enum Expr {
     Length(Box<Expr>, usize),
     /// `list[index]`, and where it is.
     Index(Box<Expr>, Box<Expr>, Site),
+    /// `next { field: value, ... }`, the state an init or event ends in, and
+    /// its line. Only a machine's init or event ends in one; once checked, it
+    /// gives every field of the state, in the state's order.
+    Next(Vec<(String, Expr)>, usize),
 }
 
 impl Expr {
@@ -146,6 +151,7 @@ impl Expr {
             | Expr::Text(_, line)
             | Expr::List(_, _, line)
             | Expr::Quantified(.., line)
+            | Expr::Next(_, line)
             | Expr::Length(_, line) => *line,
             Expr::Arith(.., site)
             | Expr::Neg(_, site)
@@ -207,6 +213,10 @@ pub(crate) enum ClauseKind {
     Ensures,
     /// `open when`: inputs for which any result the contract allows is fine.
     Open,
+    /// A machine's invariant or helper invariant. An event or observer
+    /// assumes it of the state it reads; an init or event must meet it in
+    /// the state it ends in.
+    Invariant,
 }
 
 #[derive(Clone, Debug)]
@@ -233,6 +243,27 @@ pub(crate) enum Body {
     Decide(Vec<Row>, usize),
 }
 
+/// What a function is to the machine that declares it.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) enum Role {
+    /// A way to start. Its body ends in a `next`; it doesn't read the state.
+    Init,
+    /// A transition. Its body ends in a `next`.
+    Event,
+    /// A pure function of the state.
+    Observer,
+}
+
+/// A function that belongs to a machine. Once checked, its first `state`
+/// parameters are the machine's fields, in order, and its invariants are
+/// clauses. An init's fields are placeholders: it doesn't read them. An init
+/// or event's `ret` is a placeholder too: its value is its `next`.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) struct Member {
+    pub role: Role,
+    pub state: usize,
+}
+
 #[derive(Clone, Debug)]
 pub(crate) struct Function {
     pub name: String,
@@ -246,6 +277,46 @@ pub(crate) struct Function {
     pub ret: Type,
     pub clauses: Vec<Clause>,
     pub body: Body,
+    pub machine: Option<Member>,
+}
+
+/// A state, the ways it starts, the events that move it, and what must hold
+/// in every state it reaches.
+#[derive(Clone, Debug)]
+pub(crate) struct Machine {
+    pub name: String,
+    pub public: bool,
+    pub intent: Option<String>,
+    pub line: usize,
+    pub file: usize,
+    pub state: Vec<(String, Type)>,
+    pub inits: Vec<Function>,
+    pub events: Vec<Function>,
+    pub observers: Vec<Function>,
+    /// Each invariant and helper invariant, as written.
+    pub invariants: Vec<Clause>,
+}
+
+impl Machine {
+    /// Inits, then events, then observers: the order of the machine's
+    /// obligations.
+    pub fn members(&self) -> impl Iterator<Item = &Function> {
+        self.inits.iter().chain(&self.events).chain(&self.observers)
+    }
+}
+
+/// `example Machine`, then an init and events one per line, then
+/// `gives condition`: a run and the condition that must hold after it.
+#[derive(Clone, Debug)]
+pub(crate) struct MachineExample {
+    pub machine: String,
+    pub file: usize,
+    /// Each step as a call, which the checker puts in the order of the
+    /// parameters, each labelled.
+    pub steps: Vec<Expr>,
+    pub gives: Expr,
+    pub text: String,
+    pub line: usize,
 }
 
 #[derive(Clone, Debug)]
@@ -294,5 +365,7 @@ pub(crate) struct Example {
 pub(crate) struct Program {
     pub enums: Vec<Enum>,
     pub functions: Vec<Function>,
+    pub machines: Vec<Machine>,
     pub examples: Vec<Example>,
+    pub machine_examples: Vec<MachineExample>,
 }

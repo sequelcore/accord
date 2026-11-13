@@ -7,10 +7,15 @@ use crate::Diagnostic;
 use crate::syntax::{Body, Expr, Function, Program, Type};
 
 /// What a call needs to know about the function it calls.
+#[derive(Clone)]
 pub(super) struct Signature {
     pub name: String,
+    /// The parameters a call gives.
     pub params: Vec<(String, Type)>,
     pub ret: Type,
+    /// The machine fields an observer reads, which a call passes on as its
+    /// first arguments; empty for a function.
+    pub state: Vec<(String, Type)>,
 }
 
 impl Scope<'_> {
@@ -36,6 +41,9 @@ impl Scope<'_> {
             return Err(Diagnostic::new(line, format!("unknown function `{name}`")));
         };
         let ordered = ordered(name, &callee.params, std::mem::take(args), line)?;
+        for (field, _) in &callee.state {
+            args.push((Some(field.clone()), Expr::Name(field.clone(), line)));
+        }
         for ((param, ty), mut expr) in callee.params.iter().zip(ordered) {
             self.value(
                 &mut expr,
@@ -123,6 +131,7 @@ pub(crate) fn callees(expr: &Expr, out: &mut Vec<String>) {
             callees(condition, out);
         }
         Expr::Length(list, _) => callees(list, out),
+        Expr::Next(fields, _) => fields.iter().for_each(|(_, value)| callees(value, out)),
         Expr::Index(list, index, _) => {
             callees(list, out);
             callees(index, out);

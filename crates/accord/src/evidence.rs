@@ -1,13 +1,15 @@
 //! Everything one check establishes: each obligation's outcome, each
 //! example's run, and the standing they add up to.
 
+mod machine;
 mod standing;
 
 use standing::{file_standing, standing_of};
 
 use crate::{
-    Definition, Determinacy, ExampleRun, Inputs, ObligationKind, Outcome, Refutation, Report, Run,
-    Solvers, Standing, Verdict, identity, interpret, mutation, obligation, openness, syntax,
+    Definition, DefinitionKind, Determinacy, ExampleRun, Inputs, ObligationKind, Outcome,
+    Refutation, Report, Run, Solvers, Standing, Verdict, identity, interpret, mutation, obligation,
+    openness, syntax,
 };
 
 /// What the solvers established about `o`, in source terms: a model's call
@@ -71,12 +73,19 @@ pub(crate) fn report(
     let file_of = |file: usize| names.get(file).cloned();
     let all_units = identity::units(program);
     let targeted = |unit: &identity::Unit| target.is_none_or(|t| unit.source.file == t);
+    let machines: Vec<_> = program
+        .machines
+        .iter()
+        .filter(|machine| target.is_none_or(|t| machine.file == t))
+        .map(|machine| (machine, machine::check(program, machine, solvers)))
+        .collect();
     let needed: Vec<String> = all_units
         .iter()
         .filter(|unit| targeted(unit))
         .flat_map(|unit| {
             std::iter::once(unit.source.name.clone()).chain(unit.callees.iter().cloned())
         })
+        .chain(machines.iter().flat_map(|(_, c)| c.callees.iter().cloned()))
         .collect();
     let units: Vec<_> = all_units
         .into_iter()
@@ -100,6 +109,8 @@ pub(crate) fn report(
                     obligation::Claim::InRange { .. } => ObligationKind::Overflow,
                     obligation::Claim::Requires { .. } => ObligationKind::Precondition,
                     obligation::Claim::InBounds { .. } => ObligationKind::Bounds,
+                    obligation::Claim::Invariants => ObligationKind::Invariant,
+                    obligation::Claim::Allowed => ObligationKind::Allowed,
                 },
                 outcome: outcome_of(unit, &o, outcome),
                 function: unit.source.name.clone(),
@@ -108,6 +119,7 @@ pub(crate) fn report(
                 reused,
                 clause: o.clause,
                 line: o.line,
+                exploration: None,
             });
         }
     }
@@ -171,11 +183,12 @@ pub(crate) fn report(
                 standing = Standing::Incomplete;
             }
             Definition {
+                kind: DefinitionKind::Function,
                 name: unit.source.name.clone(),
                 intent: unit.source.intent.clone(),
                 line: unit.source.line,
                 params: unit.source.params.clone(),
-                result_type: unit.source.ret.clone(),
+                result_type: Some(unit.source.ret.clone()),
                 specification: unit
                     .source
                     .clauses
@@ -212,6 +225,23 @@ pub(crate) fn report(
         .filter(|d| reported(&d.function))
         .collect();
     let units: Vec<_> = units.into_iter().filter(|unit| targeted(unit)).collect();
+    let (mut definitions, mut verdicts, mut examples) = (definitions, verdicts, examples);
+    for (machine, checked) in machines {
+        let mut definition = checked.definition;
+        definition.file = file_of(machine.file);
+        definition.unverified_callees = checked
+            .callees
+            .into_iter()
+            .filter(|name| standing_of_name(name) != Standing::Verified)
+            .collect();
+        definition.standing = standing_of(checked.verdicts.iter(), checked.runs.iter(), None);
+        if definition.standing == Standing::Verified && !definition.unverified_callees.is_empty() {
+            definition.standing = Standing::Incomplete;
+        }
+        definitions.push(definition);
+        verdicts.extend(checked.verdicts);
+        examples.extend(checked.runs);
+    }
     let standing = file_standing(&definitions);
     let strength = if solvers.mutates() {
         let proved_units: Vec<_> = units

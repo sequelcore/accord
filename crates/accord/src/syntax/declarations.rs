@@ -7,7 +7,7 @@ use super::{Body, Clause, ClauseKind, Enum, Example, Function, Row, Type, Width}
 use crate::Diagnostic;
 
 impl Parser<'_> {
-    fn ty(&mut self) -> Result<Type, Diagnostic> {
+    pub(super) fn ty(&mut self) -> Result<Type, Diagnostic> {
         let name = self.name()?;
         Ok(match name.as_str() {
             "Bool" => Type::Bool,
@@ -61,10 +61,8 @@ impl Parser<'_> {
         })
     }
 
-    pub(super) fn function(&mut self) -> Result<Function, Diagnostic> {
-        let line = self.line();
-        self.expect_word("fn")?;
-        let name = self.name()?;
+    /// `(name: Type, ...)`.
+    pub(super) fn parameters(&mut self) -> Result<Vec<(String, Type)>, Diagnostic> {
         self.expect_sym("(")?;
         let mut params = Vec::new();
         while !self.at_sym(")") {
@@ -76,22 +74,28 @@ impl Parser<'_> {
             }
         }
         self.expect_sym(")")?;
-        self.expect_sym("->")?;
-        let ret = self.ty()?;
-        let intent = if self.at_word("intent") {
-            self.pos += 1;
-            match self.peek().cloned() {
-                Some(Token::Str(text)) => {
-                    self.pos += 1;
-                    Some(text)
-                }
-                _ => return self.error("expected the intent as a string"),
+        Ok(params)
+    }
+
+    /// An `intent "..."` clause, where there is one.
+    pub(super) fn intent(&mut self) -> Result<Option<String>, Diagnostic> {
+        if !self.at_word("intent") {
+            return Ok(None);
+        }
+        self.pos += 1;
+        match self.peek().cloned() {
+            Some(Token::Str(text)) => {
+                self.pos += 1;
+                Ok(Some(text))
             }
-        } else {
-            None
-        };
+            _ => self.error("expected the intent as a string"),
+        }
+    }
+
+    /// Every clause that starts with one of `words`, in order.
+    pub(super) fn clauses(&mut self, words: &[&str]) -> Result<Vec<Clause>, Diagnostic> {
         let mut clauses = Vec::new();
-        while self.at_word("requires") || self.at_word("ensures") || self.at_word("open") {
+        while words.iter().any(|word| self.at_word(word)) {
             let kind = if self.at_word("requires") {
                 ClauseKind::Requires
             } else if self.at_word("ensures") {
@@ -112,8 +116,20 @@ impl Parser<'_> {
                 line,
             });
         }
+        Ok(clauses)
+    }
+
+    pub(super) fn function(&mut self) -> Result<Function, Diagnostic> {
+        let line = self.line();
+        self.expect_word("fn")?;
+        let name = self.name()?;
+        let params = self.parameters()?;
+        self.expect_sym("->")?;
+        let ret = self.ty()?;
+        let intent = self.intent()?;
+        let clauses = self.clauses(&["requires", "ensures", "open"])?;
         let body = if self.at_word("decide") {
-            self.decide()?
+            self.decide(Self::expr)?
         } else {
             self.expect_sym("{")?;
             let body = self.expr()?;
@@ -130,6 +146,7 @@ impl Parser<'_> {
             ret,
             clauses,
             body,
+            machine: None,
         })
     }
 
@@ -183,7 +200,11 @@ impl Parser<'_> {
         Ok(args)
     }
 
-    fn decide(&mut self) -> Result<Body, Diagnostic> {
+    /// A decision table whose rows give what `result` parses.
+    pub(super) fn decide(
+        &mut self,
+        result: fn(&mut Self) -> Result<super::Expr, Diagnostic>,
+    ) -> Result<Body, Diagnostic> {
         let line = self.line();
         self.expect_word("decide")?;
         self.expect_sym("{")?;
@@ -203,7 +224,7 @@ impl Parser<'_> {
             self.expect_sym("=>")?;
             rows.push(Row {
                 condition,
-                result: self.expr()?,
+                result: result(self)?,
                 text,
                 line: row_line,
             });

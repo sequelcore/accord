@@ -106,6 +106,7 @@ fn walk<'a>(expr: &'a Expr, bound: &[&'a Expr], visit: &mut impl FnMut(&'a Expr,
             each(otherwise);
         }
         Expr::List(items, ..) => items.iter().for_each(each),
+        Expr::Next(fields, _) => fields.iter().for_each(|(_, value)| each(value)),
         Expr::Call(_, args, _) => args.iter().for_each(|(_, arg)| each(arg)),
         Expr::Bool(_) | Expr::Int(..) | Expr::Text(..) | Expr::Name(..) | Expr::Variant(..) => {}
     }

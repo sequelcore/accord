@@ -115,7 +115,8 @@ fn search(unit: &Unit, solvers: &Solvers) -> Option<Determinacy> {
         }
         Outcome::Proved { witness: None }
         | Outcome::Refuted { .. }
-        | Outcome::WeakCallee { .. } => Openness::Undecided {
+        | Outcome::WeakCallee { .. }
+        | Outcome::NotInductive { .. } => Openness::Undecided {
             reason: "the search gave no witness".to_string(),
         },
     };

@@ -23,7 +23,8 @@ pub(super) fn standing_of<'a>(
             Outcome::Refuted { .. } => failed = true,
             Outcome::Undecided { .. }
             | Outcome::Unsupported { .. }
-            | Outcome::WeakCallee { .. } => open = true,
+            | Outcome::WeakCallee { .. }
+            | Outcome::NotInductive { .. } => open = true,
         }
     }
     for example in examples {
@@ -69,6 +70,7 @@ mod tests {
             key: String::new(),
             definition: String::new(),
             reused: false,
+            exploration: None,
         }
     }
 
@@ -125,10 +127,11 @@ mod tests {
             let definitions: Vec<Definition> = standings
                 .iter()
                 .map(|&standing| Definition {
+                    kind: crate::DefinitionKind::Function,
                     intent: None,
                     line: 1,
                     params: Vec::new(),
-                    result_type: crate::Type::Bool,
+                    result_type: Some(crate::Type::Bool),
                     specification: Vec::new(),
                     enums: Vec::new(),
                     name: "f".to_string(),

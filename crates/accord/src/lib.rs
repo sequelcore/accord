@@ -6,6 +6,7 @@ mod check;
 mod diagnostic;
 pub mod diff;
 mod evidence;
+mod explore;
 mod identity;
 mod interpret;
 mod ledger;
@@ -96,6 +97,15 @@ pub enum Outcome {
         /// Each call as written, with the result the counterexample gives it.
         calls: Inputs,
     },
+    /// Not proved from the invariants alone, though the machine may be right:
+    /// the solvers' counterexample starts in a state that meets every
+    /// invariant and helper invariant, and no run from an init was found to
+    /// reach it. A helper invariant can settle it.
+    NotInductive {
+        /// The state the counterexample starts in, and the parameters of the
+        /// step it takes.
+        inputs: Inputs,
+    },
 }
 
 /// What shows that an obligation fails.
@@ -105,6 +115,32 @@ pub enum Refutation {
     Counterexample(Inputs),
     /// It needs some input, and both solvers proved that none exists.
     NoSuchInput,
+    /// A run of a machine from an init that the interpreter replays, ending
+    /// at the step that fails.
+    Trace(Vec<TraceStep>),
+}
+
+/// One step of a run of a machine.
+#[derive(Clone, Debug, PartialEq)]
+pub struct TraceStep {
+    /// The init or event as called, such as `start()` or `set(level: 3)`.
+    pub call: String,
+    /// The fields after the step; `None` for a step that doesn't end in a
+    /// state, such as one whose arithmetic overflows.
+    pub state: Option<Inputs>,
+}
+
+/// What exploring a machine's reachable states covered. It is trusted, not
+/// proved, and never an outcome.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Exploration {
+    /// How many states were reached.
+    pub states: usize,
+    /// Whether every state, and every way to move from it, was visited.
+    pub complete: bool,
+    /// For an event proved allowed: a run to a state where it is, ending at
+    /// the event.
+    pub trace: Option<Vec<TraceStep>>,
 }
 
 /// The property an obligation checks, independent of its wording.
@@ -122,6 +158,12 @@ pub enum ObligationKind {
     Precondition,
     /// An index is within its list.
     Bounds,
+    /// A machine's init or event leaves it in a state that meets every
+    /// invariant and helper invariant.
+    Invariant,
+    /// A machine's init has an input its `requires` admits, or its event is
+    /// allowed in a state the machine reaches.
+    Allowed,
 }
 
 impl ObligationKind {
@@ -134,6 +176,8 @@ impl ObligationKind {
             Self::Overflow => "overflow",
             Self::Precondition => "precondition",
             Self::Bounds => "bounds",
+            Self::Invariant => "invariant",
+            Self::Allowed => "allowed",
         }
     }
 }
@@ -158,6 +202,9 @@ pub struct Verdict {
     pub definition: String,
     /// Whether the outcome came from the ledger rather than the solvers.
     pub reused: bool,
+    /// For an obligation about a machine's reachable states: what exploring
+    /// them covered.
+    pub exploration: Option<Exploration>,
 }
 
 /// Whether an example gave its result when run.
@@ -200,20 +247,43 @@ pub enum Standing {
     Unverified,
 }
 
-/// One function's identity, unchecked intent, and standing.
+/// What a definition is.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum DefinitionKind {
+    /// A function.
+    Function,
+    /// A machine.
+    Machine,
+}
+
+impl DefinitionKind {
+    /// The kind's name, as the receipt writes it.
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::Function => "function",
+            Self::Machine => "machine",
+        }
+    }
+}
+
+/// One function's or machine's identity, unchecked intent, and standing.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Definition {
-    /// The function's name.
+    /// Whether it is a function or a machine.
+    pub kind: DefinitionKind,
+    /// The function's or machine's name.
     pub name: String,
     /// Its declared purpose in unchecked natural language, when present.
     pub intent: Option<String>,
     /// The declaration's 1-based line.
     pub line: usize,
-    /// Parameter names and types, in declaration order.
+    /// Parameter names and types, in declaration order; for a machine, its
+    /// state's fields.
     pub params: Vec<(String, Type)>,
-    /// The result's type.
-    pub result_type: Type,
-    /// Source lines and text of every specification clause, including requires.
+    /// The result's type; a machine has none.
+    pub result_type: Option<Type>,
+    /// Source lines and text of every specification clause, including
+    /// requires; for a machine, its invariants and helper invariants.
     pub specification: Vec<(usize, String)>,
     /// Enums used by this function, with their source variants.
     pub enums: Vec<(String, Vec<String>)>,
@@ -283,16 +353,24 @@ fn program_of(files: &[(String, String)]) -> Result<(syntax::Program, Vec<String
     let mut program = syntax::Program {
         enums: Vec::new(),
         functions: Vec::new(),
+        machines: Vec::new(),
         examples: Vec::new(),
+        machine_examples: Vec::new(),
     };
     for (index, (name, source)) in files.iter().enumerate() {
         let mut part = syntax::parse(source).map_err(|d| d.in_file(name))?;
         part.enums.iter_mut().for_each(|e| e.file = index);
         part.functions.iter_mut().for_each(|f| f.file = index);
+        part.machines.iter_mut().for_each(|m| m.file = index);
         part.examples.iter_mut().for_each(|e| e.file = index);
+        part.machine_examples
+            .iter_mut()
+            .for_each(|e| e.file = index);
         program.enums.extend(part.enums);
         program.functions.extend(part.functions);
+        program.machines.extend(part.machines);
         program.examples.extend(part.examples);
+        program.machine_examples.extend(part.machine_examples);
     }
     check::check(&mut program, &names)?;
     Ok((program, names))

@@ -2,7 +2,7 @@
 //! the solver's word alone.
 
 use super::eval::{Env, Mode, body, first_row};
-use super::{Names, Value, admitted, broken_requires, read};
+use super::{Names, Value, admitted, broken_invariant, broken_requires, read};
 use crate::Inputs;
 use crate::obligation::{Claim, Guard, Obligation, term};
 use crate::syntax::{Expr, Range};
@@ -35,6 +35,13 @@ fn reproduces(
         assumed,
     };
     Ok(match &obligation.claim {
+        Claim::Allowed => true,
+        Claim::Invariants => {
+            let Value::List(next) = body(function, &env)? else {
+                return Err("a transition ends in a state".to_string());
+            };
+            broken_invariant(function, &next)?.is_some()
+        }
         Claim::Ensures(clause) => {
             let result = body(function, &env)?;
             let with_result = Env {
@@ -89,6 +96,12 @@ fn reproduces(
             }
         }
     })
+}
+
+/// Whether `obligation`'s universal claim fails on `names`, which give a value
+/// to every parameter of its function, with each call running.
+pub(crate) fn fails(obligation: &Obligation, names: &Names) -> Result<bool, String> {
+    reproduces(obligation, names, None)
 }
 
 /// Whether every guard holds, each evaluated whatever the others give.

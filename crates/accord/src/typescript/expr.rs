@@ -162,6 +162,7 @@ impl Scope<'_> {
             }
             Expr::Length(list, _) => self.length(list),
             Expr::Index(list, index, _) => self.index(list, index),
+            Expr::Next(..) => unreachable!("`build` refuses a program with a machine"),
         }
     }
 

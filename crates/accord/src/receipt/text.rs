@@ -3,7 +3,8 @@
 
 use super::{diagnostics, json, review};
 use crate::{
-    Determinacy, ExampleRun, Inputs, Openness, Outcome, Refutation, Report, Run, Strength, Verdict,
+    Determinacy, ExampleRun, Inputs, Openness, Outcome, Refutation, Report, Run, Strength,
+    TraceStep, Verdict,
 };
 
 fn values(inputs: &Inputs) -> String {
@@ -17,7 +18,45 @@ fn values(inputs: &Inputs) -> String {
         .join(", ")
 }
 
+/// A run, one step to a line.
+fn trace_text(steps: &[TraceStep]) -> String {
+    steps
+        .iter()
+        .map(|step| match &step.state {
+            Some(state) => format!("             {} leaves {}", step.call, values(state)),
+            None => format!("             {} fails here", step.call),
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+/// What exploring the reachable states covered, for an obligation that
+/// consulted it.
+fn exploration_text(verdict: &Verdict) -> Option<String> {
+    let exploration = verdict.exploration.as_ref()?;
+    let mut line = format!(
+        "             explored {} states, {} (trusted, not proved)",
+        exploration.states,
+        if exploration.complete {
+            "all of them"
+        } else {
+            "not all"
+        }
+    );
+    if let Some(trace) = &exploration.trace {
+        line = format!("{line}\n{}", trace_text(trace));
+    }
+    Some(line)
+}
+
 fn verdict_text(verdict: &Verdict) -> String {
+    match exploration_text(verdict) {
+        Some(note) => format!("{}\n{note}", outcome_text(verdict)),
+        None => outcome_text(verdict),
+    }
+}
+
+fn outcome_text(verdict: &Verdict) -> String {
     let reused = if verdict.reused { "  [reused]" } else { "" };
     let clause = if verdict.kind == crate::ObligationKind::RowReachability {
         "some admitted input reaches this row first (existential)"
@@ -45,6 +84,13 @@ fn verdict_text(verdict: &Verdict) -> String {
         Outcome::Refuted {
             evidence: Refutation::NoSuchInput,
         } => format!("refuted      {place}\n             no input reaches it"),
+        Outcome::Refuted {
+            evidence: Refutation::Trace(steps),
+        } => format!("refuted      {place}\n{}", trace_text(steps)),
+        Outcome::NotInductive { inputs } => format!(
+            "not inductive {place}\n             not proved from the invariants alone: from {}, which no run from an init was found to reach; a helper invariant may settle it",
+            values(inputs)
+        ),
         Outcome::Undecided { reason } => format!("undecided    {place}\n             {reason}"),
         Outcome::Unsupported { reason } => {
             format!("unsupported  {place}\n             {reason}")
@@ -149,7 +195,8 @@ pub fn text(report: &Report) -> String {
             .as_ref()
             .map_or(String::new(), |f| format!(" ({f})"));
         lines.push(format!(
-            "function     {}{file}",
+            "{:<13}{}{file}",
+            definition.kind.name(),
             review::signature(definition)
         ));
         let metadata = json::definition_json(report, definition);

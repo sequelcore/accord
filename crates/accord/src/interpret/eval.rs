@@ -147,6 +147,12 @@ impl Env<'_> {
                 self.quantified(*quantifier, name, range, condition)
             }
             Expr::Length(list, _) => Ok(Value::Int(self.list(list)?.len() as i128)),
+            // The state a transition ends in, as its fields' values in order.
+            Expr::Next(fields, _) => fields
+                .iter()
+                .map(|(_, value)| self.eval(value))
+                .collect::<Result<_, _>>()
+                .map(Value::List),
             Expr::Index(list, index, site) => {
                 let items = self.list(list)?;
                 usize::try_from(self.int(index)?)

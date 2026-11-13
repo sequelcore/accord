@@ -105,6 +105,11 @@ impl<'a> Renamer<'a> {
                 self.expr(condition, &inner);
             }
             Expr::Length(list, _) => self.expr(list, params),
+            Expr::Next(fields, _) => {
+                for (_, value) in fields {
+                    self.expr(value, params);
+                }
+            }
             Expr::Index(list, index, _) => {
                 self.expr(list, params);
                 self.expr(index, params);

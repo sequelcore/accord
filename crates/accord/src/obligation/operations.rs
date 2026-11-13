@@ -56,6 +56,7 @@ fn operations<'a>(
         Expr::Neg(inner, _) | Expr::Not(inner) | Expr::Length(inner, _) => each(inner, out),
         Expr::Call(_, args, _) => args.iter().for_each(|(_, arg)| each(arg, out)),
         Expr::List(items, ..) => items.iter().for_each(|item| each(item, out)),
+        Expr::Next(fields, _) => fields.iter().for_each(|(_, value)| each(value, out)),
         Expr::If(condition, then, otherwise) => {
             each(condition, out);
             let guard = |holds| Guard {
@@ -128,7 +129,12 @@ pub(super) fn spec_indexes<'a>(
         Expr::Call(_, args, _) => args
             .iter()
             .for_each(|(_, a)| spec_indexes(a, guards, bound, out)),
-        Expr::Bool(_) | Expr::Int(..) | Expr::Text(..) | Expr::Name(..) | Expr::Variant(..) => {}
+        Expr::Bool(_)
+        | Expr::Int(..)
+        | Expr::Text(..)
+        | Expr::Name(..)
+        | Expr::Variant(..)
+        | Expr::Next(..) => {}
     }
     if matches!(expr, Expr::Index(..)) {
         out.push(Operation {

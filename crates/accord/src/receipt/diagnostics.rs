@@ -28,6 +28,7 @@ pub(super) fn findings(report: &Report) -> Vec<Value> {
                 Outcome::Undecided { .. } => Some(C::ObligationUndecided),
                 Outcome::Unsupported { .. } => Some(C::ObligationUnsupported),
                 Outcome::WeakCallee { .. } => Some(C::WeakCalleeContract),
+                Outcome::NotInductive { .. } => Some(C::NotInductive),
             };
             if let Some(code) = code {
                 add(

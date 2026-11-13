@@ -109,6 +109,9 @@ fn mutate_expr(expr: &mut Expr, n: &mut usize) -> Option<Change> {
             mutate_expr(range.list_mut(), n).or_else(|| mutate_expr(condition, n))
         }
         Expr::Length(list, _) => mutate_expr(list, n),
+        Expr::Next(fields, _) => fields
+            .iter_mut()
+            .find_map(|(_, value)| mutate_expr(value, n)),
         Expr::Index(list, index, _) => mutate_expr(list, n).or_else(|| mutate_expr(index, n)),
         Expr::Bool(_) | Expr::Text(..) | Expr::Name(..) | Expr::Variant(..) => None,
     }
