@@ -15,6 +15,32 @@ stages will change as the earlier ones teach us.
 
 Taken on 2026-11-12:
 
+- **Stage 10's semantics, before its code** ([#82](https://github.com/sequelcore/accord/issues/82)).
+  - **A machine** declares its state as fields of fixed-width integers,
+    enums and `Bool`s, its initial states, its events and observers.
+  - **An event** is a pure function of the state and its parameters,
+    allowed by its `requires`. A choice a model leaves open is a parameter.
+    Time is an ordinary field the caller advances, so machines need no
+    effects.
+  - **An invariant is proved** only when the solvers prove it inductive,
+    with helper invariants the author writes. It is refuted only by a trace
+    from an initial state that the interpreter replays, and a planted fault
+    counts as detected only that way. Otherwise a failed obligation is
+    `not_inductive`, with a state that satisfies the invariants and leaves
+    them in one step. Exploring every reachable state, or exploring within a
+    bound, is recorded on the unproved obligation and is never an outcome.
+  - **`accord build`** writes a machine only when its invariants are
+    proved. The boundary checks a state's types and its invariants.
+  - **opossum is ported faithfully.** Its breaker closes on any success
+    while half-open. Its threshold is compared exactly, and fractional
+    thresholds are rejected. The invariants proved are the ones #82 names.
+
+  Evidence: [two probes](docs/design/measurements/2026-11-12-stage-10-machines/README.md)
+  on opossum and on Tesota's ProviderRetry model. ProviderRetry is the
+  Tesota model ported, because it is the one that exercises time. The
+  [native code constraints](docs/design/native-code-constraints.md#decide-these-before-the-stage-that-needs-them)
+  record each decision.
+
 - **A variant may give its value outside Accord**: `Cancelled = "CANCELLED"`;
   otherwise its value is its name in `snake_case`. Tesota's
   `statementResult` returns values no `snake_case` name spells, and stage
@@ -106,7 +132,7 @@ Taken on 2026-11-07:
 | 7. Intents and the review view | `intent` declarations; the human view (intent, specification, examples, counterexamples, open cases, surviving mutants, what wasn't proved); the agent view as structured diagnostics | The review of `gate-rule` and an outside-domain rule is readable without their code | Built, check moved to the public phase ([#46](https://github.com/sequelcore/accord/issues/46)): the [gate and Cedar packets](docs/design/stage-7-review/README.md) await a reader from outside the project |
 | 8. TypeScript output | Accord compiled to a TypeScript module | Tesota's own tests pass with the generated rule in place of the original | Done ([#47](https://github.com/sequelcore/accord/issues/47)): `accord build` ([reference](docs/typescript.md)), checked against the interpreter; Tesota's typecheck and tests pass with the generated rules (`scripts/check-tesota.sh`), and axios-retry's lint and specs with its generated request predicates (`scripts/check-axios-retry.sh`) |
 | 9. Whole rules | Calls between functions, proved through the callee's contract; `all`, `any` and `count` over lists; length and indexing: what `verdict-rule`, the largest rule, and Cedar's policy-set evaluation need | `verdict-rule` and Cedar's policy-set evaluation ported and proved | Done ([#69](https://github.com/sequelcore/accord/issues/69)): `verdict-rule` in `conformance/programs/tesota/`, where Tesota's typecheck and tests pass with it generated (`scripts/check-tesota.sh`), and Cedar's policy-set evaluation in `conformance/programs/cedar/`, each with planted faults refuted; calls (`conformance/cases/call*.accord`) and lists (`list-*.accord`); [proof cost and undecided rate](docs/design/measurements/2026-11-12-stage-9-proof-cost/README.md) |
-| 10. State machines | `machine` declarations, invariants, explicit-state model checking, planted faults | A Tesota design model ported, its faults detected; the circuit breaker of [opossum](https://github.com/nodeshift/opossum) (Apache-2.0), closed, open and half-open, proved, and opossum's tests pass with the generated module | |
+| 10. State machines | `machine` declarations, invariants, explicit-state model checking, planted faults | A Tesota design model ported, its faults detected; the circuit breaker of [opossum](https://github.com/nodeshift/opossum) (Apache-2.0), closed, open and half-open, proved, and opossum's tests pass with the generated module | Next ([#82](https://github.com/sequelcore/accord/issues/82)) |
 | 11. Structured data | Records, sum types and `match`, recursion with `decreases`, `Text` operations beyond equality | Version comparison from [node-semver](https://github.com/npm/node-semver) (ISC) proved, and node-semver's tests for it pass with the generated module | |
 | 12. Complete programs | Effects (files, standard input and output, exit codes) declared in types, errors as values, a `main` | `wc` from [uutils/coreutils](https://github.com/uutils/coreutils) (MIT) written only in Accord, its effects in its types and its proofs still fail-closed; uutils' tests for `wc` pass against it | |
 | 13. Standard library and modules | Maps and sets, generic types, imports between packages, as stages 11 and 12's programs need them | Accord's own E2 tooling (`docs/design/e2-human-review/materials.py` and `score.py`) rewritten in Accord; their self-tests and CI check pass | |
