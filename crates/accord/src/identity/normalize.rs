@@ -3,6 +3,18 @@
 
 use crate::syntax::{Body, ClauseKind, Enum, Expr, Function, Program, Type};
 
+/// The enum at `index` with its names replaced by positions: `E{index}`,
+/// with variants `v0`, `v1`, ... and no written values, which no proof reads.
+pub(super) fn enumeration(index: usize, e: &Enum) -> Enum {
+    Enum {
+        name: format!("E{index}"),
+        variants: (0..e.variants.len()).map(|v| format!("v{v}")).collect(),
+        values: vec![None; e.variants.len()],
+        line: 0,
+        file: 0,
+    }
+}
+
 pub(super) struct Renamer<'a> {
     pub(super) program: &'a Program,
     pub(super) enums: Vec<&'a Enum>,

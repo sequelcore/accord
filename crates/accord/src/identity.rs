@@ -16,7 +16,7 @@
 mod normalize;
 mod source;
 
-use normalize::{Renamer, canonical};
+use normalize::{Renamer, canonical, enumeration};
 use sha2::{Digest, Sha256};
 
 use crate::syntax::{Enum, Function, Program};
@@ -95,13 +95,7 @@ pub(crate) fn units(program: &Program) -> Vec<Unit<'_>> {
             let enums: Vec<Enum> = renamer.enums[..visible]
                 .iter()
                 .enumerate()
-                .map(|(index, e)| Enum {
-                    name: format!("E{index}"),
-                    variants: (0..e.variants.len()).map(|v| format!("v{v}")).collect(),
-                    values: vec![None; e.variants.len()],
-                    line: 0,
-                    file: 0,
-                })
+                .map(|(index, e)| enumeration(index, e))
                 .collect();
             let mut text = String::from("(fn");
             for e in &enums {
