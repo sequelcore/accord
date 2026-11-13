@@ -115,7 +115,17 @@ The rule written before the runs gives, with every version at the ceiling:
 A's positional patterns and `Numeric(digits: "2")` values, records built with
 braces, `spec fn`, exhaustiveness as a compile-time error, and `decreases`.
 None of the replies distinguish the versions, so the rule's tie-breaks decide.
-For the owner to accept or change.
+
+An independent review then found what the probe couldn't show. Every variant
+here has one field, so no reader could swap fields by position; `match` arms
+used a row syntax unlike `decide`'s; and a record built with braces must stay
+apart from a block, as in `if x == On { On }`. The maintainers accepted the
+rule's result with the review's changes, as
+[syntax decisions 8 to 12](../../syntax.md#decisions): positional patterns
+only for one field and labels beyond, `match` rows written as `decide`'s,
+`_`, records with every field named, `spec fn` with mathematical integers
+and no `requires`, and code point `length` and `<` on `Text`. The record's
+braces and the row syntax are taste: the probe didn't measure them.
 
 What the replies ask of the reference and the diagnostics, whatever is chosen:
 state that a spec function isn't run or exported, that a `match` must cover

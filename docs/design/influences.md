@@ -44,7 +44,7 @@ feature that is merely good elsewhere doesn't qualify.
 | Lean, Bend 2 | Dependent types and hand-written proof terms in the core surface | Goal 3: interactive proofs are where agents verify worst; they stay an escape route |
 | Rust | Lifetimes and borrow annotations | Goal 1: no references in the early subset, so nothing to annotate |
 | TypeScript | `number`, `any`, implicit coercion | Goal 5: nothing provable about them |
-| Dafny | The `method` and `function` split, `ghost` noise | Goal 4: one kind of function; specification context decides integer meaning |
+| Dafny | The `method` and `function` split, `ghost` noise | Goal 4: one kind of function for code; specification context decides integer meaning. Stage 11 adds `spec fn`, for specifications only, because a contract over lists needs a recursive definition the solvers can unfold ([syntax decision 11](syntax.md#decisions)) |
 | Python, Bend 2 | Significant indentation | Goal 4: braces survive copy, paste and generation without changing meaning |
 | Unison | Editing a codebase stored in a database | Files stay the source; identity by hash happens underneath |
 | Macro systems | `macro_rules`, templates | Goal 5: hidden code the reader can't see |
