@@ -64,7 +64,9 @@ never records acceptance; that stays with the person.
     by a **witness**, an input for which it holds, reported in source terms;
   - **refuted:** the solvers found a **counterexample**, concrete inputs on
     which it fails, reported in source terms; or, for an existential
-    obligation, both proved that no input exists;
+    obligation, both proved that no input exists; or, for a machine's
+    invariant or arithmetic, a **trace**, a run from an init that the
+    interpreter replays;
   - **undecided:** no proof and no counterexample, with a reason: a timeout,
     an unknown answer, or the solvers disagreeing (which is also raised as
     an alarm);
@@ -75,7 +77,17 @@ never records acceptance; that stays with the person.
     a call takes a result its callee's contract allows and its body never
     gives. The interpreter tells the two apart by replaying the
     counterexample twice, once running every call and once giving each call
-    the solvers' value.
+    the solvers' value;
+  - **not inductive:** an obligation of a machine that the solvers refuted
+    from a state that meets every invariant and helper invariant, though no
+    run from an init was found to reach that state. The machine may be right:
+    a helper invariant can settle it. It is reported with the state and the
+    step's parameters, never as a failure.
+- **Exploration** of a machine: a breadth-first search of the states its
+  inits and events reach, run by the interpreter. It finds the traces that
+  refute an obligation and the states that show an event is allowed. What it
+  covered, the states reached and whether every one was, is recorded on the
+  obligation; it is trusted, never an outcome, and proves nothing.
 - **Example run:** passed or failed.
 - **Strength** of a contract: small, plausible mistakes are planted in the
   body (mutants), and each is **caught** (the contract rules it out),
@@ -127,7 +139,7 @@ weaker one count without a person.
 | --- | --- |
 | **failed** | An obligation is refuted or an example failed |
 | **verified** | Every obligation is proved, every example passed, all evidence is current, no open case remains and every assumption is approved |
-| **incomplete** | Nothing failed, but something keeps it from verified: an undecided, unsupported or weak-callee obligation, stale evidence, an open case, an unapproved assumption, or a function it calls that isn't verified |
+| **incomplete** | Nothing failed, but something keeps it from verified: an undecided, unsupported, weak-callee or not-inductive obligation, stale evidence, an open case, an unapproved assumption, or a function it calls that isn't verified |
 | **unverified** | No current evidence |
 
 A call is proved through its callee's contract, never its body, so a
