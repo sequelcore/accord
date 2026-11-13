@@ -1,0 +1,111 @@
+// expect: proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, refuted, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, passed
+// opossum's breaker (conformance/programs/opossum) with a planted fault:
+// `trip` keeps `pending_close`, so a half-open breaker that trips is open and
+// still holds a probe.
+
+/// Where the breaker stands.
+pub enum BreakerPhase { Closed, Open, HalfOpen, Shutdown }
+
+/// A circuit breaker's state, without its timers, statistics or cache.
+pub machine Breaker {
+    intent "Let calls through while closed, refuse them while open, let one probe through when the reset timeout ends, and let nothing through once shut down."
+
+    state {
+        phase: BreakerPhase,
+        pending_close: Bool,
+        enabled: Bool,
+        warming_up: Bool,
+    }
+
+    init initial(is_enabled: Bool, is_warming_up: Bool) {
+        next { phase: Closed, pending_close: false, enabled: is_enabled, warming_up: is_warming_up }
+    }
+
+    /// A breaker restored from `options.state`; `open_expired` is whether more
+    /// than the reset timeout has passed since the saved `lastTimerAt`.
+    init restored(is_enabled: Bool, is_warming_up: Bool, closed: Bool, half_open: Bool, shut_down: Bool, open_expired: Bool)
+        requires not (closed and half_open)
+    decide {
+        | shut_down               => next { phase: Shutdown, pending_close: half_open, enabled: false, warming_up: is_warming_up }
+        | closed                  => next { phase: Closed, pending_close: false, enabled: is_enabled, warming_up: is_warming_up }
+        | half_open or open_expired => next { phase: HalfOpen, pending_close: true, enabled: is_enabled, warming_up: is_warming_up }
+        | otherwise               => next { phase: Open, pending_close: false, enabled: is_enabled, warming_up: is_warming_up }
+    }
+
+    event close() {
+        if phase == Closed {
+            next { }
+        } else {
+            next { phase: Closed, pending_close: false }
+        }
+    }
+
+    /// opossum's `open()`; `open` is an Accord keyword.
+    event trip() {
+        if phase == Open {
+            next { }
+        } else {
+            next { phase: Open }
+        }
+    }
+
+    /// The reset timeout ended: the next call is the probe.
+    event reset_elapsed() {
+        next { phase: HalfOpen, pending_close: true }
+    }
+
+    /// A protected call was let through; a half-open breaker's probe is used.
+    event call_admitted() {
+        next { pending_close: false }
+    }
+
+    event shut_down() {
+        next { phase: Shutdown, enabled: false }
+    }
+
+    event enable() {
+        next { enabled: true }
+    }
+
+    event disable() {
+        next { enabled: false }
+    }
+
+    event warm_up_ended() {
+        next { warming_up: false }
+    }
+
+    /// Whether a protected call runs now: closed, or holding its half-open probe.
+    fn admits() -> Bool {
+        phase == Closed or pending_close
+    }
+
+    /// Whether `fire()` runs the action at all: never once shut down, always
+    /// when disabled, and otherwise as `admits` says.
+    fn admits_call() -> Bool
+        ensures phase == Shutdown implies not result
+        ensures phase == Open and enabled implies not result
+    {
+        phase != Shutdown and (not enabled or phase == Closed or pending_close)
+    }
+
+    /// Whether a failure opens the breaker, given the rolling window's counts.
+    fn opens_on_failure(fires: i64, failures: i64, volume_threshold: i64, threshold: i64) -> Bool
+        requires fires >= 0 and failures >= 0 and failures <= fires and fires <= 1000000000000
+        requires threshold >= 0 and threshold <= 1000000
+    decide {
+        | warming_up                                     => false
+        | fires < volume_threshold and phase != HalfOpen => false
+        | otherwise                                      => failures * 100 > threshold * fires or phase == HalfOpen
+    }
+
+    invariant pending_close_is_half_open: pending_close implies phase == HalfOpen or phase == Shutdown
+}
+
+example Breaker
+    initial(is_enabled: true, is_warming_up: false)
+    trip()
+    reset_elapsed()
+    call_admitted()
+    close()
+    gives phase == Closed and not pending_close
