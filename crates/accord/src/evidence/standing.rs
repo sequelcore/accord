@@ -71,6 +71,7 @@ mod tests {
             definition: String::new(),
             reused: false,
             exploration: None,
+            parameters: Vec::new(),
         }
     }
 
@@ -128,6 +129,7 @@ mod tests {
                 .iter()
                 .map(|&standing| Definition {
                     kind: crate::DefinitionKind::Function,
+                    support: Vec::new(),
                     intent: None,
                     line: 1,
                     params: Vec::new(),

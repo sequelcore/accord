@@ -205,6 +205,10 @@ pub struct Verdict {
     /// For an obligation about a machine's reachable states: what exploring
     /// them covered.
     pub exploration: Option<Exploration>,
+    /// The parameters the inputs of its outcome name, for an obligation of a
+    /// machine's init, event or observer; empty for a function's, whose
+    /// parameters are the definition's.
+    pub parameters: Vec<(String, Type)>,
 }
 
 /// Whether an example gave its result when run.
@@ -287,6 +291,9 @@ pub struct Definition {
     pub specification: Vec<(usize, String)>,
     /// Enums used by this function, with their source variants.
     pub enums: Vec<(String, Vec<String>)>,
+    /// For a machine, its helper invariants: support for proving its
+    /// invariants, not claims. Empty for a function.
+    pub support: Vec<(usize, String)>,
     /// The file it's declared in, when a folder was checked.
     pub file: Option<String>,
     /// The hash of the normalized function.

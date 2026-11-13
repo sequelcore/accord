@@ -120,6 +120,7 @@ pub(crate) fn report(
                 clause: o.clause,
                 line: o.line,
                 exploration: None,
+                parameters: Vec::new(),
             });
         }
     }
@@ -184,6 +185,7 @@ pub(crate) fn report(
             }
             Definition {
                 kind: DefinitionKind::Function,
+                support: Vec::new(),
                 name: unit.source.name.clone(),
                 intent: unit.source.intent.clone(),
                 line: unit.source.line,

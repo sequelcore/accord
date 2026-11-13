@@ -75,7 +75,8 @@ Each definition has these fields:
 | `result_type` | Structured result type; null for a machine |
 | `types[]` | Used enums, each with name and source variants |
 | `intent` | Unchecked declared purpose, or null |
-| `specification[]` | Each source clause, with text and 1-based line; a machine's are its invariants and helper invariants, the helpers written `helper invariant` |
+| `specification[]` | Each source clause, with text and 1-based line; a machine's are its invariants |
+| `support[]` | A machine's helper invariants, each with text and line: support for proving its invariants, not claims. Both are assumed and proved alike; empty for a function |
 | `hash` | SHA-256 of normalized checked semantics; names and intent do not affect it |
 | `review_hash` | SHA-256 of this definition's review facts, excluding cache-use markers |
 | `standing` | The function's standing: verified only when every function it calls, directly or not, is verified too |
@@ -146,7 +147,7 @@ failed. Passing an example proves no universal property.
 
 ### Typed witness values
 
-Inputs in witnesses, counterexamples, open cases, and mutants have a parameter
+Inputs in witnesses, counterexamples, open cases, and mutants (a machine's state fields and the parameters of the init or event) have a parameter
 `name`, structured `type`, decoded `value`, exact `source` spelling, and `valid`.
 Result values use the same shape without name. Types are:
 

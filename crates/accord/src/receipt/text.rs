@@ -217,6 +217,9 @@ pub fn text(report: &Report) -> String {
             ),
             None => format!("intent       {}{file}: not declared", definition.name),
         });
+        for (line, clause) in &definition.support {
+            lines.push(format!("support      line {line}: {clause}"));
+        }
         if definition.specification.is_empty() {
             lines.push("specification none declared".to_string());
         }

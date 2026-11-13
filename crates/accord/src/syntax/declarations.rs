@@ -111,6 +111,7 @@ impl Parser<'_> {
             let expr = self.expr()?;
             clauses.push(Clause {
                 kind,
+                helper: false,
                 expr,
                 text,
                 line,

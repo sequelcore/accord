@@ -154,7 +154,8 @@ impl Parser<'_> {
     /// `invariant name: condition` or `helper invariant name: condition`.
     fn invariant(&mut self) -> Result<Clause, Diagnostic> {
         let (text, line) = self.rest_of_line();
-        if self.at_word("helper") {
+        let helper = self.at_word("helper");
+        if helper {
             self.pos += 1;
         }
         self.expect_word("invariant")?;
@@ -162,6 +163,7 @@ impl Parser<'_> {
         self.expect_sym(":")?;
         Ok(Clause {
             kind: ClauseKind::Invariant,
+            helper,
             expr: self.expr()?,
             text,
             line,

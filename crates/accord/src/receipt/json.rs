@@ -50,11 +50,11 @@ fn typed(source: &str, ty: &Type) -> Value {
     }
 }
 
-fn inputs_json(inputs: &Inputs, definition: &Definition) -> Value {
+fn inputs_json(inputs: &Inputs, params: &[(String, Type)]) -> Value {
     inputs
         .iter()
         .map(|(name, value)| {
-            let mut out = match definition.params.iter().find(|(n, _)| n == name) {
+            let mut out = match params.iter().find(|(n, _)| n == name) {
                 Some((_, ty)) => typed(value, ty),
                 None => json!({"source": value, "valid": false, "value": null}),
             };
@@ -70,7 +70,7 @@ fn trace_json(steps: &[TraceStep], definition: &Definition) -> Value {
         .map(|step| {
             json!({
                 "call": step.call,
-                "state": step.state.as_ref().map(|state| inputs_json(state, definition)),
+                "state": step.state.as_ref().map(|state| inputs_json(state, &definition.params)),
             })
         })
         .collect()
@@ -89,17 +89,22 @@ fn verdict_json(verdict: &Verdict, definition: &Definition) -> Value {
         "key": verdict.key,
         "reused": verdict.reused,
     });
+    let params = if verdict.parameters.is_empty() {
+        &definition.params
+    } else {
+        &verdict.parameters
+    };
     let fields = match &verdict.outcome {
         Outcome::Proved { witness } => {
             let mut fields = json!({ "outcome": "proved" });
             if let Some(inputs) = witness {
-                fields["witness"] = inputs_json(inputs, definition);
+                fields["witness"] = inputs_json(inputs, params);
             }
             fields
         }
         Outcome::Refuted {
             evidence: Refutation::Counterexample(inputs),
-        } => json!({ "outcome": "refuted", "counterexample": inputs_json(inputs, definition) }),
+        } => json!({ "outcome": "refuted", "counterexample": inputs_json(inputs, params) }),
         Outcome::Refuted {
             evidence: Refutation::NoSuchInput,
         } => json!({ "outcome": "refuted", "no_such_input": true }),
@@ -108,13 +113,13 @@ fn verdict_json(verdict: &Verdict, definition: &Definition) -> Value {
         } => json!({ "outcome": "refuted", "trace": trace_json(steps, definition) }),
         Outcome::NotInductive { inputs } => json!({
             "outcome": "not_inductive",
-            "counterexample": inputs_json(inputs, definition),
+            "counterexample": inputs_json(inputs, params),
         }),
         Outcome::Undecided { reason } => json!({ "outcome": "undecided", "reason": reason }),
         Outcome::Unsupported { reason } => json!({ "outcome": "unsupported", "reason": reason }),
         Outcome::WeakCallee { inputs, calls } => json!({
             "outcome": "weak_callee",
-            "counterexample": inputs_json(inputs, definition),
+            "counterexample": inputs_json(inputs, params),
             "calls": calls
                 .iter()
                 .map(|(call, value)| json!({ "call": call, "value": value }))
@@ -165,7 +170,7 @@ fn openness_json(openness: &Openness, definition: &Definition) -> Value {
             code,
         } => json!({
             "open": {
-                "inputs": inputs_json(inputs, definition),
+                "inputs": inputs_json(inputs, &definition.params),
                 "results": [result_typed(&results.0, definition), result_typed(&results.1, definition)],
                 "implementation": result_typed(code, definition),
             }
@@ -186,7 +191,7 @@ fn strength_json(strength: &Strength, definition: &Definition) -> Value {
             .iter()
             .map(|s| json!({
                 "change": s.change,
-                "inputs": inputs_json(&s.inputs, definition),
+                "inputs": inputs_json(&s.inputs, &definition.params),
                 "original": result_typed(&s.original, definition),
                 "mutant": result_typed(&s.mutant, definition),
             }))
@@ -220,6 +225,7 @@ pub(super) fn definition_json(report: &Report, definition: &Definition) -> Value
         "parameters": definition.params.iter().map(|(name, ty)| json!({"name": name, "type": type_json(ty)})).collect::<Vec<_>>(),
         "result_type": definition.result_type.as_ref().map(type_json),
         "types": definition.enums.iter().map(|(name, variants)| json!({"name": name, "variants": variants})).collect::<Vec<_>>(),
+        "support": definition.support.iter().map(|(line, text)| json!({"line": line, "text": text})).collect::<Vec<_>>(),
         "specification": definition.specification.iter().map(|(line, text)| json!({"line": line, "text": text})).collect::<Vec<_>>(),
         "not_proved": review::limits(report, definition).into_iter().map(|(kind, message)| json!({"kind": kind, "message": message})).collect::<Vec<_>>(),
         "name": definition.name,

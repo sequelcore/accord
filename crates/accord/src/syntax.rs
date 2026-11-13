@@ -222,6 +222,9 @@ pub(crate) enum ClauseKind {
 #[derive(Clone, Debug)]
 pub(crate) struct Clause {
     pub kind: ClauseKind,
+    /// A helper invariant: assumed and proved as an invariant is, but support
+    /// for proving the others rather than a claim.
+    pub helper: bool,
     pub expr: Expr,
     pub text: String,
     pub line: usize,

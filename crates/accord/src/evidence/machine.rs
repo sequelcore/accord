@@ -292,6 +292,7 @@ pub(super) fn check(program: &Program, machine: &Machine, solvers: &Solvers) -> 
                 clause: ob.clause.clone(),
                 line: ob.line,
                 exploration,
+                parameters: units[m].source.params.clone(),
             });
         }
     }
@@ -334,6 +335,13 @@ pub(super) fn check(program: &Program, machine: &Machine, solvers: &Solvers) -> 
         specification: machine
             .invariants
             .iter()
+            .filter(|c| !c.helper)
+            .map(|c| (c.line, c.text.clone()))
+            .collect(),
+        support: machine
+            .invariants
+            .iter()
+            .filter(|c| c.helper)
             .map(|c| (c.line, c.text.clone()))
             .collect(),
         enums,

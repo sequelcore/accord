@@ -121,3 +121,70 @@ fn a_machine_is_not_written_as_typescript() {
     };
     assert!(refusal.message.contains("machine"), "{}", refusal.message);
 }
+
+const STEPPED: &str = "machine Pair {
+    state { x: i32, y: i32 }
+    init start() { next { x: 0, y: 0 } }
+    event bump(by: i32)
+        requires x < 3 and by >= 1 and by <= 1
+    {
+        next { x: x + by, y: y + by }
+    }
+    invariant y_bounded: y <= 3
+}
+";
+
+#[test]
+fn every_input_a_receipt_names_is_typed() {
+    let json: serde_json::Value =
+        serde_json::from_str(&receipt::json(&report(STEPPED), "pair")).expect("JSON");
+    let stuck = json["definitions"][0]["obligations"]
+        .as_array()
+        .expect("obligations")
+        .iter()
+        .find(|o| o["outcome"] == "not_inductive")
+        .expect("one obligation is not inductive");
+    let names: Vec<&str> = stuck["counterexample"]
+        .as_array()
+        .expect("inputs")
+        .iter()
+        .map(|input| {
+            assert_eq!(input["valid"], true, "{input}");
+            input["name"].as_str().expect("a name")
+        })
+        .collect();
+    assert!(
+        names.contains(&"by"),
+        "the event's parameter is named: {names:?}"
+    );
+    let allowed = json["definitions"][0]["obligations"]
+        .as_array()
+        .expect("obligations")
+        .iter()
+        .find(|o| o["kind"] == "allowed" && o["outcome"] == "proved")
+        .expect("the event is allowed");
+    assert_eq!(allowed["witness"][0]["name"], "by");
+    assert_eq!(allowed["witness"][0]["valid"], true);
+}
+
+#[test]
+fn a_helper_invariant_is_support_not_a_claim() {
+    let source = STEPPED.replace(
+        "    invariant y_bounded",
+        "    helper invariant together: x == y
+    invariant y_bounded",
+    );
+    let report = report(&source);
+    let json: serde_json::Value =
+        serde_json::from_str(&receipt::json(&report, "pair")).expect("JSON");
+    let machine = &json["definitions"][0];
+    assert_eq!(machine["specification"].as_array().map(Vec::len), Some(1));
+    assert_eq!(machine["support"].as_array().map(Vec::len), Some(1));
+    assert!(
+        machine["support"][0]["text"]
+            .as_str()
+            .is_some_and(|t| t.starts_with("helper invariant"))
+    );
+    assert!(receipt::text(&report).contains("support      line"));
+    assert_eq!(machine["standing"], "verified");
+}
