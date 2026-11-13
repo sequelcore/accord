@@ -1,0 +1,20 @@
+// expect: proved, proved, refuted
+// `set` asks for an argument no `i32` holds, so no state allows it: the
+// solvers prove that none does, and no run can use a value outside `i32`.
+machine Gauge {
+    state {
+        level: i32,
+    }
+
+    init start() {
+        next { level: 0 }
+    }
+
+    event set(reading: i32)
+        requires reading >= 3000000000 and reading <= 3000000010
+    {
+        next { level: 1 }
+    }
+
+    invariant low: level < 100
+}

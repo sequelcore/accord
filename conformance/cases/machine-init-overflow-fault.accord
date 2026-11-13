@@ -1,0 +1,17 @@
+// expect: proved, proved, refuted
+// `start(2147483647)` overflows in its own addition; the invariant is proved
+// assuming the addition stays in range, and the addition's obligation is
+// refuted by that run.
+machine Counter {
+    state {
+        value: i32,
+    }
+
+    init start(from: i32)
+        requires from >= 0
+    {
+        next { value: from + 1 }
+    }
+
+    invariant positive: value > 0
+}

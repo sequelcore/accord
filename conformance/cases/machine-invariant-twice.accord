@@ -1,0 +1,16 @@
+// expect: error
+// Invariants are named so a run can say which one it breaks: two can't
+// share a name.
+machine Switch {
+    state {
+        presses: i32,
+    }
+
+    init start() {
+        next { presses: 0 }
+    }
+
+    invariant bounded: presses >= 0
+
+    invariant bounded: presses <= 100
+}
