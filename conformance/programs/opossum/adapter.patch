@@ -1,0 +1,299 @@
+diff --git a/lib/circuit.js b/lib/circuit.js
+index 82dd77f..012b177 100644
+--- a/lib/circuit.js
++++ b/lib/circuit.js
+@@ -4,19 +4,13 @@ const EventEmitter = require('events');
+ const Status = require('./status');
+ const Semaphore = require('./semaphore');
+ const MemoryCache = require('./cache');
++const Breaker = require('./breaker.mts');
+ 
+ const STATE = Symbol('state');
+-const OPEN = Symbol('open');
+-const CLOSED = Symbol('closed');
+-const HALF_OPEN = Symbol('half-open');
+-const PENDING_CLOSE = Symbol('pending-close');
+-const SHUTDOWN = Symbol('shutdown');
+ const FALLBACK_FUNCTION = Symbol('fallback');
+ const STATUS = Symbol('status');
+ const NAME = Symbol('name');
+ const GROUP = Symbol('group');
+-const ENABLED = Symbol('Enabled');
+-const WARMING_UP = Symbol('warming-up');
+ const VOLUME_THRESHOLD = Symbol('volume-threshold');
+ const OUR_ERROR = Symbol('our-error');
+ const RESET_TIMEOUT = Symbol('reset-timeout');
+@@ -180,6 +174,13 @@ class CircuitBreaker extends EventEmitter {
+     this.options.resetTimeout = options.resetTimeout ?? 30000;
+     this.options.errorThresholdPercentage =
+       options.errorThresholdPercentage ?? 50;
++    // The state machine compares the error rate exactly, so the threshold
++    // must be a whole number.
++    if (!Number.isInteger(this.options.errorThresholdPercentage)) {
++      throw new TypeError(
++        'options.errorThresholdPercentage must be a whole number'
++      );
++    }
+     this.options.rollingCountTimeout = options.rollingCountTimeout ?? 10000;
+     this.options.rollingCountBuckets = options.rollingCountBuckets ?? 10;
+     this.options.rollingPercentilesEnabled =
+@@ -238,7 +239,7 @@ class CircuitBreaker extends EventEmitter {
+     this[VOLUME_THRESHOLD] = Number.isInteger(options.volumeThreshold)
+       ? options.volumeThreshold
+       : 0;
+-    this[WARMING_UP] = options.allowWarmUp === true;
++    const allowWarmUp = options.allowWarmUp === true;
+ 
+     // The user can pass in a Status object to initialize the Status/stats
+     if (this.options.status) {
+@@ -252,31 +253,30 @@ class CircuitBreaker extends EventEmitter {
+       this[STATUS] = new Status(this.options);
+     }
+ 
+-    this[STATE] = CLOSED;
+-
++    let restored = null;
+     if (options.state) {
+-      this[ENABLED] = options.state.enabled !== false;
+-      this[WARMING_UP] = options.state.warmUp || this[WARMING_UP];
+-      // Closed if nothing is passed in
+-      this[CLOSED] = options.state.closed !== false;
+-      // These should be in sync
+-      this[HALF_OPEN] = this[PENDING_CLOSE] = options.state.halfOpen || false;
+-      // Open should be the opposite of closed,
+-      // but also the opposite of half_open
+-      this[OPEN] = !this[CLOSED] && !this[HALF_OPEN];
+-      this[SHUTDOWN] = options.state.shutdown || false;
++      const saved = options.state;
++      const closed = saved.closed !== false;
++      const halfOpen = Boolean(saved.halfOpen || false);
++      const shutdown = Boolean(saved.shutdown || false);
++      const expired = saved.lastTimerAt !== undefined &&
++        (Date.now() - saved.lastTimerAt) > this.options.resetTimeout;
++      this[STATE] = Breaker.restored(saved.enabled !== false,
++        Boolean(saved.warmUp || allowWarmUp), closed, halfOpen, shutdown,
++        expired);
++      if (shutdown) restored = 'shutdown';
++      else if (!closed && !halfOpen) restored = expired ? 'halfOpen' : 'open';
+     } else {
+-      this[PENDING_CLOSE] = false;
+-      this[ENABLED] = options.enabled !== false;
++      this[STATE] = Breaker.initial(options.enabled !== false, allowWarmUp);
+     }
+ 
+     this[FALLBACK_FUNCTION] = null;
+     this[NAME] = options.name || action.name || nextName();
+     this[GROUP] = options.group || this[NAME];
+ 
+-    if (this[WARMING_UP]) {
++    if (this[STATE].warmingUp) {
+       const timer = this[WARMUP_TIMEOUT] = setTimeout(
+-        _ => (this[WARMING_UP] = false),
++        _ => (this[STATE] = Breaker.warmUpEnded(this[STATE])),
+         this.options.rollingCountTimeout
+       );
+       if (typeof timer.unref === 'function') {
+@@ -331,8 +331,7 @@ class CircuitBreaker extends EventEmitter {
+      * @returns {void}
+      */
+     function _halfOpen (circuit) {
+-      circuit[STATE] = HALF_OPEN;
+-      circuit[PENDING_CLOSE] = true;
++      circuit[STATE] = Breaker.resetElapsed(circuit[STATE]);
+       circuit._renewAbortControllerIfNeeded();
+       /**
+        * Emitted after `options.resetTimeout` has elapsed, allowing for
+@@ -353,24 +352,15 @@ class CircuitBreaker extends EventEmitter {
+     });
+ 
+     // Prepopulate the State of the Breaker
+-    if (this[SHUTDOWN]) {
+-      this[STATE] = SHUTDOWN;
++    if (restored === 'shutdown') {
+       this.shutdown();
+-    } else if (this[CLOSED]) {
+-      this.close();
+-    } else if (this[OPEN]) {
+-      // If the state being passed in is OPEN but more time has elapsed
+-      // than the resetTimeout, then we should be in halfOpen state
+-      if (this.options.state.lastTimerAt !== undefined &&
+-        (Date.now() - this.options.state.lastTimerAt) >
+-        this.options.resetTimeout) {
+-        _halfOpen(this);
+-      } else {
+-        this.open();
+-      }
+-    } else if (this[HALF_OPEN]) {
+-      // Not sure if anything needs to be done here
+-      this[STATE] = HALF_OPEN;
++    } else if (restored === 'open') {
++      this.emit('open');
++    } else if (restored === 'halfOpen') {
++      // More time has elapsed than the resetTimeout since the saved state
++      // was opened, so the breaker is half-open.
++      this._renewAbortControllerIfNeeded();
++      this.emit('halfOpen', this.options.resetTimeout);
+     }
+   }
+ 
+@@ -395,12 +385,11 @@ class CircuitBreaker extends EventEmitter {
+    * @returns {void}
+    */
+   close () {
+-    if (this[STATE] !== CLOSED) {
++    if (this[STATE].phase !== 'closed') {
+       if (this[RESET_TIMEOUT]) {
+         clearTimeout(this[RESET_TIMEOUT]);
+       }
+-      this[STATE] = CLOSED;
+-      this[PENDING_CLOSE] = false;
++      this[STATE] = Breaker.close(this[STATE]);
+       this._renewAbortControllerIfNeeded();
+       /**
+        * Emitted when the breaker is reset allowing the action to execute again
+@@ -420,9 +409,8 @@ class CircuitBreaker extends EventEmitter {
+    * @returns {void}
+    */
+   open () {
+-    if (this[STATE] !== OPEN) {
+-      this[STATE] = OPEN;
+-      this[PENDING_CLOSE] = false;
++    if (this[STATE].phase !== 'open') {
++      this[STATE] = Breaker.trip(this[STATE]);
+       /**
+        * Emitted when the breaker opens because the action has
+        * failure percentage greater than `options.errorThresholdPercentage`.
+@@ -453,7 +441,7 @@ class CircuitBreaker extends EventEmitter {
+       clearTimeout(this[WARMUP_TIMEOUT]);
+     }
+     this.status.shutdown();
+-    this[STATE] = SHUTDOWN;
++    this[STATE] = Breaker.shutDown(this[STATE]);
+ 
+     // clear cache on shutdown
+     this.clearCache();
+@@ -464,7 +452,7 @@ class CircuitBreaker extends EventEmitter {
+    * @type {Boolean}
+    */
+   get isShutdown () {
+-    return this[STATE] === SHUTDOWN;
++    return this[STATE].phase === 'shutdown';
+   }
+ 
+   /**
+@@ -488,7 +476,7 @@ class CircuitBreaker extends EventEmitter {
+    * @type {Boolean}
+    */
+   get pendingClose () {
+-    return this[PENDING_CLOSE];
++    return this[STATE].pendingClose;
+   }
+ 
+   /**
+@@ -496,7 +484,7 @@ class CircuitBreaker extends EventEmitter {
+    * @type {Boolean}
+    */
+   get closed () {
+-    return this[STATE] === CLOSED;
++    return this[STATE].phase === 'closed';
+   }
+ 
+   /**
+@@ -504,7 +492,7 @@ class CircuitBreaker extends EventEmitter {
+    * @type {Boolean}
+    */
+   get opened () {
+-    return this[STATE] === OPEN;
++    return this[STATE].phase === 'open';
+   }
+ 
+   /**
+@@ -512,7 +500,7 @@ class CircuitBreaker extends EventEmitter {
+    * @type {Boolean}
+    */
+   get halfOpen () {
+-    return this[STATE] === HALF_OPEN;
++    return this[STATE].phase === 'half_open';
+   }
+ 
+   /**
+@@ -553,7 +541,7 @@ class CircuitBreaker extends EventEmitter {
+    * @type {Boolean}
+    */
+   get enabled () {
+-    return this[ENABLED];
++    return this[STATE].enabled;
+   }
+ 
+   /**
+@@ -561,7 +549,7 @@ class CircuitBreaker extends EventEmitter {
+    * @type {Boolean}
+    */
+   get warmUp () {
+-    return this[WARMING_UP];
++    return this[STATE].warmingUp;
+   }
+ 
+   /**
+@@ -656,7 +644,7 @@ class CircuitBreaker extends EventEmitter {
+     this.emit('fire', args);
+ 
+     // Protection, caches and coalesce disabled.
+-    if (!this[ENABLED]) {
++    if (!this[STATE].enabled) {
+       const result = this.action.apply(context, args);
+       return (typeof result.then === 'function')
+         ? result
+@@ -708,7 +696,7 @@ class CircuitBreaker extends EventEmitter {
+       this.emit('coalesceCacheMiss');
+     }
+ 
+-    if (!this.closed && !this.pendingClose) {
++    if (!Breaker.admits(this[STATE])) {
+       /**
+        * Emitted when the circuit breaker is open and failing fast
+        * @event CircuitBreaker#reject
+@@ -721,7 +709,7 @@ class CircuitBreaker extends EventEmitter {
+       return fallback(this, error, args) ||
+         Promise.reject(error);
+     }
+-    this[PENDING_CLOSE] = false;
++    this[STATE] = Breaker.callAdmitted(this[STATE]);
+ 
+     let timeout;
+     let timeoutError = false;
+@@ -898,7 +886,7 @@ class CircuitBreaker extends EventEmitter {
+    * @returns {void}
+    */
+   enable () {
+-    this[ENABLED] = true;
++    this[STATE] = Breaker.enable(this[STATE]);
+     this.status.startListeneningForRotateEvent();
+   }
+ 
+@@ -908,7 +896,7 @@ class CircuitBreaker extends EventEmitter {
+    * @returns {void}
+    */
+   disable () {
+-    this[ENABLED] = false;
++    this[STATE] = Breaker.disable(this[STATE]);
+     this.status.removeRotateBucketControllerListener();
+   }
+ 
+@@ -985,14 +973,9 @@ function fail (circuit, err, args, latency) {
+    * @type {Error}
+    */
+   circuit.emit('failure', err, latency, args);
+-  if (circuit.warmUp) return;
+-
+-  // check stats to see if the circuit should be opened
+   const stats = circuit.stats;
+-  if ((stats.fires < circuit.volumeThreshold) && !circuit.halfOpen) return;
+-  const errorRate = stats.failures / stats.fires * 100;
+-  if (errorRate > circuit.options.errorThresholdPercentage ||
+-    circuit.halfOpen) {
++  if (Breaker.opensOnFailure(circuit[STATE], stats.fires, stats.failures,
++    circuit.volumeThreshold, circuit.options.errorThresholdPercentage)) {
+     circuit.open();
+   }
+ }
