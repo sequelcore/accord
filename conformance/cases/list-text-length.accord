@@ -1,0 +1,21 @@
+// expect: proved, refuted, proved, proved, proved
+// Length and indexing over a List<Text>, a `Seq String` to the solvers:
+// both decide each obligation, proving or refuting it.
+fn size(xs: List<Text>) -> i64
+    ensures result >= 0 and result == length(xs)
+{
+    length(xs)
+}
+
+fn wrong(xs: List<Text>) -> i64
+    ensures result > 0
+{
+    length(xs)
+}
+
+fn first_is(xs: List<Text>, t: Text) -> Bool
+    requires length(xs) > 0
+    ensures result == (xs[0] == t)
+{
+    xs[0] == t
+}
