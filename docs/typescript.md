@@ -81,7 +81,7 @@ beside it, as for a function:
 
 An `i64` field is a `number` in the state, and an event that would leave one
 that isn't a safe integer throws a `RangeError`, as a function does for its
-result. A module whose exported names, or their bodies' names, would collide is
+result. A module whose exported names, or their bodies' names, would collide, or whose exported types (enums and machines) share a name, is
 refused, and nothing is written.
 
 ## The boundary
@@ -97,7 +97,11 @@ each exported function checks, in order, before it runs:
 | Each `requires` holds, evaluated with mathematical integers (`bigint`) | `RangeError`, naming the clause |
 
 An event or observer first checks the state it is given, before its own
-parameters: it is an object (`TypeError`), each field has its type and range
+parameters. It reads the state once: the check copies the fields into a fresh
+object, and the event or observer runs on that checked copy, so a getter that
+answers differently each time can't pass the check and then give the body
+another value. The generated names in a state check end in `$`, which no Accord
+name can, so a field may be called `state` or `where`. The check: it is an object (`TypeError`), each field has its type and range
 (`TypeError`, `RangeError`, worded `state.<field> must be …`), and then it
 meets every invariant, then every helper invariant, evaluated with
 mathematical integers (`RangeError`, `state breaks invariant <name>: …`). An
