@@ -1,0 +1,6 @@
+    {
+        next {
+            retries: retries + 1,
+            phase: if retries >= 3 { Ended } else { Waiting },
+        }
+    }

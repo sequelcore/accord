@@ -30,7 +30,8 @@ Taken on 2026-11-12:
     them in one step. Exploring every reachable state, or exploring within a
     bound, is recorded on the unproved obligation and is never an outcome.
   - **`accord build`** writes a machine only when its invariants are
-    proved. The boundary checks a state's types and its invariants.
+    proved. The boundary checks a state's types and its invariants,
+    helper invariants included.
   - **opossum is ported faithfully.** Its breaker closes on any success
     while half-open. Its threshold is compared exactly, and fractional
     thresholds are rejected. The invariants proved are the ones #82 names.
