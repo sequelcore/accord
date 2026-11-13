@@ -1,9 +1,9 @@
-// expect: proved, proved, refuted, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, passed, passed, passed, passed, passed, passed, passed, passed, passed, passed, passed, passed
+// expect: proved, proved, refuted, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, passed, passed, passed, passed, passed, passed, passed, passed, passed, passed, passed, passed
 // open: determined, determined, determined, determined, determined
 // Tesota's gate-rule (src/verification/gate-rule.ts at dev 4ef9b191). Each
 // equivalence is two `implies`, and `exists(k, sent[k] === failure)` is
-// `failure in sent`. Tesota's commandVerdict calls gateVerdict; Accord has no
-// calls between functions yet, so command_verdict states that table itself.
+// `failure in sent`. command_verdict calls gate_verdict, as Tesota's
+// commandVerdict calls gateVerdict.
 // ProofOutcome is declared beside it, in proof-outcome-rule.accord.
 
 /// What the gate does with one changed file's proof when a run is about to settle.
@@ -55,12 +55,8 @@ pub fn command_verdict(outcome: ProofOutcome, failure: Text, sent: List<Text>, p
     ensures not (preexisting and outcome == Failed) and (outcome == Failed or outcome == Vacuous) and failure in sent implies result == NoProgress
     ensures result == Operator implies (preexisting and outcome == Failed) or outcome == NotStarted or outcome == TimedOut or outcome == Cancelled
     ensures (preexisting and outcome == Failed) or outcome == NotStarted or outcome == TimedOut or outcome == Cancelled implies result == Operator
-decide {
-    | preexisting and outcome == Failed        => Operator
-    | outcome == Passed                        => Proved
-    | outcome != Failed and outcome != Vacuous => Operator
-    | failure in sent                          => NoProgress
-    | otherwise                                => SendBack
+{
+    if preexisting and outcome == Failed { Operator } else { gate_verdict(outcome: outcome, failure: failure, sent: sent) }
 }
 
 /// Whether the run continues: while some file goes back to the agent.
