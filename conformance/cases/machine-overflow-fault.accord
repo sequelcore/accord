@@ -2,17 +2,17 @@
 // Without its `requires`, the third increment overflows `i32`.
 machine Counter {
     state {
-        count: i32,
+        value: i32,
     }
 
     init near_top() {
-        next { count: 2147483645 }
+        next { value: 2147483645 }
     }
 
     event increment()
     {
-        next { count: count + 1 }
+        next { value: value + 1 }
     }
 
-    invariant non_negative: count >= 0
+    invariant non_negative: value >= 0
 }

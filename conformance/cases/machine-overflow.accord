@@ -2,18 +2,18 @@
 // A counter that starts near the top of `i32` and stops below it.
 machine Counter {
     state {
-        count: i32,
+        value: i32,
     }
 
     init near_top() {
-        next { count: 2147483645 }
+        next { value: 2147483645 }
     }
 
     event increment()
-        requires count < 2147483647
+        requires value < 2147483647
     {
-        next { count: count + 1 }
+        next { value: value + 1 }
     }
 
-    invariant non_negative: count >= 0
+    invariant non_negative: value >= 0
 }

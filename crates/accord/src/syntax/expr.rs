@@ -149,12 +149,8 @@ impl Parser<'_> {
     }
 
     fn atom(&mut self) -> Result<Expr, Diagnostic> {
-        // `count` is a name too, so a quantifier is a word followed by
-        // `name in`.
-        let binds =
-            matches!(self.tokens.get(self.pos + 2), Some((Token::Word(w), ..)) if w == "in");
         for quantifier in [Quantifier::All, Quantifier::Any, Quantifier::Count] {
-            if self.at_word(quantifier.name()) && binds {
+            if self.at_word(quantifier.name()) {
                 return self.quantified(quantifier);
             }
         }

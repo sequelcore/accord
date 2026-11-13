@@ -134,6 +134,7 @@ pub(super) fn is_keyword(word: &str) -> bool {
             | "result"
             | "all"
             | "any"
+            | "count"
             | "length"
             | "indices"
     )
