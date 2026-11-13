@@ -1,0 +1,330 @@
+"""Writes the obligations of the node-semver port as SMT-LIB files, shaped as
+Accord's compiler writes them (crates/accord/src/obligation): logic ALL, a
+callee known only through its `requires` and `ensures` predicates, one script
+per `ensures` clause asserting that `result` is the body's value and the
+clause fails, each integer within its type's range, each list at most
+4,294,967,295 elements, and each call's `requires` assumed where it runs.
+`unsat` proves a script; `sat` refutes it.
+
+Usage: SHAPE=contract python gen.py <out folder>
+  shape: contract (default), the shape the port would use, or the alternatives
+  that `README.md` compares: split, helper.
+"""
+import os
+import sys
+
+MAX_LEN = 4294967295
+I64 = "(and (<= (- 9223372036854775808) {e}) (<= {e} 9223372036854775807))"
+I32 = "(and (<= (- 2147483648) {e}) (<= {e} 2147483647))"
+
+PRELUDE_TEMPLATE = """(set-option :produce-models true)
+(set-logic ALL)
+(declare-datatypes ((PreId 0)) (((Numeric (digits String)) (Alpha (text String)))))
+(declare-datatypes ((Version 0)) (((Ver (major Int) (minor Int) (patch Int) (pre (Seq PreId)) (build (Seq PreId))))))
+; A numeric identifier is canonical, which the adapter guarantees: digits only
+; and no leading zero, so length, then code point order, is numeric order.
+(define-fun canon_id ((x PreId)) Bool
+  (or ((_ is Alpha) x)
+      (and (> (str.len (digits x)) 0)
+           (str.in_re (digits x) (re.+ (re.range "0" "9")))
+           (or (= (digits x) "0") (not (str.prefixof "0" (digits x)))))))
+(define-fun canon_list ((a (Seq PreId))) Bool
+  (forall ((i Int)) (=> (and (<= 0 i) (< i (seq.len a))) (canon_id (seq.nth a i)))))
+; Numeric below alphanumeric; numeric by length then text; alphanumeric by
+; text, which is code point order (`str.<`).
+(define-fun id_lt ((x PreId) (y PreId)) Bool
+  (or (and ((_ is Numeric) x) ((_ is Alpha) y))
+      (and ((_ is Numeric) x) ((_ is Numeric) y)
+           (or (< (str.len (digits x)) (str.len (digits y)))
+               (and (= (str.len (digits x)) (str.len (digits y))) (str.< (digits x) (digits y)))))
+      (and ((_ is Alpha) x) ((_ is Alpha) y) (str.< (text x) (text y)))))
+(define-fun eq_from ((a (Seq PreId)) (b (Seq PreId)) (k Int)) Bool
+  (and (= (seq.len a) (seq.len b))
+       (forall ((j Int)) (=> (and (<= k j) (< j (seq.len a))) (= (seq.nth a j) (seq.nth b j))))))
+(define-fun lt_at ((a (Seq PreId)) (b (Seq PreId)) (i Int)) Bool
+  (or (and (= i (seq.len a)) (< i (seq.len b)))
+      (and (< i (seq.len a)) (< i (seq.len b)) (id_lt (seq.nth a i) (seq.nth b i)))))
+; "Greater" is neither less nor equal: cvc5 proves no order law of `str.<`.
+(define-fun gt_at ((a (Seq PreId)) (b (Seq PreId)) (i Int)) Bool
+  (or (and (= i (seq.len b)) (< i (seq.len a)))
+      (and (< i (seq.len a)) (< i (seq.len b))
+           (not (id_lt (seq.nth a i) (seq.nth b i))) (not (= (seq.nth a i) (seq.nth b i))))))
+; The first index from k where the lists differ or one of them ends.
+(define-fun first ((a (Seq PreId)) (b (Seq PreId)) (k Int) (i Int)) Bool
+  (and (<= k i) (<= i (seq.len a)) (<= i (seq.len b))
+       (forall ((j Int)) (=> (and (<= k j) (< j i)) (= (seq.nth a j) (seq.nth b j))))
+       (or (= i (seq.len a)) (= i (seq.len b)) (not (= (seq.nth a i) (seq.nth b i))))))
+{PRECEDENCE}(define-fun main_eq ((a Version) (b Version)) Bool
+  (and (= (major a) (major b)) (= (minor a) (minor b)) (= (patch a) (patch b))))
+(define-fun main_lt ((a Version) (b Version)) Bool
+  (or (< (major a) (major b))
+      (and (= (major a) (major b)) (< (minor a) (minor b)))
+      (and (= (major a) (major b)) (= (minor a) (minor b)) (< (patch a) (patch b)))))
+(define-fun main_gt ((a Version) (b Version)) Bool (main_lt b a))
+; A version with a pre-release precedes the same version without one.
+(define-fun pre_lt_u ((x (Seq PreId)) (y (Seq PreId))) Bool
+  (or (and (> (seq.len x) 0) (= (seq.len y) 0))
+      (and (> (seq.len x) 0) (> (seq.len y) 0) (lt_u x y 0))))
+(define-fun pre_lt_e ((x (Seq PreId)) (y (Seq PreId))) Bool
+  (or (and (> (seq.len x) 0) (= (seq.len y) 0))
+      (and (> (seq.len x) 0) (> (seq.len y) 0) (lt_e x y 0))))
+(define-fun pre_gt_u ((x (Seq PreId)) (y (Seq PreId))) Bool
+  (or (and (= (seq.len x) 0) (> (seq.len y) 0))
+      (and (> (seq.len x) 0) (> (seq.len y) 0) (gt_u x y 0))))
+(define-fun pre_gt_e ((x (Seq PreId)) (y (Seq PreId))) Bool
+  (or (and (= (seq.len x) 0) (> (seq.len y) 0))
+      (and (> (seq.len x) 0) (> (seq.len y) 0) (gt_e x y 0))))
+(define-fun ver_lt_u ((a Version) (b Version)) Bool (or (main_lt a b) (and (main_eq a b) (pre_lt_u (pre a) (pre b)))))
+(define-fun ver_lt_e ((a Version) (b Version)) Bool (or (main_lt a b) (and (main_eq a b) (pre_lt_e (pre a) (pre b)))))
+(define-fun ver_gt_u ((a Version) (b Version)) Bool (or (main_gt a b) (and (main_eq a b) (pre_gt_u (pre a) (pre b)))))
+(define-fun ver_gt_e ((a Version) (b Version)) Bool (or (main_gt a b) (and (main_eq a b) (pre_gt_e (pre a) (pre b)))))
+(define-fun prec_eq ((a Version) (b Version)) Bool (and (main_eq a b) (= (pre a) (pre b))))
+"""
+
+SHAPES = {
+    # Both forms stated with `first`, the index where the lists first differ.
+    "contract": '; Precedence of two lists from k, universal (at every such index) and existential.\n(define-fun lt_u ((a (Seq PreId)) (b (Seq PreId)) (k Int)) Bool\n  (forall ((i Int)) (=> (first a b k i) (lt_at a b i))))\n(define-fun gt_u ((a (Seq PreId)) (b (Seq PreId)) (k Int)) Bool\n  (forall ((i Int)) (=> (first a b k i) (gt_at a b i))))\n(define-fun lt_e ((a (Seq PreId)) (b (Seq PreId)) (k Int)) Bool\n  (exists ((i Int)) (and (first a b k i) (lt_at a b i))))\n(define-fun gt_e ((a (Seq PreId)) (b (Seq PreId)) (k Int)) Bool\n  (exists ((i Int)) (and (first a b k i) (gt_at a b i))))\n',
+    "negated": '; Universal form by negation of the other two outcomes.\n(define-fun lt_e ((a (Seq PreId)) (b (Seq PreId)) (k Int)) Bool\n  (exists ((i Int)) (and (first a b k i) (lt_at a b i))))\n(define-fun gt_e ((a (Seq PreId)) (b (Seq PreId)) (k Int)) Bool\n  (exists ((i Int)) (and (first a b k i) (gt_at a b i))))\n(define-fun lt_u ((a (Seq PreId)) (b (Seq PreId)) (k Int)) Bool\n  (and (not (eq_from a b k)) (not (gt_e a b k))))\n(define-fun gt_u ((a (Seq PreId)) (b (Seq PreId)) (k Int)) Bool\n  (and (not (eq_from a b k)) (not (lt_e a b k))))\n',
+    "inline": '; `first` written out in each form.\n(define-fun lt_e ((a (Seq PreId)) (b (Seq PreId)) (k Int)) Bool\n  (exists ((i Int)) (and (<= k i) (<= i (seq.len a)) (<= i (seq.len b))\n    (forall ((j Int)) (=> (and (<= k j) (< j i)) (= (seq.nth a j) (seq.nth b j))))\n    (lt_at a b i))))\n(define-fun gt_e ((a (Seq PreId)) (b (Seq PreId)) (k Int)) Bool\n  (exists ((i Int)) (and (<= k i) (<= i (seq.len a)) (<= i (seq.len b))\n    (forall ((j Int)) (=> (and (<= k j) (< j i)) (= (seq.nth a j) (seq.nth b j))))\n    (gt_at a b i))))\n(define-fun lt_u ((a (Seq PreId)) (b (Seq PreId)) (k Int)) Bool\n  (forall ((i Int)) (=> (and (<= k i) (<= i (seq.len a)) (<= i (seq.len b))\n    (forall ((j Int)) (=> (and (<= k j) (< j i)) (= (seq.nth a j) (seq.nth b j))))\n    (or (= i (seq.len a)) (= i (seq.len b)) (not (= (seq.nth a i) (seq.nth b i))))) (lt_at a b i))))\n(define-fun gt_u ((a (Seq PreId)) (b (Seq PreId)) (k Int)) Bool\n  (forall ((i Int)) (=> (and (<= k i) (<= i (seq.len a)) (<= i (seq.len b))\n    (forall ((j Int)) (=> (and (<= k j) (< j i)) (= (seq.nth a j) (seq.nth b j))))\n    (or (= i (seq.len a)) (= i (seq.len b)) (not (= (seq.nth a i) (seq.nth b i))))) (gt_at a b i))))\n',
+}
+SHAPE = os.environ.get("SHAPE", "contract")
+# Which forms of precedence the list comparator's contract states: both, u or e.
+FORMS = os.environ.get("FORMS", "both")
+PRELUDE = PRELUDE_TEMPLATE.replace("{PRECEDENCE}", SHAPES[SHAPE])
+
+
+def rng(expr, template=I64):
+    return template.format(e=expr)
+
+
+ID_BODY = """(ite ((_ is Numeric) x)
+  (ite ((_ is Numeric) y)
+    (ite (< (str.len (digits x)) (str.len (digits y))) (- 1)
+      (ite (> (str.len (digits x)) (str.len (digits y))) 1
+        (ite (str.< (digits x) (digits y)) (- 1) (ite (= (digits x) (digits y)) 0 1))))
+    (- 1))
+  (ite ((_ is Numeric) y) 1
+    (ite (str.< (text x) (text y)) (- 1) (ite (= (text x) (text y)) 0 1))))"""
+
+LIST_BODY = """(ite (= k (seq.len a)) (ite (= k (seq.len b)) 0 (- 1))
+  (ite (= k (seq.len b)) 1
+    (ite (not (= c!0 0)) c!0 c!1)))"""
+
+LIST_ENSURES = {
+    # The three-`ensures` contract of the recursive comparator, each result
+    # with both forms of precedence (owner decision 3).
+    "contract": [
+        ("sign", "(and (<= (- 1) result) (<= result 1))"),
+        ("eq", "(=> (= result 0) (eq_from a b k))"),
+        ("lt-u", "(=> (= result (- 1)) (lt_u a b k))"),
+        ("lt-e", "(=> (= result (- 1)) (lt_e a b k))"),
+        ("gt-u", "(=> (= result 1) (gt_u a b k))"),
+        ("gt-e", "(=> (= result 1) (gt_e a b k))"),
+    ],
+}
+
+FUNCTIONS = {
+    "cmp_id": dict(
+        params=[("x", "PreId"), ("y", "PreId")],
+        requires=["(canon_id x)", "(canon_id y)"],
+        ensures=[
+            ("sign", "(and (<= (- 1) result) (<= result 1))"),
+            ("lt", "(=> (= result (- 1)) (id_lt x y))"),
+            ("eq", "(=> (= result 0) (= x y))"),
+            ("gt", "(=> (= result 1) (and (not (id_lt x y)) (not (= x y))))"),
+        ],
+        calls=[],
+        body=ID_BODY,
+    ),
+    "cmp_list": dict(
+        params=[("a", "(Seq PreId)"), ("b", "(Seq PreId)"), ("k", "Int")],
+        requires=["(<= 0 k)", "(<= k (seq.len a))", "(<= k (seq.len b))", "(canon_list a)", "(canon_list b)"],
+        ensures=[c for c in LIST_ENSURES["contract"] if FORMS == "both" or not c[0].endswith("-" + ("e" if FORMS == "u" else "u"))],
+        calls=[
+            ("(and (< k (seq.len a)) (< k (seq.len b)))", "cmp_id", "(seq.nth a k) (seq.nth b k)"),
+            ("(and (< k (seq.len a)) (< k (seq.len b)) (= c!0 0))", "cmp_list", "a b (+ k 1)"),
+        ],
+        body=LIST_BODY,
+    ),
+    "compare_main": dict(
+        params=[("a", "Version"), ("b", "Version")],
+        requires=[],
+        ensures=[
+            ("sign", "(and (<= (- 1) result) (<= result 1))"),
+            ("eq", "(=> (= result 0) (main_eq a b))"),
+            ("lt", "(=> (= result (- 1)) (main_lt a b))"),
+            ("gt", "(=> (= result 1) (main_gt a b))"),
+        ],
+        calls=[],
+        body="""(ite (< (major a) (major b)) (- 1) (ite (> (major a) (major b)) 1
+  (ite (< (minor a) (minor b)) (- 1) (ite (> (minor a) (minor b)) 1
+    (ite (< (patch a) (patch b)) (- 1) (ite (> (patch a) (patch b)) 1 0))))))""",
+    ),
+    "compare": dict(
+        params=[("a", "Version"), ("b", "Version")],
+        requires=["(canon_list (pre a))", "(canon_list (pre b))"],
+        ensures=[
+            ("sign", "(and (<= (- 1) result) (<= result 1))"),
+            ("eq", "(=> (= result 0) (prec_eq a b))"),
+            ("lt-u", "(=> (= result (- 1)) (ver_lt_u a b))"),
+            ("lt-e", "(=> (= result (- 1)) (ver_lt_e a b))"),
+            ("gt-u", "(=> (= result 1) (ver_gt_u a b))"),
+            ("gt-e", "(=> (= result 1) (ver_gt_e a b))"),
+        ],
+        calls=[
+            ("true", "compare_main", "a b"),
+            ("(and (= c!0 0) (> (seq.len (pre a)) 0) (> (seq.len (pre b)) 0))", "cmp_list", "(pre a) (pre b) 0"),
+        ],
+        body="""(ite (not (= c!0 0)) c!0
+  (ite (= (seq.len (pre a)) 0) (ite (= (seq.len (pre b)) 0) 0 1)
+    (ite (= (seq.len (pre b)) 0) (- 1) c!1)))""",
+    ),
+    "compare_build": dict(
+        params=[("a", "Version"), ("b", "Version")],
+        requires=["(canon_list (pre a))", "(canon_list (pre b))", "(canon_list (build a))", "(canon_list (build b))"],
+        ensures=[
+            ("sign", "(and (<= (- 1) result) (<= result 1))"),
+            ("eq", "(=> (= result 0) (= a b))"),
+            ("lt-u", "(=> (= result (- 1)) (or (ver_lt_u a b) (and (prec_eq a b) (lt_u (build a) (build b) 0))))"),
+            ("lt-e", "(=> (= result (- 1)) (or (ver_lt_e a b) (and (prec_eq a b) (lt_e (build a) (build b) 0))))"),
+            ("gt-u", "(=> (= result 1) (or (ver_gt_u a b) (and (prec_eq a b) (gt_u (build a) (build b) 0))))"),
+            ("gt-e", "(=> (= result 1) (or (ver_gt_e a b) (and (prec_eq a b) (gt_e (build a) (build b) 0))))"),
+        ],
+        calls=[
+            ("true", "compare", "a b"),
+            ("(= c!0 0)", "cmp_list", "(build a) (build b) 0"),
+        ],
+        body="(ite (not (= c!0 0)) c!0 c!1)",
+    ),
+}
+
+FAULTS = {
+    # The shorter list is greater.
+    "prefix": ("cmp_list", LIST_BODY
+               .replace("(ite (= k (seq.len b)) 0 (- 1))", "(ite (= k (seq.len b)) 0 1)")
+               .replace("(ite (= k (seq.len b)) 1\n", "(ite (= k (seq.len b)) (- 1)\n")),
+    # A numeric tie returns 0 instead of going on to the next identifier.
+    "skip": ("cmp_list", LIST_BODY.replace("(ite (not (= c!0 0)) c!0 c!1)", "c!0")),
+    # A numeric identifier is above an alphanumeric one.
+    "numeric": ("cmp_id", ID_BODY.replace("    (- 1))\n  (ite ((_ is Numeric) y) 1", "    1)\n  (ite ((_ is Numeric) y) (- 1)")),
+}
+
+
+def parameter_facts(function):
+    out = ""
+    for p, s in function["params"]:
+        out += f"(declare-const {p} {s})\n"
+        if s == "Int":
+            out += f"(assert {rng(p)})\n"
+        elif s == "(Seq PreId)":
+            out += f"(assert (<= (seq.len {p}) {MAX_LEN}))\n"
+        elif s == "Version":
+            fields = " ".join(rng(f"({f} {p})") for f in ("major", "minor", "patch"))
+            lengths = " ".join(f"(<= (seq.len ({f} {p})) {MAX_LEN})" for f in ("pre", "build"))
+            out += f"(assert (and {fields} {lengths}))\n"
+    return out
+
+
+def declarations(names):
+    """Each callee's `requires` and `ensures` as predicates, and the callee."""
+    out = ""
+    for name in names:
+        f = FUNCTIONS[name]
+        params = " ".join(f"({p} {s})" for p, s in f["params"])
+        sorts = " ".join(s for _, s in f["params"])
+        req = "(and " + " ".join(f["requires"]) + ")" if f["requires"] else "true"
+        ens = "(and " + " ".join(t for _, t in f["ensures"]) + ")"
+        out += f"(define-fun {name}.requires ({params}) Bool {req})\n"
+        out += f"(define-fun {name}.ensures ({params} (result Int)) Bool {ens})\n"
+        out += f"(declare-fun {name} ({sorts}) Int)\n"
+    return out
+
+
+def header(name, calls_run=True):
+    """What every script of `name` starts with: the prelude, the callees'
+    contracts, the parameters within their types, `requires`, and the calls
+    with what is known of each."""
+    f = FUNCTIONS[name]
+    callees = sorted({c for _, c, _ in f["calls"]})
+    out = PRELUDE + declarations(callees) + parameter_facts(f)
+    for r in f["requires"]:
+        out += f"(assert {r})\n"
+    for n, (_, callee, args) in enumerate(f["calls"]):
+        out += f"(declare-const c!{n} Int)\n(assert (= c!{n} ({callee} {args})))\n"
+        out += f"(assert (=> ({callee}.requires {args}) ({callee}.ensures {args} c!{n})))\n"
+        out += f"(assert {rng(f'c!{n}', I32)})\n"
+    return out
+
+
+def assumed_calls(name, upto=None):
+    f = FUNCTIONS[name]
+    return "".join(
+        f"(assert (=> {guard} ({callee}.requires {args})))\n"
+        for guard, callee, args in f["calls"][:upto]
+    )
+
+
+def claim_script(name, claim, body=None):
+    f = FUNCTIONS[name]
+    body = f["body"] if body is None else body
+    return (
+        header(name) + assumed_calls(name)
+        + f"(declare-const result Int)\n(assert (and (= result {body}) (not {claim})))\n(check-sat)\n"
+    )
+
+
+def call_script(name, n):
+    """That call `n` meets its callee's `requires` where it runs."""
+    guard, callee, args = FUNCTIONS[name]["calls"][n]
+    return header(name) + assumed_calls(name, n) + f"(assert (and {guard} (not ({callee}.requires {args}))))\n(check-sat)\n"
+
+
+def measure_script(name, assertion):
+    return header(name) + assertion + "\n(check-sat)\n"
+
+
+def open_script(name):
+    """An admitted input with two different results that both meet every
+    `ensures`: `sat` means the contract leaves some result open."""
+    f = FUNCTIONS[name]
+    out = PRELUDE + declarations(sorted({c for _, c, _ in f["calls"]})) + parameter_facts(f)
+    for r in f["requires"]:
+        out += f"(assert {r})\n"
+    contract = lambda r: "(and " + " ".join(t.replace("result", r) for _, t in f["ensures"]) + ")"
+    return out + (
+        "(declare-const r0 Int)\n(declare-const r1 Int)\n"
+        f"(assert (and {contract('r0')} {contract('r1')} (not (= r0 r1))))\n(check-sat)\n"
+    )
+
+
+def main(folder):
+    os.makedirs(folder, exist_ok=True)
+    cases = {}
+    for name, f in FUNCTIONS.items():
+        for label, claim in f["ensures"]:
+            cases[f"{name}-{label}-prove"] = claim_script(name, claim)
+        cases[f"{name}-open-search"] = open_script(name)
+        for n, (_, callee, _) in enumerate(f["calls"]):
+            cases[f"{name}-call-{callee}-requires-prove"] = call_script(name, n)
+    guard = FUNCTIONS["cmp_list"]["calls"][1][0]
+    list_in_bounds = "(and (< k (seq.len a)) (< k (seq.len b)))"
+    cases["cmp_list-bounds-a-prove"] = measure_script("cmp_list", f"(assert (and {list_in_bounds} (not (and (<= 0 k) (< k (seq.len a))))))")
+    cases["cmp_list-bounds-b-prove"] = measure_script("cmp_list", f"(assert (and {list_in_bounds} (not (and (<= 0 k) (< k (seq.len b))))))")
+    # `decreases length(a) - k`: smaller at the recursive call, and not negative.
+    # The recursive call's `requires` is that obligation's other half.
+    cases["cmp_list-decreases-prove"] = measure_script(
+        "cmp_list",
+        f"(assert (and {guard} (not (and (< (- (seq.len a) (+ k 1)) (- (seq.len a) k)) (>= (- (seq.len a) (+ k 1)) 0)))))")
+    cases["cmp_list-overflow-k-plus-1-prove"] = measure_script("cmp_list", f"(assert (and {guard} (not {rng('(+ k 1)')})))")
+    cases["cmp_list-overflow-len-minus-k-prove"] = measure_script("cmp_list", f"(assert (not {rng('(- (seq.len a) k)')}))")
+    for fault, (name, body) in FAULTS.items():
+        for label, claim in FUNCTIONS[name]["ensures"]:
+            cases[f"{name}-{label}-fault-{fault}-refute"] = claim_script(name, claim, body)
+    for case, text in cases.items():
+        with open(os.path.join(folder, f"{case}.smt2"), "w", newline="\n") as out:
+            out.write(text)
+    print(len(cases), "cases")
+
+
+if __name__ == "__main__":
+    main(sys.argv[1])
