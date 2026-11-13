@@ -721,3 +721,48 @@ correct comparator; they were taken while solver runs shared the machine.
   pinned cvc5 1.4.2 on Windows only.
 - The times come from up to four processes at once on one machine; five alone
   runs of the cases near 5 s are in `results-round3/alone-*.txt`.
+
+## Encoding for cvc5: axioms per sequence term
+
+**Why.** cvc5 1.4.2 with `--mbqi` recurses without bound on any quantifier
+over a `Seq` variable, which every B2 axiom has. On Windows it exits with a
+stack overflow and no output; on Linux the stack grows about 0.7 GB per second
+until the process is killed, past `--tlimit-per`. All 36 B2 proofs are closed
+before MBQI runs, but sat answers and facts beyond the fuel hit it. Reported as
+[cvc5/cvc5#13161](https://github.com/cvc5/cvc5/issues/13161), also seen on the
+2026-11-13 nightly.
+
+**Shapes.** [`ground.py`](ground.py) rewrites the B2 fuel-1 cases so each
+axiom is written once per sequence term of the obligation, quantified only over
+fuel and the index, and left out where no spec function is reached.
+[`reveal.py`](reveal.py) then adds, for each spec call that the function's own
+`requires` asserts, one ground step of its unfolding (a call-site reveal).
+
+```sh
+CONTRACT=e EQ=versions SPEC=b2f1 python gen.py <dir>/b2f1
+python ground.py <dir>/b2f1 <dir>/ground
+python reveal.py <dir>/ground <dir>/reveal
+```
+
+**Result.** Stability is 21 variants per case and solver, as in part C;
+`results-round3/C-ground.*` and `C-reveal.*`.
+
+| Shape | Z3 | cvc5 `--mbqi` | Faults (both solvers, Windows and Linux) |
+| --- | --- | --- | --- |
+| ground | 35 stable, 1 unstable | 36 stable | `numeric` sat; `prefix`, `skip` unknown; no crash |
+| ground + reveal | 36 stable, slowest 134 ms | 36 stable | the same |
+
+- The unstable case under `ground` is `cmp_list`'s call to `cmp_id`, whose
+  `requires` needs one unfolding of `canon_from` at `k`: 2 of 5 shuffles were
+  `unknown` in Z3. The reveal states that unfolding as a ground fact.
+- On Linux (WSL Ubuntu, the pinned Linux binaries), the 48 `ground + reveal`
+  cases give 43 `unsat` in both solvers, 2 `sat` in both, and 3 with Z3 at its
+  limit and cvc5 `unknown`, as on Windows.
+- A reveal is an instance of the unfolding axiom, so it adds no assumption.
+- Without the per-term encoding, the cvc5 options `--mbqi-enum`,
+  `--macros-quant`, `--inst-max-rounds`, `--mbqi-one-inst-per-round`,
+  `--fmf-fun` and `--seq-array` still crash; running cvc5 without `--mbqi`
+  avoids the crash but loses facts beyond the fuel.
+- A spec function whose recursion changes a sequence argument gets no axiom for
+  the new term, and its obligations end `unknown`. `fd` and `canon_from` only
+  change the index.
