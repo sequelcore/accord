@@ -109,7 +109,12 @@ fn to_json(outcome: &Outcome) -> Option<Value> {
             evidence: Refutation::NoSuchInput,
         } => json!({ "refuted": null }),
         Outcome::WeakCallee { inputs, .. } => json!({ "weak_callee": inputs_to_json(inputs) }),
-        Outcome::Undecided { .. } | Outcome::Unsupported { .. } => return None,
+        Outcome::Undecided { .. }
+        | Outcome::Unsupported { .. }
+        | Outcome::NotInductive { .. }
+        | Outcome::Refuted {
+            evidence: Refutation::Trace(_),
+        } => return None,
     })
 }
 

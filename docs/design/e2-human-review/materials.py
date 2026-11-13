@@ -76,7 +76,7 @@ def check(binary, path):
 
 
 def validate_wire(report):
-    assert report["receipt"] == 3 and report["status"] == "checked", "unknown receipt contract"
+    assert report["receipt"] == 4 and report["status"] == "checked", "unknown receipt contract"
     for finding in report["diagnostics"]:
         assert finding["code"] in KNOWN_CODES, "unknown diagnostic code"
         assert report_pointer(report, finding["evidence"]) is not None

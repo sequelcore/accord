@@ -1,0 +1,23 @@
+// expect: proved, proved, proved, proved, proved
+// The machine of `machine-unhelped.accord`, with the helper invariant that `y`
+// moves with `x`: the invariant is now proved inductive.
+machine Pair {
+    state {
+        x: i32,
+        y: i32,
+    }
+
+    init start() {
+        next { x: 0, y: 0 }
+    }
+
+    event step()
+        requires x < 3
+    {
+        next { x: x + 1, y: y + 1 }
+    }
+
+    invariant y_bounded: y <= 3
+
+    helper invariant together: x == y
+}

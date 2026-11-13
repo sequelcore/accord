@@ -60,6 +60,16 @@ fn proved(report: &Report) -> bool {
 /// names the functions that have one.
 pub fn build(files: &[(String, String)], solvers: &Solvers) -> Result<Build, Diagnostic> {
     let (program, names) = crate::program_of(files)?;
+    if let Some(machine) = program.machines.first() {
+        return Err(Diagnostic::new(
+            machine.line,
+            format!(
+                "`{}` is a machine: machines aren't written as TypeScript yet",
+                machine.name
+            ),
+        )
+        .in_file(&names[machine.file]));
+    }
     let report = crate::report(&program, None, &names, solvers);
     let modules = proved(&report).then(|| {
         modules(&program, &names, &report.openness)

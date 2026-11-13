@@ -65,7 +65,7 @@ pub(super) fn at_least_as_strong(
             evidence: crate::Refutation::Counterexample(inputs),
         } => return Ok(Some(Loosening::Rejects(unit.source_inputs(&inputs)))),
         Outcome::Undecided { reason } | Outcome::Unsupported { reason } => return Err(reason),
-        Outcome::Refuted { .. } | Outcome::WeakCallee { .. } => {
+        Outcome::Refuted { .. } | Outcome::WeakCallee { .. } | Outcome::NotInductive { .. } => {
             return Err("no counterexample".to_string());
         }
     }
@@ -117,7 +117,7 @@ pub(super) fn at_least_as_strong(
             Ok(Some(Loosening::Allows(unit.source_inputs(&inputs), result)))
         }
         Outcome::Undecided { reason } | Outcome::Unsupported { reason } => Err(reason),
-        Outcome::Refuted { .. } | Outcome::WeakCallee { .. } => {
+        Outcome::Refuted { .. } | Outcome::WeakCallee { .. } | Outcome::NotInductive { .. } => {
             Err("no counterexample".to_string())
         }
     }

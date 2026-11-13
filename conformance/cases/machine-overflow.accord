@@ -1,0 +1,19 @@
+// expect: proved, proved, proved, proved
+// A counter that starts near the top of `i32` and stops below it.
+machine Counter {
+    state {
+        value: i32,
+    }
+
+    init near_top() {
+        next { value: 2147483645 }
+    }
+
+    event increment()
+        requires value < 2147483647
+    {
+        next { value: value + 1 }
+    }
+
+    invariant non_negative: value >= 0
+}

@@ -1,6 +1,6 @@
 # The receipt and review view
 
-**Status: version 3, unstable until the first release.** `accord check <file or
+**Status: version 4, unstable until the first release.** `accord check <file or
 folder>` produces a per-function terminal review view. Add `--json` for the
 same facts as a structured record with stable diagnostic codes. Both report
 only checks actually performed; neither records human approval.
@@ -48,35 +48,35 @@ they are not failed proof attempts. In text mode pre-check errors go to stderr
 with an ACC code. A crash, interrupted command, empty output, or unreadable JSON
 must never be accepted as verified.
 
-## JSON version 3
+## JSON version 4
 
 Object keys have no fixed order; arrays keep source order. This replaces receipt
-version 2, which had no calls between functions; there is no legacy-format
-switch. `accord diff` retains its separately
+version 3, which had no machines; there is no legacy-format switch. `accord diff` retains its separately
 versioned [comparison format](diff.md).
 
 | Field | Meaning |
 | --- | --- |
-| `receipt` | Schema version, now 3 |
+| `receipt` | Schema version, now 4 |
 | `accord` | Compiler package version |
 | `file` | Input path as passed to check |
 | `status` | checked, rejected, or unavailable |
 | `standing` | verified, failed, incomplete, unverified; null before a check exists |
-| `definitions[]` | Each checked function, in source order |
+| `definitions[]` | Each checked function or machine: functions in source order, then machines |
 | `diagnostics[]` | Conditions requiring attention, pointing to canonical evidence |
 
 Each definition has these fields:
 
 | Field | Meaning |
 | --- | --- |
-| `name`, `kind` | Function name and function kind |
+| `name`, `kind` | Name, and `function` or `machine` |
 | `file`, `line` | Source file within a folder, or null for a single file; 1-based declaration line |
 | `signature` | Function name, labeled parameters, and result type; no body |
-| `parameters[]` | Parameter name and structured type |
-| `result_type` | Structured result type |
+| `parameters[]` | Parameter name and structured type; a machine's are its state's fields |
+| `result_type` | Structured result type; null for a machine |
 | `types[]` | Used enums, each with name and source variants |
 | `intent` | Unchecked declared purpose, or null |
-| `specification[]` | Each source clause, with text and 1-based line |
+| `specification[]` | Each source clause, with text and 1-based line; a machine's are its invariants |
+| `support[]` | A machine's helper invariants, each with text and line: support for proving its invariants, not claims. Both are assumed and proved alike; empty for a function |
 | `hash` | SHA-256 of normalized checked semantics; names and intent do not affect it |
 | `review_hash` | SHA-256 of this definition's review facts, excluding cache-use markers |
 | `standing` | The function's standing: verified only when every function it calls, directly or not, is verified too |
@@ -88,11 +88,13 @@ Each definition has these fields:
 | `not_proved[]` | Limits, each with a stable kind and explanatory message |
 
 An obligation carries `kind` (postcondition, coverage, row_reachability,
-overflow, precondition: a call meets its callee's `requires`, or bounds: an
-index is within its list), `polarity`
-(existential for row reachability, otherwise universal), `clause`, `line`,
-`key`, `reused`, and `outcome`. Its key hashes the exact normalized SMT-LIB
-script. Outcomes are proved, refuted, undecided, unsupported, or weak_callee.
+overflow, precondition: a call meets its callee's `requires`, bounds: an
+index is within its list, invariant: a machine's init or event leaves a state
+that meets every invariant and helper invariant, or allowed), `polarity`
+(existential for row reachability and allowed, otherwise universal), `clause`,
+`line`, `key`, `reused`, and `outcome`. Its key hashes the exact normalized
+SMT-LIB script. Outcomes are proved, refuted, undecided, unsupported,
+weak_callee, or not_inductive.
 Proved existential checks carry `witness`; refuted universal checks carry
 `counterexample`; refuted existential checks carry `no_such_input: true`.
 Undecided and unsupported outcomes carry a human explanation in `reason`.
@@ -102,6 +104,41 @@ each call in `calls[]` (the call as written, and the `value` the counterexample
 gives it) takes a result its callee's contract allows and its body never gives.
 Strengthening that contract can settle it; it makes standing incomplete, not
 failed.
+
+### Machines
+
+A machine is one definition. Its obligations come in this order: for each init,
+that some input is allowed (when it has a `requires`) and that the state it
+gives meets every invariant and helper invariant, then its arithmetic and
+decision tables; for each event, that it preserves every invariant and helper
+invariant and that it is allowed in some state an init reaches, then its
+arithmetic and decision tables, each assuming the invariants; then the
+observers, as functions. They are checked as functions of the state, so the
+solvers prove them inductively, and their counterexamples start in any state
+that meets the invariants.
+
+- An invariant or an arithmetic obligation is refuted only by a **trace**: a
+  `trace[]` of steps, each with the `call` (`start()`, `set(to: 3)`), and the
+  `state` it leaves as typed fields, or null for a step that doesn't end in a
+  state, as one that overflows. The explorer finds the trace, shortest first,
+  and the interpreter runs it again from its init before it is reported. An
+  init that breaks an invariant is a trace of one step.
+- Where the solvers refute such an obligation from a state and no trace
+  reaches it, the outcome is `not_inductive`, with the `counterexample`: that
+  state and the step's parameters. It makes standing incomplete, not failed,
+  and its diagnostic is ACC0015. A helper invariant can settle it.
+- An event is allowed in a reachable state when the explorer reaches one where
+  its `requires` hold. The outcome is then proved, with the `exploration`'s
+  `trace` ending in the event. It is refuted when both solvers prove that no
+  state that meets the invariants allows it. Otherwise it is undecided.
+
+An obligation that consulted the explorer carries `exploration`: `states`, the
+number reached, and `complete`, whether every state and every way to move from
+it was visited. It is trusted, not proved, and never an outcome. An init or
+event is explored only if each parameter has finitely many known values: a
+`Bool`, an enum, or an integer whose `requires` list its values or give it
+literal bounds spanning at most 1024 values. Otherwise exploration is
+incomplete. It also stops at 100,000 states and 2,000,000 steps.
 An agent routes undecided checks as unresolved regardless of that prose;
 ACC0003 does not promise that a timeout retry will succeed.
 
@@ -110,7 +147,7 @@ failed. Passing an example proves no universal property.
 
 ### Typed witness values
 
-Inputs in witnesses, counterexamples, open cases, and mutants have a parameter
+Inputs in witnesses, counterexamples, open cases, and mutants (a machine's state fields and the parameters of the init or event) have a parameter
 `name`, structured `type`, decoded `value`, exact `source` spelling, and `valid`.
 Result values use the same shape without name. Types are:
 
@@ -189,6 +226,7 @@ there is no source location. Lines are 1-based; columns are not invented.
 | ACC0012 | No checked evidence for a function or program | add_checks |
 | ACC0013 | Obligation not proved because a callee's contract allows results its body never gives | strengthen_callee_contract |
 | ACC0014 | A function calls one that isn't verified | verify_callee |
+| ACC0015 | A machine's obligation fails from a state no run from an init was found to reach | add_helper_invariant |
 
 Numbers identify conditions, never source lines, hashes, or particular solvers.
 They are never reassigned. Prose may change. ACC0004 supports the public Outcome
@@ -205,7 +243,9 @@ is not proof of anything. Human acceptance remains a separate decision.
 
 ## Cache and freshness
 
-The ledger in `.accord/` caches only proved, refuted and weak_callee outcomes,
+The ledger in `.accord/` caches only proved, refuted and weak_callee outcomes
+(a machine's trace and not_inductive outcomes are made again from the solvers'
+answer and the exploration),
 keyed by the normalized script and compiler/solver builds. A script holds a
 callee's contract, never its body; an outcome resting on a replayed model, which
 runs the body, is also keyed by every callee's body. An unreadable or nonmatching entry

@@ -61,78 +61,85 @@ pub(crate) fn units(program: &Program) -> Vec<Unit<'_>> {
     program
         .functions
         .iter()
-        .map(|source| {
-            let mut renamer = Renamer {
-                program,
-                enums: Vec::new(),
-                functions: Vec::new(),
-            };
-            let mut function = renamer.contract(source);
-            renamer.body(&mut function, &source.params);
-            // The direct callees' contracts, then every callee's body: the
-            // enums found before the bodies are the ones a script declares.
-            let direct = renamer.functions.len();
-            let mut callees: Vec<Function> = (0..direct)
-                .map(|index| {
-                    let callee = renamer.functions[index];
-                    let mut normalized = renamer.contract(callee);
-                    normalized.name = format!("f{index}");
-                    normalized
-                })
-                .collect();
-            let visible = renamer.enums.len();
-            let mut index = 0;
-            while index < renamer.functions.len() {
-                let callee = renamer.functions[index];
-                if index >= callees.len() {
-                    let mut normalized = renamer.contract(callee);
-                    normalized.name = format!("f{index}");
-                    callees.push(normalized);
-                }
-                renamer.body(&mut callees[index], &callee.params);
-                index += 1;
-            }
-            let enums: Vec<Enum> = renamer.enums[..visible]
-                .iter()
-                .enumerate()
-                .map(|(index, e)| enumeration(index, e))
-                .collect();
-            let mut text = String::from("(fn");
-            for e in &enums {
-                text += &format!(" (enum {} {})", e.name, e.variants.len());
-            }
-            text += &canonical(&function, true);
-            for callee in &callees[..direct] {
-                text += &format!(" (callee {}{})", callee.name, canonical(callee, false));
-            }
-            let hash = hash(&(text + ")"));
-            let callee_names = renamer.functions.iter().map(|f| f.name.clone()).collect();
-            let callee_bodies = if callees.is_empty() {
-                String::new()
-            } else {
-                self::hash(
-                    &callees
-                        .iter()
-                        .map(|c| format!("(callee {}{})", c.name, canonical(c, true)))
-                        .collect::<String>(),
-                )
-            };
-            let mut functions = vec![function];
-            functions.extend(callees);
-            Unit {
-                program: Program {
-                    enums,
-                    functions,
-                    examples: Vec::new(),
-                },
-                source,
-                enums: renamer.enums,
-                callees: callee_names,
-                callee_bodies,
-                hash,
-            }
-        })
+        .map(|source| unit(program, source))
         .collect()
+}
+
+/// `source` normalized, with the functions of `program` it calls. `source`
+/// needn't be among them: a machine's function is analysed with its
+/// invariants, and called without them.
+pub(crate) fn unit<'a>(program: &'a Program, source: &'a Function) -> Unit<'a> {
+    let mut renamer = Renamer {
+        program,
+        enums: Vec::new(),
+        functions: Vec::new(),
+    };
+    let mut function = renamer.contract(source);
+    renamer.body(&mut function, &source.params);
+    // The direct callees' contracts, then every callee's body: the
+    // enums found before the bodies are the ones a script declares.
+    let direct = renamer.functions.len();
+    let mut callees: Vec<Function> = (0..direct)
+        .map(|index| {
+            let callee = renamer.functions[index];
+            let mut normalized = renamer.contract(callee);
+            normalized.name = format!("f{index}");
+            normalized
+        })
+        .collect();
+    let visible = renamer.enums.len();
+    let mut index = 0;
+    while index < renamer.functions.len() {
+        let callee = renamer.functions[index];
+        if index >= callees.len() {
+            let mut normalized = renamer.contract(callee);
+            normalized.name = format!("f{index}");
+            callees.push(normalized);
+        }
+        renamer.body(&mut callees[index], &callee.params);
+        index += 1;
+    }
+    let enums: Vec<Enum> = renamer.enums[..visible]
+        .iter()
+        .enumerate()
+        .map(|(index, e)| enumeration(index, e))
+        .collect();
+    let mut text = String::from("(fn");
+    for e in &enums {
+        text += &format!(" (enum {} {})", e.name, e.variants.len());
+    }
+    text += &canonical(&function, true);
+    for callee in &callees[..direct] {
+        text += &format!(" (callee {}{})", callee.name, canonical(callee, false));
+    }
+    let hash = hash(&(text + ")"));
+    let callee_names = renamer.functions.iter().map(|f| f.name.clone()).collect();
+    let callee_bodies = if callees.is_empty() {
+        String::new()
+    } else {
+        self::hash(
+            &callees
+                .iter()
+                .map(|c| format!("(callee {}{})", c.name, canonical(c, true)))
+                .collect::<String>(),
+        )
+    };
+    let mut functions = vec![function];
+    functions.extend(callees);
+    Unit {
+        program: Program {
+            enums,
+            functions,
+            machines: Vec::new(),
+            examples: Vec::new(),
+            machine_examples: Vec::new(),
+        },
+        source,
+        enums: renamer.enums,
+        callees: callee_names,
+        callee_bodies,
+        hash,
+    }
 }
 
 #[cfg(test)]

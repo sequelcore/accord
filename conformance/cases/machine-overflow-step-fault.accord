@@ -1,0 +1,21 @@
+// expect: proved, proved, proved, refuted
+// `increment` overflows from the state `start` gives. That is a failure of
+// the addition, and only the addition's obligation reports it: an event's
+// invariants are proved assuming its arithmetic stays in range, since that
+// is an obligation of its own.
+machine Counter {
+    state {
+        value: i32,
+    }
+
+    init start() {
+        next { value: 2147483647 }
+    }
+
+    event increment()
+    {
+        next { value: value + 1 }
+    }
+
+    invariant capped: value <= 2147483647
+}

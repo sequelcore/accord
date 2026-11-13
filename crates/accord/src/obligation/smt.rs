@@ -3,7 +3,7 @@
 
 use super::calls::apply;
 use super::lists::{MAX_LENGTH, contains, quantified};
-use crate::syntax::{Arith, Body, ClauseKind, Expr, Function, Op, Program, Row, Type, Width};
+use crate::syntax::{Arith, Body, ClauseKind, Expr, Function, Op, Program, Role, Row, Type, Width};
 
 pub(crate) fn sort(ty: &Type) -> String {
     match ty {
@@ -74,6 +74,16 @@ pub(crate) fn term(expr: &Expr) -> String {
         }
         Expr::Length(list, _) => format!("(seq.len {})", term(list)),
         Expr::Index(list, index, _) => format!("(seq.nth {} {})", term(list), term(index)),
+        // Identity reads a `next` as one term; a script reads it field by
+        // field (`meets_invariants`).
+        Expr::Next(values, _) => format!(
+            "(next {})",
+            values
+                .iter()
+                .map(|(_, value)| term(value))
+                .collect::<Vec<_>>()
+                .join(" ")
+        ),
     }
 }
 /// A text as an SMT-LIB string literal. SMT-LIB reads `\u{...}` in a
@@ -143,11 +153,13 @@ pub(crate) fn prelude(function: &Function, datatypes: &str) -> String {
             _ => {}
         }
     }
-    for clause in function
-        .clauses
-        .iter()
-        .filter(|c| c.kind == ClauseKind::Requires)
-    {
+    // An init has no state before it, so no invariant to assume.
+    let reads_state = function.machine.is_none_or(|m| m.role != Role::Init);
+    for clause in function.clauses.iter().filter(|c| match c.kind {
+        ClauseKind::Requires => true,
+        ClauseKind::Invariant => reads_state,
+        ClauseKind::Ensures | ClauseKind::Open => false,
+    }) {
         prelude += &format!("(assert {})\n", term(&clause.expr));
     }
     prelude
@@ -165,14 +177,86 @@ pub(crate) fn ending(names: &[String]) -> String {
 }
 /// A body's value as a term, and for a decision table the condition that some
 /// row matches.
+/// An init or event has no value to speak of: its `next` is read field by
+/// field.
 pub(crate) fn value(function: &Function) -> (String, Option<String>) {
+    let transition = function.machine.is_some_and(|m| m.role != Role::Observer);
     match &function.body {
+        Body::Expr(_) if transition => (String::new(), None),
         Body::Expr(body) => (term(body), None),
         Body::Decide(rows, _) => (
-            decide_term(rows),
+            if transition {
+                String::new()
+            } else {
+                decide_term(rows)
+            },
             Some(all("or", rows.iter().map(condition).collect(), "false")),
         ),
     }
+}
+
+/// The terms of the fields of the state an init or event ends in, in order:
+/// the field's value in the branch or row that runs.
+fn next_terms(function: &Function) -> Vec<String> {
+    let count = function.machine.map_or(0, |m| m.state);
+    (0..count)
+        .map(|field| match &function.body {
+            Body::Expr(body) => next_term(body, field),
+            Body::Decide(rows, _) => {
+                let Some((last, earlier)) = rows.split_last() else {
+                    return String::new();
+                };
+                earlier
+                    .iter()
+                    .rev()
+                    .fold(next_term(&last.result, field), |rest, row| {
+                        format!(
+                            "(ite {} {} {rest})",
+                            condition(row),
+                            next_term(&row.result, field)
+                        )
+                    })
+            }
+        })
+        .collect()
+}
+
+fn next_term(expr: &Expr, field: usize) -> String {
+    match expr {
+        Expr::If(c, then, otherwise) => format!(
+            "(ite {} {} {})",
+            term(c),
+            next_term(then, field),
+            next_term(otherwise, field)
+        ),
+        Expr::Next(values, _) => term(&values[field].1),
+        _ => unreachable!("`check` ends every init and event in a `next`"),
+    }
+}
+
+/// That the state an init or event ends in meets every invariant and helper
+/// invariant: they hold of the fields as `next` gives them.
+pub(crate) fn meets_invariants(function: &Function) -> String {
+    let count = function.machine.map_or(0, |m| m.state);
+    let invariants = all(
+        "and",
+        function
+            .clauses
+            .iter()
+            .filter(|c| c.kind == ClauseKind::Invariant)
+            .map(|c| term(&c.expr))
+            .collect(),
+        "true",
+    );
+    if count == 0 {
+        return invariants;
+    }
+    let bindings: Vec<String> = function.params[..count]
+        .iter()
+        .zip(next_terms(function))
+        .map(|((field, _), next)| format!("({field} {next})"))
+        .collect();
+    format!("(let ({}) {invariants})", bindings.join(" "))
 }
 /// The SMT-LIB declarations of a program's enums.
 pub(crate) fn datatypes(program: &Program) -> String {

@@ -1,0 +1,25 @@
+// expect: proved, proved, proved, proved, proved, proved, proved, proved
+// An event whose body is a decision table: every state the invariant allows
+// reaches a row, each row can be the first to hold, and each row's addition
+// stays within `i32`.
+enum Light { Off, On }
+
+machine Switch {
+    state {
+        light: Light,
+        presses: i32,
+    }
+
+    init start() {
+        next { light: Off, presses: 0 }
+    }
+
+    event press()
+        requires presses < 100
+    decide {
+        | light == Off => next { light: On, presses: presses + 1 }
+        | otherwise    => next { light: Off, presses: presses + 1 }
+    }
+
+    invariant pressed: presses >= 0 and presses <= 100
+}

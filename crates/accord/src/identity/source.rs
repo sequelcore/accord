@@ -38,6 +38,11 @@ impl Unit<'_> {
             .collect()
     }
 
+    /// A value of the normalized function in source terms.
+    pub fn source_of(&self, value: &Value) -> String {
+        self.source_value_tree(value.clone()).source()
+    }
+
     /// A normalized value, such as `E0.v1`, in source terms.
     pub fn source_value(&self, value: &str) -> String {
         self.program.functions.first().map_or_else(

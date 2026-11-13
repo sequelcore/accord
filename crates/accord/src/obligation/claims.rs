@@ -10,6 +10,12 @@ use crate::syntax::{Expr, Program, Width};
 pub(crate) enum Claim<'a> {
     /// The `ensures` holds of the body's value.
     Ensures(&'a Expr),
+    /// The state a machine's init or event ends in meets every invariant and
+    /// helper invariant.
+    Invariants,
+    /// A machine's init has some input its `requires` admits, or its event
+    /// is allowed in some state that meets the invariants.
+    Allowed,
     /// Some row of the decision table matches.
     Covered,
     /// The row at this index is the first that matches.

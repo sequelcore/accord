@@ -1,0 +1,12 @@
+// expect: error
+// An `init` must give every field a value: `start` leaves `presses` out.
+machine Switch {
+    state {
+        on: Bool,
+        presses: i32,
+    }
+
+    init start() {
+        next { on: false }
+    }
+}

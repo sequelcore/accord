@@ -2,13 +2,16 @@
 use crate::{Definition, Openness, Outcome, Report, Run};
 
 pub(super) fn signature(d: &Definition) -> String {
+    let Some(result_type) = &d.result_type else {
+        return format!("machine {}", d.name);
+    };
     let params = d
         .params
         .iter()
         .map(|(name, ty)| format!("{name}: {}", ty.name()))
         .collect::<Vec<_>>()
         .join(", ");
-    format!("fn {}({params}) -> {}", d.name, d.result_type.name())
+    format!("fn {}({params}) -> {}", d.name, result_type.name())
 }
 
 pub(super) fn limits(report: &Report, d: &Definition) -> Vec<(&'static str, &'static str)> {
@@ -72,6 +75,21 @@ pub(super) fn limits(report: &Report, d: &Definition) -> Vec<(&'static str, &'st
     }
     if verdicts
         .iter()
+        .any(|v| matches!(v.outcome, Outcome::NotInductive { .. }))
+    {
+        out.push((
+            "not_inductive_obligation",
+            "At least one obligation was not proved because a state that meets every invariant and helper invariant leaves them, though no run from an init was found to reach it; a helper invariant may settle it.",
+        ));
+    }
+    if verdicts.iter().any(|v| v.exploration.is_some()) {
+        out.push((
+            "exploration",
+            "Exploring a machine's reachable states runs the interpreter over finitely many states and arguments; what it covers is trusted, and it proves nothing.",
+        ));
+    }
+    if verdicts
+        .iter()
         .any(|v| matches!(v.outcome, Outcome::Unsupported { .. }))
     {
         out.push((
@@ -97,6 +115,9 @@ pub(super) fn limits(report: &Report, d: &Definition) -> Vec<(&'static str, &'st
         .any(|(_, c)| c.starts_with("requires "))
     {
         out.push(("admitted_domain", "Guarantees apply only to inputs meeting requires; no behavior is promised for excluded inputs."));
+    }
+    if d.result_type.is_none() {
+        return out;
     }
     match report.openness.iter().find(|o| o.function == d.name) {
         None => out.push(("no_postcondition", "No ensures was declared; no postcondition or open-case search establishes the intended result.")),

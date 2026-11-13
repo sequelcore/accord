@@ -12,32 +12,59 @@
 //! being weaker than its body.
 
 mod eval;
+mod machine;
 mod replay;
 mod value;
 
 use eval::{Env, Mode, body};
-pub(crate) use replay::{Replay, replay};
+pub(crate) use machine::{broken_invariant, fields, run as run_machine, transition};
+pub(crate) use replay::{Replay, fails, replay};
 pub(crate) use value::{Value, read};
 
 use crate::Inputs;
-use crate::syntax::{ClauseKind, Example, Function};
+use crate::syntax::{ClauseKind, Example, Function, Role};
+
+/// The first clause of `kind` that doesn't hold, as written.
+pub(crate) fn broken(
+    function: &Function,
+    names: &[(String, Value)],
+    kind: ClauseKind,
+) -> Result<Option<String>, String> {
+    let env = Env::plain(names, None, Mode::Math);
+    for clause in function.clauses.iter().filter(|c| c.kind == kind) {
+        if !env.boolean(&clause.expr)? {
+            return Ok(Some(clause.text.clone()));
+        }
+    }
+    Ok(None)
+}
 
 /// The first `requires` that doesn't hold, as written.
 pub(crate) fn broken_requires(
     function: &Function,
     names: &[(String, Value)],
 ) -> Result<Option<String>, String> {
-    let env = Env::plain(names, None, Mode::Math);
-    for clause in function
-        .clauses
-        .iter()
-        .filter(|c| c.kind == ClauseKind::Requires)
-    {
-        if !env.boolean(&clause.expr)? {
-            return Ok(Some(clause.text.clone()));
-        }
+    broken(function, names, ClauseKind::Requires)
+}
+
+/// Runs `function` in code on `names`: its value, provided its `requires`
+/// hold and nothing overflows.
+pub(crate) fn execute(
+    function: &Function,
+    names: &[(String, Value)],
+    functions: &[Function],
+) -> Result<Value, String> {
+    if let Some(clause) = broken_requires(function, names)? {
+        return Err(format!("the call breaks `{clause}`"));
     }
-    Ok(None)
+    let env = Env {
+        names,
+        result: None,
+        mode: Mode::Code,
+        functions,
+        assumed: None,
+    };
+    body(function, &env)
 }
 
 /// Runs an example: `Ok` when the call gives the expected result, otherwise
@@ -53,17 +80,7 @@ pub(crate) fn run(
         .iter()
         .map(|(label, expr)| Ok((label.clone().unwrap_or_default(), constants.eval(expr)?)))
         .collect::<Result<Vec<_>, String>>()?;
-    if let Some(clause) = broken_requires(function, &names)? {
-        return Err(format!("the call breaks `{clause}`"));
-    }
-    let env = Env {
-        names: &names,
-        result: None,
-        mode: Mode::Code,
-        functions,
-        assumed: None,
-    };
-    let got = body(function, &env)?;
+    let got = execute(function, &names, functions)?;
     let want = constants.eval(&example.expected)?;
     if got == want {
         Ok(())
@@ -90,6 +107,12 @@ pub(crate) fn admitted(function: &Function, inputs: &Inputs) -> Result<Names, St
         })
         .collect::<Result<Vec<_>, String>>()?;
     if let Some(clause) = broken_requires(function, &names)? {
+        return Err(format!("it breaks `{clause}`"));
+    }
+    // A machine's event or observer reads a state that meets its invariants.
+    if function.machine.is_some_and(|m| m.role != Role::Init)
+        && let Some(clause) = broken(function, &names, ClauseKind::Invariant)?
+    {
         return Err(format!("it breaks `{clause}`"));
     }
     Ok(names)

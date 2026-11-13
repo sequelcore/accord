@@ -1,0 +1,18 @@
+// expect: proved, proved, proved, refuted
+// Without its `requires`, the third increment overflows `i32`.
+machine Counter {
+    state {
+        value: i32,
+    }
+
+    init near_top() {
+        next { value: 2147483645 }
+    }
+
+    event increment()
+    {
+        next { value: value + 1 }
+    }
+
+    invariant non_negative: value >= 0
+}

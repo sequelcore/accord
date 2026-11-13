@@ -21,7 +21,7 @@ see the retained [notice](../../../conformance/programs/cedar/NOTICE).
 
 ```text
 function     fn partial_decision(satisfied_forbid: Bool, satisfied_permit: Bool, residual_permit: Bool, residual_forbid: Bool) -> PartialDecision (partial-decision.accord)
-review_hash  f92c4f8f341c7109abc0d2edcdd42e85612146acefdf4304009015eaefc21524
+review_hash  06da101b3c338f0b2b1784ddd17ea155b9a4456d288f8a9805352a0cdbaf9b16
 type         enum PartialDecision { Deny, Allow, Unknown }
 intent       partial_decision (partial-decision.accord) (unchecked): Deny on a satisfied forbid or no possible permit; allow on a satisfied permit with no possible forbid; otherwise keep the decision unknown.
 specification line 21: ensures result == Deny implies satisfied_forbid or (not satisfied_permit and not residual_permit)
@@ -73,7 +73,7 @@ not_proved   trusted_components: The parser, obligation generator, solvers, and 
 not_proved   mutation_sample: Only the reported finite sample of mutants was checked; contract adequacy is not proved.
 standing     partial_decision (partial-decision.accord): verified
 function     fn some_policy(effects: List<Effect>, evaluations: List<Evaluation>, effect: Effect, evaluation: Evaluation) -> Bool (policy-set.accord)
-review_hash  78c42516fa1c4f4227b6bf67acaf7984771baa4c2bd5b82f0f02d788581aef48
+review_hash  0a3c4d258ad1d1064740079cf6f398272927e445edb3dedb1d4d702aba1545ae
 type         enum Effect { Permit, Forbid }
 type         enum Evaluation { Satisfied, NotSatisfied, Residual, Error }
 intent       some_policy (policy-set.accord) (unchecked): Some policy with this effect evaluated to this result.
@@ -98,7 +98,7 @@ not_proved   admitted_domain: Guarantees apply only to inputs meeting requires; 
 not_proved   mutation_sample: Only the reported finite sample of mutants was checked; contract adequacy is not proved.
 standing     some_policy (policy-set.accord): verified
 function     fn partial_authorization(effects: List<Effect>, evaluations: List<Evaluation>) -> PartialDecision (policy-set.accord)
-review_hash  8b4555fe76c23ef271ef357e8b7c55873f8eaba5bf7cbe3cb760bbf17095483d
+review_hash  6541b4f751804a2c6ed9b06a892c27f03d41dbe864c8bd9795c60ce16c86e44c
 type         enum Effect { Permit, Forbid }
 type         enum Evaluation { Satisfied, NotSatisfied, Residual, Error }
 type         enum PartialDecision { Deny, Allow, Unknown }
@@ -147,7 +147,7 @@ not_proved   admitted_domain: Guarantees apply only to inputs meeting requires; 
 not_proved   mutation_sample: Only the reported finite sample of mutants was checked; contract adequacy is not proved.
 standing     partial_authorization (policy-set.accord): verified
 function     fn is_authorized(effects: List<Effect>, evaluations: List<Evaluation>) -> Decision (policy-set.accord)
-review_hash  ae601e0acac29091dfce90213c371028cff96a666872cb9db8a67607c12c0b83
+review_hash  42bbbdd28ded7d48de17dfce6b82bd340c2342bf26440431e4975a1fe48f1510
 type         enum Effect { Permit, Forbid }
 type         enum Evaluation { Satisfied, NotSatisfied, Residual, Error }
 type         enum Decision { Allow, Deny }

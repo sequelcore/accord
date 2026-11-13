@@ -6,6 +6,7 @@ mod calls;
 mod example;
 mod expr;
 mod lists;
+mod machine;
 mod operators;
 
 use calls::{Signature, check_recursion, ordered};
@@ -116,6 +117,7 @@ pub(crate) fn check(program: &mut Program, files: &[String]) -> Result<(), Diagn
             name: f.name.clone(),
             params: f.params.clone(),
             ret: f.ret.clone(),
+            state: Vec::new(),
         })
         .collect();
     for function in &mut program.functions {
@@ -130,23 +132,38 @@ pub(crate) fn check(program: &mut Program, files: &[String]) -> Result<(), Diagn
             .map_or(0, |f| f.file);
         d.in_file(&name(file))
     })?;
+    for (index, machine) in program.machines.iter().enumerate() {
+        if program.machines[..index]
+            .iter()
+            .any(|other| other.name == machine.name)
+            || program.functions.iter().any(|f| f.name == machine.name)
+        {
+            return Err(Diagnostic::new(
+                machine.line,
+                format!("`{}` is declared more than once", machine.name),
+            )
+            .in_file(&name(machine.file)));
+        }
+    }
+    for machine in &mut program.machines {
+        let file = name(machine.file);
+        machine::check(enums, &signatures, &program.functions, machine)
+            .map_err(|d| d.in_file(&file))?;
+    }
     let functions = &program.functions;
     for example in &mut program.examples {
         let file = name(example.file);
         example::check(enums, functions, example).map_err(|d| d.in_file(&file))?;
     }
+    for run in &mut program.machine_examples {
+        let file = name(run.file);
+        machine::check_run(enums, &program.machines, run).map_err(|d| d.in_file(&file))?;
+    }
     Ok(())
 }
 
-fn check_function(
-    enums: &[Enum],
-    signatures: &[Signature],
-    function: &mut Function,
-) -> Result<(), Diagnostic> {
-    for (_, ty) in &function.params {
-        check_type(enums, ty, function.line)?;
-    }
-    check_type(enums, &function.ret, function.line)?;
+/// Checks each clause of `function` against its parameters.
+fn check_clauses(enums: &[Enum], function: &mut Function) -> Result<(), Diagnostic> {
     for clause in &mut function.clauses {
         let scope = Scope {
             enums,
@@ -164,6 +181,19 @@ fn check_function(
             ));
         }
     }
+    Ok(())
+}
+
+fn check_function(
+    enums: &[Enum],
+    signatures: &[Signature],
+    function: &mut Function,
+) -> Result<(), Diagnostic> {
+    for (_, ty) in &function.params {
+        check_type(enums, ty, function.line)?;
+    }
+    check_type(enums, &function.ret, function.line)?;
+    check_clauses(enums, function)?;
     let scope = Scope {
         enums,
         params: &function.params,

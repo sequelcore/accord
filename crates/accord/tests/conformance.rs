@@ -72,6 +72,7 @@ fn kind(outcome: &Outcome) -> &'static str {
         Outcome::Undecided { .. } => "undecided",
         Outcome::Unsupported { .. } => "unsupported",
         Outcome::WeakCallee { .. } => "weak_callee",
+        Outcome::NotInductive { .. } => "not_inductive",
     }
 }
 

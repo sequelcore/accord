@@ -2,7 +2,7 @@
 
 use crate::syntax::Type;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub(crate) enum Value {
     Bool(bool),
     Int(i128),

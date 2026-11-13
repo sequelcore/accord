@@ -21,7 +21,7 @@
 //! `ensures`. An operation inside a quantifier's condition is about every
 //! index the quantifier ranges over: its script asks for one where it fails.
 
-use crate::syntax::{Body, ClauseKind, Expr, Function, Program};
+use crate::syntax::{Body, ClauseKind, Expr, Function, Program, Role};
 
 mod calls;
 mod claims;
@@ -35,10 +35,12 @@ pub(crate) use claims::Claim;
 use claims::claim_of;
 use lists::list_facts;
 pub(crate) use operations::Guard;
-use operations::{Operation, assumption, body_operations, for_some, guard_term, spec_indexes};
+use operations::{
+    Operation, assumption, body_operations, for_some, guard_term, range_assumption, spec_indexes,
+};
 pub(crate) use scripts::{mutant_scripts, open_script};
 pub(crate) use smt::{all, datatypes, ending, in_range, sort, term};
-use smt::{prelude, value};
+use smt::{meets_invariants, prelude, value};
 
 /// Whether an obligation is about every input or about some input.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -140,6 +142,59 @@ fn obligations_of<'a>(
         None => format!("(and (= result {body}) {claim})"),
     };
     let mut out = Vec::new();
+    if let Some(member) = function.machine.filter(|m| m.role != Role::Observer) {
+        let name = &function.name;
+        let allowed = |clause: String| {
+            obligation(
+                &clause,
+                function.line,
+                Polarity::Existential,
+                Claim::Allowed,
+                "",
+                &[],
+                &[],
+                "true".to_string(),
+            )
+        };
+        let init = member.role == Role::Init;
+        if init
+            && function
+                .clauses
+                .iter()
+                .any(|c| c.kind == ClauseKind::Requires)
+        {
+            out.push(allowed(format!("`{name}` is allowed for some input")));
+        }
+        // The arithmetic that makes the next state stays within its type: an
+        // obligation of its own, assumed here as a call's `requires` is.
+        let mut fits = every.clone();
+        fits.extend(ops.iter().filter_map(range_assumption));
+        let fails = format!("(not {})", meets_invariants(function));
+        out.push(obligation(
+            &if init {
+                format!(
+                    "`{name}` starts in a state that meets every invariant and helper invariant"
+                )
+            } else {
+                format!("`{name}` preserves every invariant and helper invariant")
+            },
+            function.line,
+            Polarity::Universal,
+            Claim::Invariants,
+            "",
+            &fits,
+            &[],
+            match &covered {
+                Some(covered) => format!("(and {covered} {fails})"),
+                None => fails,
+            },
+        ));
+        if !init {
+            out.push(allowed(format!(
+                "`{name}` is allowed in some state an init reaches"
+            )));
+        }
+    }
     let ensures = function
         .clauses
         .iter()

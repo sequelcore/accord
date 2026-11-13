@@ -198,6 +198,10 @@ impl Scope<'_> {
                 self.quantified(*quantifier, name, range, condition, *line)
             }
             Expr::Length(list, line) => self.length(list, *line),
+            Expr::Next(_, line) => Err(Diagnostic::new(
+                *line,
+                "`next` can only end an init or an event",
+            )),
             Expr::Index(list, index, site) => self.index(list, index, site.line),
             Expr::If(condition, then, otherwise) => {
                 self.condition(condition)?;
