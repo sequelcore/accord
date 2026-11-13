@@ -1,4 +1,7 @@
 // expect: proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, passed
+// SPDX-License-Identifier: Apache-2.0
+// Derived from opossum, by Red Hat, Inc. according to its package.json; its
+// LICENSE names no copyright holder. Licensed under Apache-2.0; see NOTICE.
 // The state and decisions of opossum's CircuitBreaker (opossum 10.0.0, commit
 // decbedf63d7815049233e544dcb351590ff0c84e, lib/circuit.js), ported
 // faithfully as a machine. Emitted events, timers, the cache, the semaphore,
