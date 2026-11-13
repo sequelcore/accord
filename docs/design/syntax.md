@@ -179,8 +179,8 @@ Blocks are expressions: the last expression is the block's value. There is no
 ## Machines
 
 Accepted for stage 10 ([#82](https://github.com/sequelcore/accord/issues/82)).
-`accord check` checks a machine; `accord build` doesn't write it as
-TypeScript yet. A machine is a state, the ways it starts, the events
+`accord check` checks a machine, and `accord build` writes a `pub` machine
+as TypeScript once every obligation is proved. A machine is a state, the ways it starts, the events
 that move it, and what must hold in every state it reaches:
 
 ```accord
