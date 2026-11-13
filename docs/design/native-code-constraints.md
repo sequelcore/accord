@@ -39,6 +39,18 @@ native backend later. Terms are defined in the [concepts](../concepts.md).
   claim. `count`'s bounds, its zero case and its full case are axioms the
   compiler states, and every list holds at most 4,294,967,295 elements;
   the receipt lists both as trusted.
+- **Machines in stage 10** ([#82](https://github.com/sequelcore/accord/issues/82)):
+  an invariant is proved only when Z3 and cvc5 prove it inductive, from the
+  initial states and through every event. An invariant is refuted only by a
+  trace from an initial state, found by the explorer and replayed by the
+  interpreter; a planted fault is detected only that way. An obligation the
+  solvers refute without such a trace is `not_inductive`, with the state
+  they found, much as a contract too weak to prove a caller is
+  `weak_callee`. What the explorer covers without finding a trace is
+  recorded on the unproved obligation, never as an outcome, and is trusted,
+  not proved.
+  `accord build` writes a machine only when its invariants are proved
+  ([measurement](measurements/2026-11-12-stage-10-machines/README.md)).
 - **No new surface syntax** without evidence that the current one limits
   comprehension or productivity.
 - **A structured interface for agents** comes after
@@ -150,15 +162,15 @@ before the stage that first depends on it. Rows are in dependency order.
 | # | Decision | State | Depends on | Settle before | Cost of reversing |
 | --- | --- | --- | --- | --- | --- |
 | 1 | Integer semantics | Enforced | — | — | Every proof and all stored evidence |
-| 2 | Purity as the default; the semantics of effects | Purity enforced; effects undecided | 1 | The first target that needs input or output | Freedom of evaluation order, reordering, proofs of calls |
+| 2 | Purity as the default; the semantics of effects | Purity enforced; effects undecided. A machine needs none: its events are pure functions of the state and their parameters, and time is a field the caller advances (stage 10, approved) | 1 | The first target that needs input or output | Freedom of evaluation order, reordering, proofs of calls |
 | 3 | Freedom of evaluation order for `and` and `or` | Enforced | 1, 2 | Effects | Generated code that evaluates eagerly |
 | 4 | Totality, and how termination is proved | Decided: no recursion and no general loop. A list is traversed only by `all`, `any` and `count`, which end on every finite list, so termination holds without `decreases`. Recursion is rejected (`conformance/cases/call-recursive.accord`, `call-mutual.accord`) | 2 | Recursion or loops | What "proved" means for code that may not return |
-| 5 | Value semantics: no aliasing a program can observe | Decided: a list is an immutable value, `==` compares contents, and no operation updates a list or exposes its identity | 2 | Records, or updates to lists | Every memory strategy at once |
+| 5 | Value semantics: no aliasing a program can observe | Decided: a list is an immutable value, `==` compares contents, and no operation updates a list or exposes its identity. A machine's state is an immutable value of its fields, and an event returns the next state (stage 10, approved). Records are undecided | 2 | Records, or updates to lists | Every memory strategy at once |
 | 6 | The encoding of `Text` | Decided for equality: a sequence of characters up to U+2FFFF, the solvers' alphabet, which the [boundary](../typescript.md#the-boundary) enforces. Length and ordering undecided | 5 | The first `Text` operation beyond equality, and stage 8's boundary, since TypeScript strings are UTF-16 | Every `Text` proof and boundary check |
 | 7 | Proving calls: callers rely on the callee's contract, not its body | Enforced: at each call, the callee's `requires` is an obligation and its `ensures` an assumption; recursion is rejected (`conformance/cases/call*.accord`) | 1, 2, 4 | Calls between functions | The cost of proofs, separate compilation, inlining |
-| 8 | Normalization and hashing | Enforced | 1 | Any change to the normal form | Every stored hash and piece of evidence |
+| 8 | Normalization and hashing | Enforced. A machine's fields and events are normalized by position, as parameters and variants are (stage 10, approved) | 1 | Any change to the normal form | Every stored hash and piece of evidence |
 | 9 | An identity for a specification apart from its implementation | Partly enforced: a caller's proofs bind to a hash of the callee's contract, so a change to the callee's body alone leaves them current (`identity.rs` tests). How approval binds is undecided | 7, 8 | Several implementations of one specification | How approval and evidence bind |
-| 10 | The boundary contract: what is checked and which error a failed check returns | Decided: [types, ranges and each `requires`](../typescript.md#the-boundary), with `TypeError` or `RangeError` | 1, 5, 6 | Stage 8's first published output | A public interface, once others call it |
+| 10 | The boundary contract: what is checked and which error a failed check returns | Decided: [types, ranges and each `requires`](../typescript.md#the-boundary), with `TypeError` or `RangeError`. A machine's state crosses as an object of its fields in `camelCase`, checked for types, ranges and every invariant; each event is an exported function from the state and its parameters to the next state, and each observer one from the state (stage 10, approved) | 1, 5, 6 | Stage 8's first published output | A public interface, once others call it |
 
 ## Keep these optimizations possible
 
