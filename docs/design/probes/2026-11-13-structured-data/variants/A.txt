@@ -1,0 +1,100 @@
+/// One identifier of a pre-release, such as `alpha` or `1` in `1.0.0-alpha.1`.
+enum PreId { Numeric(digits: Text), Alpha(text: Text) }
+
+/// A parsed version, such as 1.2.3-alpha.1+build.5.
+record Version {
+    major: i64,
+    minor: i64,
+    patch: i64,
+    pre: List<PreId>,
+    build: List<PreId>,
+}
+
+/// The first index from k where the two lists differ, or where one of them ends.
+spec fn first_difference(a: List<PreId>, b: List<PreId>, k: i64) -> i64
+    requires 0 <= k and k <= length(a) and k <= length(b)
+    decreases length(a) - k
+{
+    if k == length(a) or k == length(b) { k }
+    else if a[k] != b[k] { k }
+    else { first_difference(a: a, b: b, k: k + 1) }
+}
+
+/// SemVer's order of two identifiers: numbers by value, numbers below words, words by text.
+spec fn id_lower(x: PreId, y: PreId) -> Bool
+{
+    match x {
+        Numeric(d) => match y {
+            Numeric(e) => length(d) < length(e) or (length(d) == length(e) and d < e),
+            Alpha(t) => true,
+        },
+        Alpha(s) => match y {
+            Numeric(e) => false,
+            Alpha(t) => s < t,
+        },
+    }
+}
+
+/// At index i, list a ends while b goes on, or both go on and a's identifier is lower.
+spec fn lower_at(a: List<PreId>, b: List<PreId>, i: i64) -> Bool
+    requires 0 <= i and i <= length(a) and i <= length(b)
+{
+    (i == length(a) and i < length(b))
+        or (i < length(a) and i < length(b) and id_lower(x: a[i], y: b[i]))
+}
+
+fn compare_digits(a: Text, b: Text) -> i32
+    ensures result >= -1 and result <= 1
+{
+    if length(a) < length(b) { -1 }
+    else if length(a) > length(b) { 1 }
+    else if a < b { -1 }
+    else if a == b { 0 }
+    else { 1 }
+}
+
+fn compare_ids(x: PreId, y: PreId) -> i32
+    ensures result >= -1 and result <= 1
+{
+    match x {
+        Numeric(d) => match y {
+            Numeric(e) => compare_digits(a: d, b: e),
+            Alpha(t) => -1,
+        },
+        Alpha(s) => match y {
+            Numeric(e) => 1,
+            Alpha(t) => if s < t { -1 } else if s == t { 0 } else { 1 },
+        },
+    }
+}
+
+fn compare_lists(a: List<PreId>, b: List<PreId>, k: i64) -> i32
+    requires 0 <= k and k <= length(a) and k <= length(b)
+    decreases length(a) - k
+    ensures result == -1 implies lower_at(a: a, b: b, i: first_difference(a: a, b: b, k: k))
+    ensures result == 1 implies lower_at(a: b, b: a, i: first_difference(a: a, b: b, k: k))
+    ensures result == 0 implies length(a) == length(b) and first_difference(a: a, b: b, k: k) == length(a)
+{
+    if k == length(a) and k == length(b) { 0 }
+    else if k == length(a) { -1 }
+    else if k == length(b) { 1 }
+    else if a[k] != b[k] { compare_ids(x: a[k], y: b[k]) }
+    else { compare_lists(a: a, b: b, k: k + 1) }
+}
+
+fn compare(a: Version, b: Version) -> i32
+    ensures result >= -1 and result <= 1
+{
+    if a.major != b.major { if a.major < b.major { -1 } else { 1 } }
+    else if a.minor != b.minor { if a.minor < b.minor { -1 } else { 1 } }
+    else if a.patch != b.patch { if a.patch < b.patch { -1 } else { 1 } }
+    else if length(a.pre) == 0 and length(b.pre) == 0 { 0 }
+    else if length(a.pre) == 0 { 1 }
+    else if length(b.pre) == 0 { -1 }
+    else { compare_lists(a: a.pre, b: b.pre, k: 0) }
+}
+
+example compare(
+    a: Version { major: 1, minor: 0, patch: 0, pre: [Alpha(text: "rc"), Numeric(digits: "2")], build: [] },
+    b: Version { major: 1, minor: 0, patch: 0, pre: [Alpha(text: "rc"), Numeric(digits: "11")], build: [] },
+) == -1

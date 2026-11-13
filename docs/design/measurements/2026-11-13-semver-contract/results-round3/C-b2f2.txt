@@ -1,0 +1,81 @@
+# b2f2
+
+z3: case, class, unsat of runs, other answers, slowest unsat ms, median ms
+  cmp_id-eq-prove                                stable           21/21                             104     64
+  cmp_id-gt-prove                                stable           21/21                              70     55
+  cmp_id-lt-prove                                stable           21/21                              66     58
+  cmp_id-open-search                             stable           21/21                              74     52
+  cmp_id-sign-prove                              stable           21/21                              85     61
+  cmp_list-bounds-a-prove                        stable           21/21                              49     41
+  cmp_list-bounds-b-prove                        stable           21/21                              78     51
+  cmp_list-call-cmp_id-requires-prove            stable           21/21                              69     64
+  cmp_list-call-cmp_list-requires-prove          stable           21/21                              59     52
+  cmp_list-decreases-prove                       stable           21/21                              88     52
+  cmp_list-eq-prove                              stable           21/21                             358    170
+  cmp_list-gt-e-prove                            stable           21/21                             133    103
+  cmp_list-lt-e-prove                            stable           21/21                             165    132
+  cmp_list-open-search                           stable           21/21                              68     59
+  cmp_list-overflow-k-plus-1-prove               stable           21/21                              73     59
+  cmp_list-overflow-len-minus-k-prove            stable           21/21                              70     58
+  cmp_list-sign-prove                            stable           21/21                             143     81
+  compare-call-cmp_list-requires-prove           stable           21/21                              65     50
+  compare-call-compare_main-requires-prove       stable           21/21                              49     42
+  compare-eq-prove                               stable           21/21                              84     76
+  compare-gt-e-prove                             stable           21/21                              94     78
+  compare-lt-e-prove                             stable           21/21                              86     77
+  compare-open-search                            stable           21/21                             149    140
+  compare-sign-prove                             stable           21/21                             100     66
+  compare_build-call-cmp_list-requires-prove     stable           21/21                              53     43
+  compare_build-call-compare-requires-prove      stable           21/21                              53     39
+  compare_build-eq-prove                         stable           21/21                             142    114
+  compare_build-gt-e-prove                       stable           21/21                             103     92
+  compare_build-lt-e-prove                       stable           21/21                             109     92
+  compare_build-open-search                      stable           21/21                             232    177
+  compare_build-sign-prove                       stable           21/21                             155    122
+  compare_main-eq-prove                          stable           21/21                              66     45
+  compare_main-gt-prove                          stable           21/21                              55     42
+  compare_main-lt-prove                          stable           21/21                              53     47
+  compare_main-open-search                       stable           21/21                              72     50
+  compare_main-sign-prove                        stable           21/21                              55     43
+
+cvc5: case, class, unsat of runs, other answers, slowest unsat ms, median ms
+  cmp_id-eq-prove                                stable           21/21                              56     48
+  cmp_id-gt-prove                                stable           21/21                              71     47
+  cmp_id-lt-prove                                stable           21/21                              49     45
+  cmp_id-open-search                             stable           21/21                              48     42
+  cmp_id-sign-prove                              stable           21/21                              68     44
+  cmp_list-bounds-a-prove                        stable           21/21                              41     37
+  cmp_list-bounds-b-prove                        stable           21/21                              44     38
+  cmp_list-call-cmp_id-requires-prove            stable           21/21                             132     89
+  cmp_list-call-cmp_list-requires-prove          stable           21/21                              94     82
+  cmp_list-decreases-prove                       stable           21/21                              43     36
+  cmp_list-eq-prove                              stable           21/21                             104     86
+  cmp_list-gt-e-prove                            stable           21/21                             134    125
+  cmp_list-lt-e-prove                            stable           21/21                             141    124
+  cmp_list-open-search                           stable           21/21                              65     41
+  cmp_list-overflow-k-plus-1-prove               stable           21/21                              58     43
+  cmp_list-overflow-len-minus-k-prove            stable           21/21                              70     44
+  cmp_list-sign-prove                            stable           21/21                              57     47
+  compare-call-cmp_list-requires-prove           stable           21/21                              54     44
+  compare-call-compare_main-requires-prove       stable           21/21                              65     37
+  compare-eq-prove                               stable           21/21                              55     50
+  compare-gt-e-prove                             stable           21/21                              54     47
+  compare-lt-e-prove                             stable           21/21                              79     51
+  compare-open-search                            stable           21/21                              52     46
+  compare-sign-prove                             stable           21/21                              50     45
+  compare_build-call-cmp_list-requires-prove     stable           21/21                              75     45
+  compare_build-call-compare-requires-prove      stable           21/21                              46     41
+  compare_build-eq-prove                         stable           21/21                              60     50
+  compare_build-gt-e-prove                       stable           21/21                              75     47
+  compare_build-lt-e-prove                       stable           21/21                              56     48
+  compare_build-open-search                      stable           21/21                              86     50
+  compare_build-sign-prove                       stable           21/21                              57     48
+  compare_main-eq-prove                          stable           21/21                              45     39
+  compare_main-gt-prove                          stable           21/21                              70     44
+  compare_main-lt-prove                          stable           21/21                              53     45
+  compare_main-open-search                       stable           21/21                              49     46
+  compare_main-sign-prove                        stable           21/21                              66     42
+
+totals (cases per class)
+  z3: 36 cases: stable 36
+  cvc5: 36 cases: stable 36

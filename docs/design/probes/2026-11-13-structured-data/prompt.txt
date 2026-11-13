@@ -1,0 +1,17 @@
+Below is code in a programming language you have probably never seen. Don't search the web or look anything up; answer only from reading it.
+
+{code}
+
+The program compiles to a TypeScript module. A version such as 1.0.0-alpha.1 has major 1, minor 0, patch 0, the pre-release identifiers `alpha` and `1`, and no build identifiers.
+
+1. Write the versions 1.0.0-alpha.1 and 1.0.0-alpha.beta as values in this language. What does compare return for them, in that order?
+2. What does compare return for 2.0.0-rc.1 and 2.0.0, in that order?
+3. What does compare_ids return when x is the numeric identifier 10 and y is the numeric identifier 9?
+4. In compare_ids, in the branch where both x and y are words, which two values does `<` compare?
+5. If the line `{deleted}` is removed from compare_ids, what happens?
+6. What does `decreases length(a) - k` say, and what checks it?
+7. When the program runs, is first_difference ever called? Does the TypeScript module export it?
+8. How confident are you in your answers, from 1 (a guess) to 5 (certain)?
+9. Which part was hardest to read, and why?
+
+Answer each question separately and briefly.

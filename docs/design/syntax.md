@@ -315,3 +315,35 @@ Accepted on 2026-11-12 ([#82](https://github.com/sequelcore/accord/issues/82)):
    A program that reads a field after setting it means, in `next { … }`,
    what its readers expect. `helper invariant` keeps what supports a proof
    apart from what the machine claims, and every reader told the two apart.
+
+Accepted on 2026-11-13 ([#83](https://github.com/sequelcore/accord/issues/83)),
+for stage 11 and not yet implemented. In a
+[probe](probes/2026-11-13-structured-data/README.md), twelve readers read three
+spellings of the SemVer comparator as Accord means them; an independent review
+then found what the probe couldn't show, since its variants each had one field.
+
+8. **A variant may carry fields,** declared `Numeric(digits: Text)` and built
+   like a call, `Numeric(digits: "2")`, with decision 2's labels: optional for
+   one field, required for more.
+9. **`match` has the rows of `decide`:** `| Pattern => expr`. A pattern names
+   the variant and binds its fields by position when it has one field,
+   `| Numeric(d) => …`, and by label when it has more,
+   `| Range(lo: a, hi: b) => …`, so fields can't be swapped by order. `_`
+   binds nothing. A `match` must cover every variant, with no catch-all and
+   no repeated variant; a miss is a compile error that names the variant.
+   A binding can't hide a name in scope, as a quantifier's can't.
+10. **A record is declared `record Name { field: Type, … }` and built with
+    braces,** `Version { major: 1, … }`, like `state` and `next`. A record
+    value always names every field: no shorthand and no empty literal, so
+    `Name {` followed by `field:` is always a record and `if x == On { On }`
+    stays a block. A record is an immutable value; `==` compares it, and a
+    variant, field by field.
+11. **`spec fn` declares a specification function:** callable only from
+    `requires`, `ensures`, `decreases` and other spec functions, and absent
+    from the generated TypeScript. Its integers are mathematical, as in
+    `requires` and `ensures`, and it has no `requires`: its body must be
+    defined for every input. Recursion in `fn` and `spec fn` needs
+    `decreases`, a clause after `requires`.
+12. **`length` and `<` on `Text` count and compare code points,** as the
+    solvers do; the generated TypeScript uses its own helper, since
+    JavaScript's `.length` and `<` use UTF-16 code units.

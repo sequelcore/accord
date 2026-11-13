@@ -1,0 +1,6 @@
+case                                           z3 (answer min med max ms) cvc5 --mbqi (answer min med max ms)
+cmp_list-call-cmp_id-requires-prove            unsat 53 55 56             unsat 72 79 100           
+cmp_list-gt-e-prove                            unsat 74 80 83             unsat 87 91 94            
+cmp_list-lt-e-prove                            unsat 79 80 84             unsat 85 93 119           
+compare_build-gt-e-prove                       unsat 70 72 77             unsat 46 48 51            
+compare_build-lt-e-prove                       unsat 80 87 112            unsat 52 54 56            

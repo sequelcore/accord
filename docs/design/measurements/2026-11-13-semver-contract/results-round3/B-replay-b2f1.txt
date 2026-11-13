@@ -1,0 +1,65 @@
+## C:/Users/R3XED/AppData/Local/Temp/claude/5f10774eaa4c40c9/14574fb2-c50d-494b-8531-7c1119f36e32/scratchpad/v/b2f1
+case                                         solver     answer   replay
+cmp_id-eq-fault-numeric-refute               z3         unsat    -
+cmp_id-eq-fault-numeric-refute               z3+arith2  unsat    -
+cmp_id-eq-fault-numeric-refute               z3+noq     unsat    -
+cmp_id-eq-fault-numeric-refute               cvc5       unsat    -
+cmp_id-gt-fault-numeric-refute               z3         unknown  -
+cmp_id-gt-fault-numeric-refute               z3+arith2  unknown  -
+cmp_id-gt-fault-numeric-refute               z3+noq     unknown  -
+cmp_id-gt-fault-numeric-refute               cvc5                -
+cmp_id-lt-fault-numeric-refute               z3         unknown  -
+cmp_id-lt-fault-numeric-refute               z3+arith2  unknown  -
+cmp_id-lt-fault-numeric-refute               z3+noq     unknown  -
+cmp_id-lt-fault-numeric-refute               cvc5                -
+cmp_id-sign-fault-numeric-refute             z3         unsat    -
+cmp_id-sign-fault-numeric-refute             z3+arith2  unsat    -
+cmp_id-sign-fault-numeric-refute             z3+noq     unsat    -
+cmp_id-sign-fault-numeric-refute             cvc5       unsat    -
+cmp_list-eq-fault-prefix-refute              z3         unsat    -
+cmp_list-eq-fault-prefix-refute              z3+arith2  unsat    -
+cmp_list-eq-fault-prefix-refute              z3+noq     unknown  -
+cmp_list-eq-fault-prefix-refute              cvc5       unsat    -
+cmp_list-eq-fault-skip-refute                z3         unknown  -
+cmp_list-eq-fault-skip-refute                z3+arith2  unknown  -
+cmp_list-eq-fault-skip-refute                z3+noq     unknown  -
+cmp_list-eq-fault-skip-refute                cvc5                -
+cmp_list-gt-e-fault-prefix-refute            z3         unknown  -
+cmp_list-gt-e-fault-prefix-refute            z3+arith2  unknown  -
+cmp_list-gt-e-fault-prefix-refute            z3+noq     unknown  -
+cmp_list-gt-e-fault-prefix-refute            cvc5                -
+cmp_list-gt-e-fault-skip-refute              z3         unsat    -
+cmp_list-gt-e-fault-skip-refute              z3+arith2  unsat    -
+cmp_list-gt-e-fault-skip-refute              z3+noq     unknown  -
+cmp_list-gt-e-fault-skip-refute              cvc5       unsat    -
+cmp_list-lt-e-fault-prefix-refute            z3         unknown  -
+cmp_list-lt-e-fault-prefix-refute            z3+arith2  unknown  -
+cmp_list-lt-e-fault-prefix-refute            z3+noq     unknown  -
+cmp_list-lt-e-fault-prefix-refute            cvc5                -
+cmp_list-lt-e-fault-skip-refute              z3         unsat    -
+cmp_list-lt-e-fault-skip-refute              z3+arith2  unsat    -
+cmp_list-lt-e-fault-skip-refute              z3+noq     unknown  -
+cmp_list-lt-e-fault-skip-refute              cvc5       unsat    -
+cmp_list-sign-fault-prefix-refute            z3         unsat    -
+cmp_list-sign-fault-prefix-refute            z3+arith2  unsat    -
+cmp_list-sign-fault-prefix-refute            z3+noq     unsat    -
+cmp_list-sign-fault-prefix-refute            cvc5       unsat    -
+cmp_list-sign-fault-skip-refute              z3         unsat    -
+cmp_list-sign-fault-skip-refute              z3+arith2  unsat    -
+cmp_list-sign-fault-skip-refute              z3+noq     unsat    -
+cmp_list-sign-fault-skip-refute              cvc5       unsat    -
+
+fault            solver     clauses sat   clauses replayed
+cmp_id numeric   z3          0                                           0 
+cmp_id numeric   z3+arith2   0                                           0 
+cmp_id numeric   z3+noq      0                                           0 
+cmp_id numeric   cvc5        0                                           0 
+cmp_list prefix  z3          0                                           0 
+cmp_list prefix  z3+arith2   0                                           0 
+cmp_list prefix  z3+noq      0                                           0 
+cmp_list prefix  cvc5        0                                           0 
+cmp_list skip    z3          0                                           0 
+cmp_list skip    z3+arith2   0                                           0 
+cmp_list skip    z3+noq      0                                           0 
+cmp_list skip    cvc5        0                                           0 
+
