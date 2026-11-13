@@ -1,0 +1,7 @@
+case                                           z3 (answer min med max ms) cvc5 --mbqi (answer min med max ms)
+cmp_list-gt-e-prove                            unsat 505 534 554          -                         
+cmp_list-lt-e-prove                            unsat 2138 2230 2254       -                         
+compare-lt-e-prove                             unsat 898 914 947          -                         
+compare_build-gt-e-prove                       unsat 235 243 246          -                         
+compare_build-lt-e-prove                       unsat 1995 2065 2301       -                         
+compare_build-open-search                      unsat 433 456 471          -                         

@@ -427,3 +427,297 @@ case clauses (`short`, `long`), which Z3 can't prove.
 - The `cases-pin` faults weren't replayed: `cases-pin` adds only `pin` to
   `cases`, and `pin` notices neither list fault (cvc5 says `unsat`; Z3 says
   `unsat` in `pin` and `unknown` in `cases-pin`).
+
+# Third round: triggers, spec functions, stability, bugs caught by running the contract
+
+**Status:** run on 2026-11-13 after the second round, on the same model. The
+owner's decision for this round: the base shape is `e-versions`
+(`CONTRACT=e EQ=versions`), the existential form with element-wise equality
+of a version's identifiers; the two-form contract is no longer the target.
+It measures four ideas and chooses nothing.
+
+## Questions
+
+A. Do explicit `:pattern`s on every quantifier of `e-versions` make Z3 prove
+what it didn't, and do they carry the proof (pure e-matching)?
+B. Does a recursive spec function in place of `exists` and `forall`, as
+`define-fun-rec` (B1) or as an uninterpreted function with a fuel-limited
+defining axiom (B2), meet the success rule?
+C. How stable are the answers of the base shape, the best A shape and the best
+B shape under seeds, assertion shuffles and renamings?
+D. Which planted faults does running the contract on small inputs catch?
+
+The success rule stays as in the first round.
+
+## Method
+
+**Shapes.** `gen.py` has two new switches. `TRIGGERS=1|2|3` adds a `:pattern`
+to every quantifier over a list index of the shape (`add_triggers`):
+
+| Design | Pattern |
+| --- | --- |
+| 1 | the element of the first list the quantifier indexes, `(seq.nth a i)`, as Dafny and Verus pick it |
+| 2 | each list's element as an alternative pattern |
+| 3 | the elements of both lists as one multi-pattern |
+
+A quantifier that names its index only through `first`, `lt_at` or `gt_at`
+takes the lists from that call. No pattern builds a new index term, so none
+can loop.
+
+`SPEC=b1|b2f1|b2f2` (only with `CONTRACT=e EQ=versions`) removes `first`,
+`eq_from` and `canon_list` and states the contract through two recursive spec
+functions:
+
+```
+fd(a, b, k)          = k if k >= len a or k >= len b
+                       fd(a, b, k + 1) if a[k] = b[k]
+                       k otherwise              ; first index from k where they differ or end
+canon_from(a, k)     = k >= len a or (canon_id(a[k]) and canon_from(a, k + 1))
+lt-e: result = -1 => lt_at(a, b, fd(a, b, k))     gt-e likewise
+eq:   result = 0  => fd(a, b, k) = len a and fd(a, b, k) = len b
+```
+
+A version's `eq` uses `fd` on the pre-release and build identifiers. A
+comparator `requires` `canon_from` from the index it starts at (0 for the
+version comparators), so the recursive call's `requires` follows from the
+contract's by one unfolding. The obligation of a recursive call uses one
+unfolding of `fd` and the callee's contract at the new index.
+
+- B1: `define-fun-rec`.
+- B2: an uninterpreted `fd_f(fuel, a, b, k)` with the axiom
+  `fd_f(S f, a, b, k) = body[fd_f(f, a, b, k + 1)]`, pattern `fd_f(S f, a, b,
+  k)`, and the axiom `fd_f(f, a, b, k) = fd_f(F0, a, b, k)` (the value doesn't
+  depend on the fuel), pattern `fd_f(f, a, b, k)`. The contract calls it with
+  fuel `S F0` (`b2f1`) or `S (S F0)` (`b2f2`). `canon_from` is built the same
+  way.
+
+Generated folders aren't committed. The generated variants for the runs below:
+
+```
+CONTRACT=e EQ=versions python gen.py <dir>                     # base
+CONTRACT=e EQ=versions TRIGGERS=1 python gen.py <dir>          # t1 (2, 3 likewise)
+CONTRACT=e EQ=versions SPEC=b1 python gen.py <dir>             # b1 (b2f1, b2f2 likewise)
+```
+
+**Runs.** [`measure.py`](measure.py) runs a folder with the options of
+`run.sh`, up to 4 solver processes at once (5 runs per case and solver; its
+output has `run.sh`'s layout, so `summary.py` reads it). A solver that exits
+without an answer is recorded as `crash<exit code>`. Times from these runs
+were taken with four processes at once and, for A and B, with
+`enumerate_inputs.py` running beside them in part, so they are about as loose
+as the second round's. The cases near 5 s were repeated alone
+(`results-round3/alone-*.txt`, `--jobs 1`).
+
+Configurations: Z3 as Accord runs it (`-smt2 -t:10000`), plus `smt.relevancy=1`
+(the second round's finding) and `smt.mbqi=false` (e-matching only); cvc5 as
+Accord runs it (`--mbqi`) and without `--mbqi`. Without `--mbqi` cvc5 isn't
+pure e-matching: its other quantifier modules stay on.
+
+**Stability.** [`stability.py`](stability.py) runs each proof obligation and
+open search (36 cases) in 21 variants per solver: as written; Z3 with
+`smt.random_seed=N sat.random_seed=N` and cvc5 with `--seed=N
+--sat-random-seed=N`, N = 1 to 10; the assertions shuffled (5 seeds); the
+symbols renamed (5 seeds). [`mutate.py`](mutate.py) writes the two mutators
+as Mariposa does them (Mariposa itself, github.com/secure-foundations/mariposa,
+wasn't tried). A case is **stable** if all 21 runs are `unsat`, **unsolvable**
+if none is, **unstable** otherwise; a stable case is **slow** if its slowest
+run reaches 5 s. Raw rows: `results-round3/C-*.csv`.
+
+**Inputs.** [`enumerate_inputs.py`](enumerate_inputs.py) runs each comparator,
+correct and with each fault, on every input of a small domain and checks the
+`e-versions` clauses on the result. The evaluator is written from this
+document's model, like `replay.py` (which it imports); it isn't Accord's
+interpreter.
+
+## Part A: triggers
+
+Cells are proofs met of 31 and open searches met of 5 (all unsat, the proofs
+under 5 s in every run); medians of 5 runs; `results-round3/A-*.txt`.
+
+| Shape | Z3 plain | Z3 `relevancy=1` | Z3 `mbqi=false` | cvc5 `--mbqi` | cvc5 no `--mbqi` |
+| --- | --- | --- | --- | --- | --- |
+| no patterns (base) | 28, 5 | 31, 5 | 29, 5 | 31, 5 | 31, 5 |
+| `TRIGGERS=1` | 21, 2 | 21, 2 | 21, 2 | 31, 5 | 31, 5 |
+| `TRIGGERS=2` | 21, 2 | 21, 2 | 21, 2 | 31, 5 | 31, 5 |
+| `TRIGGERS=3` | 21, 2 | 21, 2 | 21, 2 | 31, 5 | 31, 5 |
+
+With any design Z3 answers `unknown` (10 s) on the same 13 cases in every
+configuration: for `cmp_list`, the call's `requires` of `cmp_id`, `eq`,
+`lt-e`, `gt-e` and the open search; for `compare` and `compare_build`, `eq`,
+`lt-e`, `gt-e` and the open search. Base Z3 plain: `compare_build` `gt-e`
+`unknown`; `cmp_list` `gt-e` 5.5 s and `compare_build` `lt-e` 7.2 s
+(6.3 s alone). cvc5 proves all 36 with and without patterns and with and
+without `--mbqi`, slowest 111 ms.
+
+- Patterns don't help Z3 here; they remove proofs it had, even with
+  `smt.mbqi=false`, where the base shape is at 29 of 31.
+- The base shape's proofs don't depend on patterns: Z3 with e-matching only,
+  and cvc5 without `--mbqi`, prove nearly as much as with MBQI.
+- I tried three designs, the allowed maximum; others may behave differently.
+  The patterns of design 1 are the ones Dafny and Verus would pick for these
+  bodies by my reading; I didn't check against either tool.
+
+Faults, each cell the clauses on which the solver says `sat`:
+
+| Shape | `numeric` | `prefix` | `skip` |
+| --- | --- | --- | --- |
+| base, any option | Z3 and cvc5: `lt`, `gt` | cvc5 with `--mbqi`: `lt-e`, `gt-e`; Z3: none; cvc5 without `--mbqi`: none | none |
+| `TRIGGERS=1` | the same | Z3 plain and `mbqi=false`: `lt-e`; cvc5 with `--mbqi`: `lt-e`, `gt-e` | none |
+| `TRIGGERS=2`, `3` | the same | cvc5 with `--mbqi` only | none |
+
+The `lt-e` models of Z3 and cvc5 for `TRIGGERS=1` replay
+(`results-round3/A-replay-t1.txt`). Z3's `sat` appeared in 2 of the 3
+configurations of that shape that ran, one run each; I didn't test it for
+repeatability.
+
+## Part B: spec functions
+
+Cells are proofs met of 31 and open searches met of 5, medians of 5 runs;
+`results-round3/B-*.txt`.
+
+| Shape | Z3 plain | Z3 `relevancy=1` | Z3 `mbqi=false` | cvc5 `--mbqi` | cvc5 no `--mbqi` |
+| --- | --- | --- | --- | --- | --- |
+| B1 `define-fun-rec` | 30, 5 | 30, 5 | 30, 5 | 31, 5 | 31, 5 |
+| B2 fuel 1 | 31, 5 | 31, 5 | 31, 5 | 31, 5 | 31, 5 |
+| B2 fuel 2 | 31, 5 | 31, 5 | not run | 31, 5 | 31, 5 |
+
+B1's Z3 miss is the call's `requires` of `cmp_id` (`unknown`): the identifiers
+are canonical from `k` on, so `a[k]` is canonical needs one unfolding of
+`canon_from`, which Z3's `define-fun-rec` didn't do. The slowest proof of any B
+cell is 1.2 s (cvc5, B2 fuel 2, `--mbqi`); for B2 fuel 1 it is 0.2 s in both
+solvers.
+
+Faults:
+
+| Shape | Z3 | cvc5 |
+| --- | --- | --- |
+| B1 | `numeric`: `lt`, `gt` `sat`; `skip`: `eq` `sat` (plain only, not with `relevancy=1`); `prefix`: `unknown` on `lt-e`, `gt-e` | exits with a stack overflow (`0xC00000FD`) on the 5 cases whose answer would be `sat`; without `--mbqi` `unknown` |
+| B2 fuel 1 and 2 | `unknown` on the same 5 cases | the same crash and `unknown` |
+
+- The Z3 models of B1 replay (`numeric`, `skip`; `B-replay-b1.txt`), and
+  Z3 with `smt.arith.solver=2` refutes `prefix` on `lt-e` with a model that
+  replays; Accord doesn't set that option.
+- cvc5 1.4.2 crashes whenever its answer on a B script would be `sat`, including
+  `cmp_id` `lt` and `gt` of `numeric`, which don't use `fd`. The base shape
+  doesn't crash. I didn't look for the cause.
+- B2 never says `sat`, so no model exists to replay. For B2 the solvers' `unsat`
+  rests on the axioms being true of the intended function; they are by
+  construction, but I couldn't make a solver confirm they are satisfiable:
+  `fd([0], [0, 1], 0) = 1` is `unknown` and `= 0` is `unsat` in Z3.
+- In Z3, B2 fuel isn't a measured limit: with `smt.mbqi=false` (fuel by
+  e-matching only) the result is the same as with MBQI.
+
+What Accord's surface syntax would need for B (no compiler code written): a
+recursive pure function usable in `requires` and `ensures`, with `decreases`
+checked as a proof obligation of its own (not measured here, `fd` is one
+`length(a) - k`); the contract names the function, so a library such as the
+semver port would declare `fd` and `canon_from` beside the comparators; a
+`requires` stated from an index (`canon_from(a, k)`) instead of for the whole
+list; the compiler writing the fuel sort, `S`, the unfolding axiom, the
+fuel-irrelevance axiom and the pattern for each such function (B2), or
+`define-fun-rec` (B1); and a decision on how a counterexample over an
+uninterpreted spec function is reported, since a B2 `sat` model can be
+spurious.
+
+## Part C: stability
+
+Cases are the 36 obligations of the shape: 31 proofs (the contract's clauses,
+bounds, overflow, `decreases` and calls' `requires`) and 5 open searches. 21
+runs per case and solver. `results-round3/C-<shape>.txt` has every case.
+
+| Shape | Z3 stable | Z3 unstable | Z3 unsolvable | cvc5 |
+| --- | --- | --- | --- | --- |
+| base, Z3 plain | 29 (2 slow) | 5 | 0 | 36 stable |
+| base, Z3 `relevancy=1` | 33 (1 slow) | 2 | 0 | 36 stable |
+| `TRIGGERS=1` | 23 | 0 | 13 | 36 stable |
+| B1 | 35 | 0 | 1 | 36 stable |
+| B2 fuel 1 | **36** | 0 | 0 | **36 stable** |
+| B2 fuel 2 | **36** | 0 | 0 | **36 stable** |
+
+Unstable cases of the base (unsat runs of 21): Z3 plain: `cmp_list` `gt-e` 15,
+`lt-e` 16, `compare` `gt-e` 19, `compare_build` `gt-e` 13, `lt-e` 20; slow:
+`compare` `lt-e` (5.4 s), `compare_build` open search (6.7 s). With
+`relevancy=1`: `cmp_list` `gt-e` 18, `lt-e` 13; slow: `compare_build` `gt-e`
+(9.4 s). The other runs of every unstable case were `unknown`. The unsolvable
+cases of `TRIGGERS=1` are the 13 listed in part A, and B1's is the call's
+`requires` of `cmp_id`. The slowest `unsat` of any run: B2 fuel 1 224 ms in Z3
+and 207 ms in cvc5; fuel 2 358 and 141 ms; B1 166 and 144 ms.
+
+The non-`unsat` runs of the base's unstable cases in Z3 plain, by kind of
+variant: seeds 10 of 50, shuffles 7 of 25, renamings 6 of 25 (and the
+unmodified case once). With `relevancy=1`: seeds 4, shuffles 2, renamings 5.
+So a shuffle or a renaming alone changes Z3's answer on these cases, with
+the same solver and default seed.
+
+## Part D: bugs caught by running the contract
+
+`python enumerate_inputs.py`, output in `results-round3/D-enumerate.txt`. The
+alphabet of identifiers is canonical numeric (0, 1, 2, 10) and alphanumeric
+(`a`, `b`, `1a`, `A`) values; lists have at most 3 elements over 8 identifiers
+(1,277,201 inputs, every `k`) or at most 4 over 4 (512,713); versions have 3
+main triples, pre-release at most 2 over 4 and build at most 2 over 3
+(670,761 pairs). The correct comparator breaks no clause on any input, and
+for every input the contract admits exactly the comparator's result (0 inputs
+where it admits another or more than one).
+
+| Function, input set | Fault | Inputs breaking a clause | Smallest | Clause | Time |
+| --- | --- | --- | --- | --- | --- |
+| `cmp_id`, 64 pairs | `numeric` | 32 | `1a` against `0` | `lt` | < 0.1 s |
+| `cmp_list`, at most 3 over 8 | `numeric` | 506,656 | `[1a]` against `[0]` | `lt-e` | 3.3 s |
+| | `prefix` | 86,288 | `[1a]` against `[]` | `lt-e` | 1.9 s |
+| | `skip` | 78,912 | `[1a, 1a]` against `[1a]` | `eq` | 2.7 s |
+| `cmp_list`, at most 4 over 4 | `numeric` | 239,080 | `[1a]` against `[0]` | `lt-e` | 1.7 s |
+| | `prefix` | 61,000 | `[1a]` against `[]` | `lt-e` | 0.8 s |
+| | `skip` | 75,920 | `[1a, 1a]` against `[1a]` | `eq` | 0.8 s |
+| `compare`, 670,761 pairs | `numeric` | 117,624 | pre-releases `[1a]`, `[0]` | `lt-e` | 1.9 s |
+| | `prefix` | 16,224 | `[1a, 1a]`, `[1a]` | `lt-e` | 1.5 s |
+| | `skip` | 40,560 | `[1a, 1a]`, `[1a]` | `eq` | 1.3 s |
+| `compare_build`, the same | `numeric` | 122,412 | pre-releases `[1a]`, `[0]` | `lt-e` | 1.6 s |
+| | `prefix` | 18,870 | builds `[A]`, `[]` | `lt-e` | 1.1 s |
+| | `skip` | 28,428 | pre-releases `[1a, 1a]`, `[1a]` | `eq` | 1.1 s |
+
+Each fault is caught by the `e-versions` contract in every function that
+calls the faulty one; `compare_main` calls none. `prefix` and `skip` change
+only list comparison, so `cmp_id` has no violation for them. "Smallest" is by
+the number of list elements, then in enumeration order. The times are of a
+Python evaluator and include the contract's check of all three results for the
+correct comparator; they were taken while solver runs shared the machine.
+
+## What the third round shows
+
+- **Spec functions with a fuel-limited axiom (B2) meet the proof and
+  open-search part of the rule in both solvers and are stable.** All 36 cases
+  are `unsat` in all 21 variants in both solvers, slowest run 0.36 s. With
+  `define-fun-rec` (B1) Z3 misses one obligation in every variant.
+- **No shape meets the whole rule.** B2 refutes `numeric` and `prefix` and
+  `skip` in no solver: Z3 says `unknown`, cvc5 crashes on the `sat` answers.
+  In the base shape with `smt.relevancy=1`, the proofs are met, but 2 of 36
+  cases are unstable and 1 is slow; the faults are as in the second round.
+- **Patterns hurt Z3 and don't change cvc5.** None of three designs helped, and
+  the base proofs don't rest on patterns.
+- **The base shape's second-round pass with `smt.relevancy=1` is a pass of the
+  default seed.** Under 21 variants it keeps 2 unstable and 1 slow case, and plain
+  Z3 keeps 5 unstable and 2 slow.
+- **Running the contract on small inputs catches all three faults at
+  every level in a few seconds,** with counterexamples of one or two list
+  elements, and shows the correct comparator breaks no clause and the contract
+  determines its result on every enumerated input. That doesn't depend on a
+  solver.
+
+## What the third round doesn't show
+
+- The variants are mine, three trigger designs and two fuel values; others
+  may do better or worse.
+- The recursive spec function's termination obligation and `fd`'s own
+  contract weren't generated or timed.
+- The B2 axioms' satisfiability isn't confirmed by a solver; their truth is an
+  argument.
+- The stability runs have one run per variant. Z3 with 10 seeds, 5 shuffles and
+  5 renames is a sample, not the distribution; classes are not stable under
+  more variants. A case labelled stable in 21 runs may not be in 210.
+- The enumeration is a finite domain; it shows no bug there, not none. The
+  evaluator is mine, not Accord's interpreter.
+- No Accord code ran, and cvc5's crash on B scripts was observed with the
+  pinned cvc5 1.4.2 on Windows only.
+- The times come from up to four processes at once on one machine; five alone
+  runs of the cases near 5 s are in `results-round3/alone-*.txt`.

@@ -22,8 +22,16 @@ Usage: [SHAPE=...] [FORMS=...] [CONTRACT=...] python gen.py <out folder>
     cases-pin (cases, and the pin), e (the existential form only, in every
     comparator), e-prefix (e, and the two cases of one list a strict prefix
     of the other).
+  TRIGGERS: 0 (default) writes no `:pattern`; 1, 2 and 3 give every
+    quantifier over a list index one of three designs (see add_triggers).
+  SPEC: none (default), or recursive spec functions `fd` (the first index
+    from k where two lists differ or one ends) and `canon_from` in place of
+    the quantifiers; only with CONTRACT=e EQ=versions. b1: `define-fun-rec`;
+    b2f1 and b2f2: an uninterpreted function with a fuel-limited defining
+    axiom, fuel 1 and 2.
 """
 import os
+import re
 import sys
 
 MAX_LEN = 4294967295
@@ -321,6 +329,134 @@ FAULTS = {
     "numeric": ("cmp_id", ID_BODY.replace("    (- 1))\n  (ite ((_ is Numeric) y) 1", "    1)\n  (ite ((_ is Numeric) y) (- 1)")),
 }
 
+TRIGGERS = int(os.environ.get("TRIGGERS", "0"))
+SPEC = os.environ.get("SPEC", "none")
+if SPEC != "none" and (CONTRACT, EQ) != ("e", "versions"):
+    sys.exit("SPEC needs CONTRACT=e EQ=versions")
+
+
+def balanced(text, start):
+    """The index just after the S-expression that opens at text[start]."""
+    depth, i, in_str = 0, start, False
+    while i < len(text):
+        c = text[i]
+        if in_str:
+            if c == '"':
+                in_str = False
+        elif c == '"':
+            in_str = True
+        elif c == "(":
+            depth += 1
+        elif c == ")":
+            depth -= 1
+            if depth == 0:
+                return i + 1
+        i += 1
+    raise ValueError("unbalanced")
+
+
+def drop_define(text, name):
+    m = re.search(r"\(define-fun " + re.escape(name) + r" ", text)
+    return text[:m.start()] + text[balanced(text, m.start()):].lstrip("\n")
+
+
+SEQ = r"(\w+|\((?:pre|build) \w+\))"
+QUANT = re.compile(r"\((forall|exists) \(\((\w+) Int\)\) ")
+
+
+def add_triggers(text):
+    """Gives each quantifier over one Int index a `:pattern` on the list
+    elements it indexes. Design 1: the first list's element, `(seq.nth a i)`,
+    as Dafny and Verus pick it. Design 2: each list's element as an
+    alternative pattern. Design 3: the elements of both lists as one
+    multi-pattern. A quantifier whose body names the index only through
+    `first`, `lt_at` or `gt_at` gets its lists from that call."""
+    out, pos = [], 0
+    for m in QUANT.finditer(text):
+        if m.start() < pos:
+            continue
+        end = balanced(text, m.start())
+        var, body_start = m[2], m.end()
+        body = text[body_start:end - 1]
+        inner = add_triggers(body) if QUANT.search(body) else body
+        seqs = []
+        direct = re.findall(r"\(seq\.nth " + SEQ + " " + var + r"\)", body)
+        calls = re.findall(r"\((?:first|lt_at|gt_at) " + SEQ + " " + SEQ + r" (?:[^()\s]+ )?" + var + r"\)", body)
+        for x in direct + [x for pair in calls for x in pair]:
+            if x not in seqs:
+                seqs.append(x)
+        if not seqs or inner.lstrip().startswith("(!"):
+            out.append(text[pos:body_start] + inner + ")")
+        else:
+            nth = [f"(seq.nth {x} {var})" for x in seqs]
+            if TRIGGERS == 1:
+                pats = [nth[0]]
+            elif TRIGGERS == 2:
+                pats = nth
+            else:
+                pats = [" ".join(nth)]
+            attrs = " ".join(f":pattern ({p})" for p in pats)
+            out.append(text[pos:body_start] + f"(! {inner} {attrs}))")
+        pos = end
+    out.append(text[pos:])
+    return "".join(out)
+
+
+SEQ_SORT = "(Seq PreId)"
+LIST_PARAMS = f"((a {SEQ_SORT}) (b {SEQ_SORT}) (k Int))"
+FD_BODY = ("(ite (or (>= k (seq.len a)) (>= k (seq.len b))) k\n"
+           "    (ite (= (seq.nth a k) (seq.nth b k)) {REC_FD} k))")
+CANON_BODY = "(or (>= k (seq.len a)) (and (canon_id (seq.nth a k)) {REC_CANON}))"
+SPEC_USERS = """(define-fun lt_e ((a (Seq PreId)) (b (Seq PreId)) (k Int)) Bool (lt_at a b (fd a b k)))
+(define-fun gt_e ((a (Seq PreId)) (b (Seq PreId)) (k Int)) Bool (gt_at a b (fd a b k)))
+(define-fun eq_from ((a (Seq PreId)) (b (Seq PreId)) (k Int)) Bool
+  (and (= (fd a b k) (seq.len a)) (= (fd a b k) (seq.len b))))
+"""
+
+
+def spec_block():
+    if SPEC == "b1":
+        return ("; The first index from k where the lists differ or one of them ends, and whether the\n"
+                "; identifiers from k on are canonical: recursive spec functions.\n"
+                f"(define-fun-rec fd {LIST_PARAMS} Int\n  "
+                + FD_BODY.format(REC_FD="(fd a b (+ k 1))") + ")\n"
+                f"(define-fun-rec canon_from ((a {SEQ_SORT}) (k Int)) Bool\n  "
+                + CANON_BODY.format(REC_CANON="(canon_from a (+ k 1))") + ")\n" + SPEC_USERS)
+    fuel = {"b2f1": "(S F0)", "b2f2": "(S (S F0))"}[SPEC]
+    return (
+        "; The same spec functions as an uninterpreted function and a fuel-limited defining\n"
+        "; axiom: it unfolds a call with fuel (S f) into one with fuel f, and the value\n"
+        "; doesn't depend on the fuel.\n"
+        "(declare-sort Fuel 0)\n(declare-const F0 Fuel)\n(declare-fun S (Fuel) Fuel)\n"
+        f"(declare-fun fd_f (Fuel {SEQ_SORT} {SEQ_SORT} Int) Int)\n"
+        f"(declare-fun canon_f (Fuel {SEQ_SORT} Int) Bool)\n"
+        f"(assert (forall ((f Fuel) (a {SEQ_SORT}) (b {SEQ_SORT}) (k Int))\n"
+        "  (! (= (fd_f (S f) a b k)\n  " + FD_BODY.format(REC_FD="(fd_f f a b (+ k 1))").replace("(seq.len a)", "(seq.len a)") + ")\n"
+        "     :pattern ((fd_f (S f) a b k)))))\n"
+        f"(assert (forall ((f Fuel) (a {SEQ_SORT}) (b {SEQ_SORT}) (k Int))\n"
+        "  (! (= (fd_f f a b k) (fd_f F0 a b k)) :pattern ((fd_f f a b k)))))\n"
+        f"(assert (forall ((f Fuel) (a {SEQ_SORT}) (k Int))\n"
+        "  (! (= (canon_f (S f) a k)\n  " + CANON_BODY.format(REC_CANON="(canon_f f a (+ k 1))") + ")\n"
+        "     :pattern ((canon_f (S f) a k)))))\n"
+        f"(assert (forall ((f Fuel) (a {SEQ_SORT}) (k Int))\n"
+        "  (! (= (canon_f f a k) (canon_f F0 a k)) :pattern ((canon_f f a k)))))\n"
+        f"(define-fun fd {LIST_PARAMS} Int (fd_f {fuel} a b k))\n"
+        f"(define-fun canon_from ((a {SEQ_SORT}) (k Int)) Bool (canon_f {fuel} a k))\n" + SPEC_USERS)
+
+
+if SPEC != "none":
+    PRELUDE = PRELUDE_TEMPLATE
+    for name in ("canon_list", "eq_from", "first", "pre_lt_u", "pre_gt_u", "ver_lt_u", "ver_gt_u"):
+        PRELUDE = drop_define(PRELUDE, name)
+    PRELUDE = PRELUDE.replace("{PRECEDENCE}", spec_block()).replace("{PREC_EQ}", PREC_EQ)
+    # The identifiers of a list are canonical from the index the callee starts at.
+    for fn in FUNCTIONS.values():
+        fn["requires"] = [
+            re.sub(r"\(canon_list (\S+|\(\w+ \w+\))\)",
+                   lambda m: f"(canon_from {m[1]} {'k' if m[1] in ('a', 'b') and 'k' in [p for p, _ in fn['params']] else '0'})",
+                   r)
+            for r in fn["requires"]]
+
 
 def parameter_facts(function):
     out = ""
@@ -433,6 +569,8 @@ def main(folder):
         for label, claim in FUNCTIONS[name]["ensures"]:
             cases[f"{name}-{label}-fault-{fault}-refute"] = claim_script(name, claim, body)
     for case, text in cases.items():
+        if TRIGGERS:
+            text = add_triggers(text)
         with open(os.path.join(folder, f"{case}.smt2"), "w", newline="\n") as out:
             out.write(text)
     print(len(cases), "cases")
