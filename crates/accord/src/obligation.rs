@@ -35,7 +35,9 @@ pub(crate) use claims::Claim;
 use claims::claim_of;
 use lists::list_facts;
 pub(crate) use operations::Guard;
-use operations::{Operation, assumption, body_operations, for_some, guard_term, spec_indexes};
+use operations::{
+    Operation, assumption, body_operations, for_some, guard_term, range_assumption, spec_indexes,
+};
 pub(crate) use scripts::{mutant_scripts, open_script};
 pub(crate) use smt::{all, datatypes, ending, in_range, sort, term};
 use smt::{meets_invariants, prelude, value};
@@ -163,6 +165,10 @@ fn obligations_of<'a>(
         {
             out.push(allowed(format!("`{name}` is allowed for some input")));
         }
+        // The arithmetic that makes the next state stays within its type: an
+        // obligation of its own, assumed here as a call's `requires` is.
+        let mut fits = every.clone();
+        fits.extend(ops.iter().filter_map(range_assumption));
         let fails = format!("(not {})", meets_invariants(function));
         out.push(obligation(
             &if init {
@@ -176,7 +182,7 @@ fn obligations_of<'a>(
             Polarity::Universal,
             Claim::Invariants,
             "",
-            &every,
+            &fits,
             &[],
             match &covered {
                 Some(covered) => format!("(and {covered} {fails})"),

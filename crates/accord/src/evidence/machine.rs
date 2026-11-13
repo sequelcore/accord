@@ -182,7 +182,7 @@ impl Context<'_> {
             let refuted = Outcome::Refuted {
                 evidence: Refutation::Trace(steps(self.units, &trace, true)),
             };
-            return (refuted, reused, None);
+            return (refuted, false, None);
         }
         let from_state =
             role != Role::Init && !allowed && ob.polarity == obligation::Polarity::Universal;
@@ -203,7 +203,7 @@ impl Context<'_> {
                     evidence: Refutation::Trace(steps(self.units, trace, true)),
                 },
             };
-            return (outcome, reused, self.note(None));
+            return (outcome, false, self.note(None));
         }
         let outcome = match (role, outcome) {
             (Role::Event, Outcome::Proved { .. }) if allowed => Outcome::Undecided {
@@ -230,6 +230,12 @@ impl Context<'_> {
         };
         let consulted =
             role == Role::Event && allowed || matches!(outcome, Outcome::NotInductive { .. });
+        // What the explorer turned into another outcome isn't the ledger's.
+        let reused = reused
+            && !matches!(
+                outcome,
+                Outcome::NotInductive { .. } | Outcome::Undecided { .. }
+            );
         (
             outcome,
             reused,

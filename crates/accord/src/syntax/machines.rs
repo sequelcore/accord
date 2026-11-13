@@ -27,6 +27,7 @@ impl Parser<'_> {
             invariants: Vec::new(),
         };
         let mut stated = false;
+        let mut names: Vec<String> = Vec::new();
         while !self.at_sym("}") {
             if self.at_word("state") {
                 if stated {
@@ -46,7 +47,16 @@ impl Parser<'_> {
                 });
                 machine.observers.push(observer);
             } else if self.at_word("invariant") || self.at_word("helper") {
-                machine.invariants.push(self.invariant()?);
+                let line = self.line();
+                let (name, invariant) = self.invariant()?;
+                if names.contains(&name) {
+                    return Err(Diagnostic::new(
+                        line,
+                        format!("`{name}` names two invariants of `{}`", machine.name),
+                    ));
+                }
+                names.push(name);
+                machine.invariants.push(invariant);
             } else {
                 return self.error(
                     "expected `state`, `init`, `event`, `fn`, `invariant` or `helper invariant`",
@@ -152,22 +162,23 @@ impl Parser<'_> {
     }
 
     /// `invariant name: condition` or `helper invariant name: condition`.
-    fn invariant(&mut self) -> Result<Clause, Diagnostic> {
+    fn invariant(&mut self) -> Result<(String, Clause), Diagnostic> {
         let (text, line) = self.rest_of_line();
         let helper = self.at_word("helper");
         if helper {
             self.pos += 1;
         }
         self.expect_word("invariant")?;
-        self.name()?;
+        let name = self.name()?;
         self.expect_sym(":")?;
-        Ok(Clause {
+        let clause = Clause {
             kind: ClauseKind::Invariant,
             helper,
             expr: self.expr()?,
             text,
             line,
-        })
+        };
+        Ok((name, clause))
     }
 
     /// `example Machine`, its steps one per line, then `gives condition`.

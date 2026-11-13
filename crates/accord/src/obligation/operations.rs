@@ -4,7 +4,7 @@
 
 use super::calls::{has_requires, requires_of};
 use super::lists::{at_index, in_bounds, index_name};
-use super::smt::{all, term};
+use super::smt::{all, in_range, term};
 use crate::syntax::{Body, Expr, Function, Op, Program};
 
 /// A condition that must have a given value for code to run; `None` is a
@@ -180,6 +180,18 @@ pub(super) fn for_every(bound: &[&Expr], claim: String) -> String {
     }
     out
 }
+/// That where `op` runs, an arithmetic operation stays within its type; `None`
+/// for any other operation.
+pub(super) fn range_assumption(op: &Operation) -> Option<String> {
+    let (Expr::Arith(.., site) | Expr::Neg(_, site)) = op.expr else {
+        return None;
+    };
+    let width = site.width?;
+    let guards = all("and", op.guards.iter().map(guard_term).collect(), "true");
+    let holds = format!("(=> {guards} {})", in_range(&term(op.expr), width));
+    Some(for_every(&op.bound, holds))
+}
+
 /// That where `op` runs, its callee's `requires` holds; `None` for an
 /// operation that isn't a call to a function with a `requires`.
 pub(super) fn assumption(program: &Program, op: &Operation) -> Option<String> {

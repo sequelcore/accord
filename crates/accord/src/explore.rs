@@ -65,6 +65,15 @@ impl Member<'_> {
 
     /// The state the member ends in, when it is run in code.
     pub fn run(&self, state: Option<&[Value]>, args: &[Value]) -> Result<Vec<Value>, String> {
+        let function = self.function();
+        let skip = function.machine.map_or(0, |m| m.state);
+        for ((name, ty), arg) in function.params[skip..].iter().zip(args) {
+            if let (Type::Int(width), Value::Int(n)) = (ty, arg)
+                && !(width.min()..=width.max()).contains(n)
+            {
+                return Err(format!("`{name}` is {n}, which is outside its type"));
+            }
+        }
         interpret::transition(
             self.function(),
             &self.names(state, args),
@@ -213,7 +222,8 @@ fn integers(name: &str, width: Width, requires: &[&Expr]) -> Option<Vec<Value>> 
             _ => {}
         }
     }
-    let (low, high) = (low.unwrap_or(width.min()), high.unwrap_or(width.max()));
+    let low = low.map_or(width.min(), |l| l.max(width.min()));
+    let high = high.map_or(width.max(), |h| h.min(width.max()));
     let mut values: Vec<i128> = match (set, low > width.min() || high < width.max()) {
         (Some(set), _) => set
             .into_iter()
@@ -400,7 +410,7 @@ pub(crate) fn start(members: &[Member], m: usize, model: &[(String, String)]) ->
         .iter()
         .map(|(_, value)| value.clone())
         .collect();
-    let state = member.run(None, &args).ok();
+    let state = Some(member.run(None, &args).ok()?);
     Some(Step {
         member: m,
         args,

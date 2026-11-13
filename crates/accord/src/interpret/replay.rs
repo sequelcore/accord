@@ -37,10 +37,17 @@ fn reproduces(
     Ok(match &obligation.claim {
         Claim::Allowed => true,
         Claim::Invariants => {
-            let Value::List(next) = body(function, &env)? else {
-                return Err("a transition ends in a state".to_string());
+            // A step whose arithmetic leaves its type ends in no state; its
+            // own obligation reports that.
+            let code = Env {
+                mode: Mode::Code,
+                ..env
             };
-            broken_invariant(function, &next)?.is_some()
+            match body(function, &code) {
+                Ok(Value::List(next)) => broken_invariant(function, &next)?.is_some(),
+                Ok(_) => return Err("a transition ends in a state".to_string()),
+                Err(_) => false,
+            }
         }
         Claim::Ensures(clause) => {
             let result = body(function, &env)?;

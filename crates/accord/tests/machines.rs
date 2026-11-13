@@ -188,3 +188,23 @@ fn a_helper_invariant_is_support_not_a_claim() {
     assert!(receipt::text(&report).contains("support      line"));
     assert_eq!(machine["standing"], "verified");
 }
+
+#[test]
+fn a_machine_s_hash_covers_roles_and_helpers() {
+    let hash = |source: &str| report(source).definitions[0].hash.clone();
+    let base = "machine M {
+    state { x: i32 }
+    init a() { next { x: 0 } }
+    event b() { next { x: 0 } }
+    invariant i: x >= 0
+}
+";
+    let second_init = base.replace("event b()", "init b()");
+    let helper = base.replace("    invariant i", "    helper invariant i");
+    assert_ne!(hash(base), hash(&second_init));
+    assert_ne!(hash(base), hash(&helper));
+    assert_eq!(
+        hash(base),
+        hash(&base.replace("invariant i", "invariant j"))
+    );
+}

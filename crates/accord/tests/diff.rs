@@ -159,3 +159,24 @@ fn a_dropped_property_of_the_ported_rule_is_caught() {
     );
     assert_ne!(result, "ProofOutcome.TimedOut");
 }
+
+#[test]
+fn a_machine_on_either_side_is_refused() {
+    let solvers =
+        Solvers::from_env().expect("Z3 and cvc5 are available (see conformance/README.md)");
+    let machine = "machine Switch {
+    state { presses: i32 }
+    init start() { next { presses: 0 } }
+    invariant bounded: presses >= 0
+}
+";
+    let Err((side, refusal)) = diff(ADD, machine, &solvers) else {
+        panic!("a machine was compared");
+    };
+    assert_eq!(side, accord::diff::Side::New);
+    assert!(refusal.message.contains("machines aren't compared yet"));
+    let Err((side, _)) = diff(machine, ADD, &solvers) else {
+        panic!("a machine was compared");
+    };
+    assert_eq!(side, accord::diff::Side::Old);
+}

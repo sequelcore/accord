@@ -159,11 +159,15 @@ pub(super) fn canonical(function: &Function, with_body: bool) -> String {
         out += &format!(" (param {ty:?})");
     }
     out += &format!(" (returns {:?})", function.ret);
+    if let Some(member) = function.machine {
+        out += &format!(" (member {:?})", member.role);
+    }
     for clause in &function.clauses {
         if with_body || clause.kind != ClauseKind::Open {
             out += &format!(
-                " ({:?} {})",
+                " ({:?}{} {})",
                 clause.kind,
+                if clause.helper { " helper" } else { "" },
                 crate::obligation::term(&clause.expr)
             );
         }
