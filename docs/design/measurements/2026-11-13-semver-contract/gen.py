@@ -6,9 +6,22 @@ clause fails, each integer within its type's range, each list at most
 4,294,967,295 elements, and each call's `requires` assumed where it runs.
 `unsat` proves a script; `sat` refutes it.
 
-Usage: SHAPE=contract python gen.py <out folder>
-  shape: contract (default), the shape the port would use, or the alternatives
-  that `README.md` compares: split, helper.
+Usage: [SHAPE=...] [FORMS=...] [CONTRACT=...] python gen.py <out folder>
+  SHAPE: how the two forms of precedence are written: contract (default, the
+    shape the port would use), negated, inline.
+  FORMS: which forms the list comparator states: both (default), u, e.
+  EQ: how equality is said: pointwise (default; the list comparator says "equal
+    from k" element by element, a version's pre-release identifiers are equal
+    as sequences); seq (the list comparator says the two tails are equal
+    sequences); versions (as pointwise, and the versions' pre-release and
+    build identifiers are equal element by element too).
+  CONTRACT: the layout of the list comparators' `ensures`: both (default, the
+    two forms of the owner decision), pin (the universal form and a clause
+    that pins the first differing index), cases (one clause per case of the
+    inputs: equal, one a prefix of the other, a first differing index),
+    cases-pin (cases, and the pin), e (the existential form only, in every
+    comparator), e-prefix (e, and the two cases of one list a strict prefix
+    of the other).
 """
 import os
 import sys
@@ -78,7 +91,16 @@ PRELUDE_TEMPLATE = """(set-option :produce-models true)
 (define-fun ver_lt_e ((a Version) (b Version)) Bool (or (main_lt a b) (and (main_eq a b) (pre_lt_e (pre a) (pre b)))))
 (define-fun ver_gt_u ((a Version) (b Version)) Bool (or (main_gt a b) (and (main_eq a b) (pre_gt_u (pre a) (pre b)))))
 (define-fun ver_gt_e ((a Version) (b Version)) Bool (or (main_gt a b) (and (main_eq a b) (pre_gt_e (pre a) (pre b)))))
-(define-fun prec_eq ((a Version) (b Version)) Bool (and (main_eq a b) (= (pre a) (pre b))))
+(define-fun prec_eq ((a Version) (b Version)) Bool (and (main_eq a b) {PREC_EQ}))
+"""
+
+EXTRA_PRELUDE = """; The first differing index exists.
+(define-fun pinned ((a (Seq PreId)) (b (Seq PreId)) (k Int)) Bool
+  (exists ((i Int)) (first a b k i)))
+; x is a strict prefix of y from k.
+(define-fun lprefix ((x (Seq PreId)) (y (Seq PreId)) (k Int)) Bool
+  (and (< (seq.len x) (seq.len y))
+       (forall ((j Int)) (=> (and (<= k j) (< j (seq.len x))) (= (seq.nth x j) (seq.nth y j))))))
 """
 
 SHAPES = {
@@ -90,7 +112,16 @@ SHAPES = {
 SHAPE = os.environ.get("SHAPE", "contract")
 # Which forms of precedence the list comparator's contract states: both, u or e.
 FORMS = os.environ.get("FORMS", "both")
-PRELUDE = PRELUDE_TEMPLATE.replace("{PRECEDENCE}", SHAPES[SHAPE])
+CONTRACT = os.environ.get("CONTRACT", "both")
+EQ = os.environ.get("EQ", "pointwise")
+PREC_EQ = {
+    "pointwise": "(= (pre a) (pre b))",
+    "seq": "(= (pre a) (pre b))",
+    "versions": "(eq_from (pre a) (pre b) 0)",
+}[EQ]
+PRELUDE = PRELUDE_TEMPLATE.replace("{PRECEDENCE}", SHAPES[SHAPE]).replace("{PREC_EQ}", PREC_EQ)
+if CONTRACT in ("pin", "cases", "cases-pin", "e-prefix"):
+    PRELUDE += EXTRA_PRELUDE
 
 
 def rng(expr, template=I64):
@@ -110,18 +141,113 @@ LIST_BODY = """(ite (= k (seq.len a)) (ite (= k (seq.len b)) 0 (- 1))
   (ite (= k (seq.len b)) 1
     (ite (not (= c!0 0)) c!0 c!1)))"""
 
+# What "equal from k" says in the list comparator's `eq` clause: every element
+# equal (pointwise), or the two tails equal as sequences (seq).
+EQ_FROM = {
+    "pointwise": "(eq_from a b k)",
+    "versions": "(eq_from a b k)",
+    "seq": "(= (seq.extract a k (- (seq.len a) k)) (seq.extract b k (- (seq.len b) k)))",
+}[EQ]
+
+BUILD_EQ = "(and (prec_eq a b) (eq_from (build a) (build b) 0))" if EQ == "versions" else "(= a b)"
+
 LIST_ENSURES = {
     # The three-`ensures` contract of the recursive comparator, each result
     # with both forms of precedence (owner decision 3).
     "contract": [
         ("sign", "(and (<= (- 1) result) (<= result 1))"),
-        ("eq", "(=> (= result 0) (eq_from a b k))"),
+        ("eq", "(=> (= result 0) " + EQ_FROM + ")"),
         ("lt-u", "(=> (= result (- 1)) (lt_u a b k))"),
         ("lt-e", "(=> (= result (- 1)) (lt_e a b k))"),
         ("gt-u", "(=> (= result 1) (gt_u a b k))"),
         ("gt-e", "(=> (= result 1) (gt_e a b k))"),
     ],
 }
+
+SIGN = ("sign", "(and (<= (- 1) result) (<= result 1))")
+
+
+def diff_cases(x, y, guard="true", k="0"):
+    """The clauses of the cases layout for lists x and y from index k: they
+    are equal, one is a strict prefix of the other, or there is a first
+    differing index, and each case fixes the result."""
+    def at(i, test):
+        return f"(and {guard} (first {x} {y} {k} {i}) (< {i} (seq.len {x})) (< {i} (seq.len {y})) {test})"
+    lt = f"(id_lt (seq.nth {x} i) (seq.nth {y} i))"
+    return [
+        ("same", f"(=> (and {guard} (eq_from {x} {y} {k})) (= result 0))"),
+        ("short", f"(=> (and {guard} (lprefix {x} {y} {k})) (= result (- 1)))"),
+        ("long", f"(=> (and {guard} (lprefix {y} {x} {k})) (= result 1))"),
+        ("diff-lt", f"(forall ((i Int)) (=> {at('i', lt)} (= result (- 1))))"),
+        ("diff-gt", f"(forall ((i Int)) (=> {at('i', '(not ' + lt + ')')} (= result 1)))"),
+    ]
+
+
+def pre_cases():
+    """Versions: main numbers, then the pre-release identifiers (a version
+    without a pre-release is above one with), in the cases layout."""
+    la, lb = "(seq.len (pre a))", "(seq.len (pre b))"
+    me = "(main_eq a b)"
+    lt = "(id_lt (seq.nth (pre a) i) (seq.nth (pre b) i))"
+    at = lambda test: f"(and {me} (first (pre a) (pre b) 0 i) (< i {la}) (< i {lb}) {test})"
+    return [
+        ("main-lt", "(=> (main_lt a b) (= result (- 1)))"),
+        ("main-gt", "(=> (main_gt a b) (= result 1))"),
+        ("pre-a-none", f"(=> (and {me} (= {la} 0) (> {lb} 0)) (= result 1))"),
+        ("pre-b-none", f"(=> (and {me} (> {la} 0) (= {lb} 0)) (= result (- 1)))"),
+        ("pre-short", f"(=> (and {me} (> {la} 0) (lprefix (pre a) (pre b) 0)) (= result (- 1)))"),
+        ("pre-long", f"(=> (and {me} (> {lb} 0) (lprefix (pre b) (pre a) 0)) (= result 1))"),
+        ("pre-diff-lt", f"(forall ((i Int)) (=> {at(lt)} (= result (- 1))))"),
+        ("pre-diff-gt", f"(forall ((i Int)) (=> {at('(not ' + lt + ')')} (= result 1)))"),
+    ]
+
+
+PIN = [("pin", "(pinned a b k)")]
+LIST_BY_CONTRACT = {
+    "both": LIST_ENSURES["contract"],
+    "pin": [SIGN, ("eq", "(=> (= result 0) " + EQ_FROM + ")")] + PIN
+    + [c for c in LIST_ENSURES["contract"] if c[0] in ("lt-u", "gt-u")],
+    "cases": [SIGN] + diff_cases("a", "b", k="k"),
+}
+LIST_BY_CONTRACT["cases-pin"] = LIST_BY_CONTRACT["cases"] + PIN
+LIST_BY_CONTRACT["e"] = [c for c in LIST_BY_CONTRACT["both"] if not c[0].endswith("-u")]
+# The existential form, and the two cases of one list a strict prefix of the other.
+LIST_BY_CONTRACT["e-prefix"] = LIST_BY_CONTRACT["e"] + [c for c in LIST_BY_CONTRACT["cases"] if c[0] in ("short", "long")]
+
+PRE_PIN = [("pin-pre", "(pinned (pre a) (pre b) 0)")]
+BUILD_PIN = [("pin-build", "(pinned (build a) (build b) 0)")]
+COMPARE_BY_CONTRACT = {
+    "both": [
+        SIGN,
+        ("eq", "(=> (= result 0) (prec_eq a b))"),
+        ("lt-u", "(=> (= result (- 1)) (ver_lt_u a b))"),
+        ("lt-e", "(=> (= result (- 1)) (ver_lt_e a b))"),
+        ("gt-u", "(=> (= result 1) (ver_gt_u a b))"),
+        ("gt-e", "(=> (= result 1) (ver_gt_e a b))"),
+    ],
+}
+COMPARE_BY_CONTRACT["e"] = [c for c in COMPARE_BY_CONTRACT["both"] if not c[0].endswith("-u")]
+COMPARE_BY_CONTRACT["e-prefix"] = COMPARE_BY_CONTRACT["e"]
+COMPARE_BY_CONTRACT["pin"] = [c for c in COMPARE_BY_CONTRACT["both"] if not c[0].endswith("-e")] + PRE_PIN
+COMPARE_BY_CONTRACT["cases"] = [SIGN] + pre_cases() + [
+    ("pre-same", "(=> (and (main_eq a b) (eq_from (pre a) (pre b) 0)) (= result 0))")]
+COMPARE_BY_CONTRACT["cases-pin"] = COMPARE_BY_CONTRACT["cases"] + PRE_PIN
+BUILD_BY_CONTRACT = {
+    "both": [
+        SIGN,
+        ("eq", "(=> (= result 0) " + BUILD_EQ + ")"),
+        ("lt-u", "(=> (= result (- 1)) (or (ver_lt_u a b) (and (prec_eq a b) (lt_u (build a) (build b) 0))))"),
+        ("lt-e", "(=> (= result (- 1)) (or (ver_lt_e a b) (and (prec_eq a b) (lt_e (build a) (build b) 0))))"),
+        ("gt-u", "(=> (= result 1) (or (ver_gt_u a b) (and (prec_eq a b) (gt_u (build a) (build b) 0))))"),
+        ("gt-e", "(=> (= result 1) (or (ver_gt_e a b) (and (prec_eq a b) (gt_e (build a) (build b) 0))))"),
+    ],
+}
+BUILD_BY_CONTRACT["e"] = [c for c in BUILD_BY_CONTRACT["both"] if not c[0].endswith("-u")]
+BUILD_BY_CONTRACT["e-prefix"] = BUILD_BY_CONTRACT["e"]
+BUILD_BY_CONTRACT["pin"] = [c for c in BUILD_BY_CONTRACT["both"] if not c[0].endswith("-e")] + PRE_PIN + BUILD_PIN
+BUILD_BY_CONTRACT["cases"] = [SIGN] + pre_cases() + [
+    ("build-" + n, t) for n, t in diff_cases("(build a)", "(build b)", "(prec_eq a b)")]
+BUILD_BY_CONTRACT["cases-pin"] = BUILD_BY_CONTRACT["cases"] + PRE_PIN + BUILD_PIN
 
 FUNCTIONS = {
     "cmp_id": dict(
@@ -139,7 +265,7 @@ FUNCTIONS = {
     "cmp_list": dict(
         params=[("a", "(Seq PreId)"), ("b", "(Seq PreId)"), ("k", "Int")],
         requires=["(<= 0 k)", "(<= k (seq.len a))", "(<= k (seq.len b))", "(canon_list a)", "(canon_list b)"],
-        ensures=[c for c in LIST_ENSURES["contract"] if FORMS == "both" or not c[0].endswith("-" + ("e" if FORMS == "u" else "u"))],
+        ensures=[c for c in LIST_BY_CONTRACT[CONTRACT] if FORMS == "both" or not c[0].endswith("-" + ("e" if FORMS == "u" else "u"))],
         calls=[
             ("(and (< k (seq.len a)) (< k (seq.len b)))", "cmp_id", "(seq.nth a k) (seq.nth b k)"),
             ("(and (< k (seq.len a)) (< k (seq.len b)) (= c!0 0))", "cmp_list", "a b (+ k 1)"),
@@ -163,14 +289,7 @@ FUNCTIONS = {
     "compare": dict(
         params=[("a", "Version"), ("b", "Version")],
         requires=["(canon_list (pre a))", "(canon_list (pre b))"],
-        ensures=[
-            ("sign", "(and (<= (- 1) result) (<= result 1))"),
-            ("eq", "(=> (= result 0) (prec_eq a b))"),
-            ("lt-u", "(=> (= result (- 1)) (ver_lt_u a b))"),
-            ("lt-e", "(=> (= result (- 1)) (ver_lt_e a b))"),
-            ("gt-u", "(=> (= result 1) (ver_gt_u a b))"),
-            ("gt-e", "(=> (= result 1) (ver_gt_e a b))"),
-        ],
+        ensures=COMPARE_BY_CONTRACT[CONTRACT],
         calls=[
             ("true", "compare_main", "a b"),
             ("(and (= c!0 0) (> (seq.len (pre a)) 0) (> (seq.len (pre b)) 0))", "cmp_list", "(pre a) (pre b) 0"),
@@ -182,14 +301,7 @@ FUNCTIONS = {
     "compare_build": dict(
         params=[("a", "Version"), ("b", "Version")],
         requires=["(canon_list (pre a))", "(canon_list (pre b))", "(canon_list (build a))", "(canon_list (build b))"],
-        ensures=[
-            ("sign", "(and (<= (- 1) result) (<= result 1))"),
-            ("eq", "(=> (= result 0) (= a b))"),
-            ("lt-u", "(=> (= result (- 1)) (or (ver_lt_u a b) (and (prec_eq a b) (lt_u (build a) (build b) 0))))"),
-            ("lt-e", "(=> (= result (- 1)) (or (ver_lt_e a b) (and (prec_eq a b) (lt_e (build a) (build b) 0))))"),
-            ("gt-u", "(=> (= result 1) (or (ver_gt_u a b) (and (prec_eq a b) (gt_u (build a) (build b) 0))))"),
-            ("gt-e", "(=> (= result 1) (or (ver_gt_e a b) (and (prec_eq a b) (gt_e (build a) (build b) 0))))"),
-        ],
+        ensures=BUILD_BY_CONTRACT[CONTRACT],
         calls=[
             ("true", "compare", "a b"),
             ("(= c!0 0)", "cmp_list", "(build a) (build b) 0"),

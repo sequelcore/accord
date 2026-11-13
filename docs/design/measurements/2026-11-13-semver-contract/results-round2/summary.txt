@@ -1,0 +1,435 @@
+=== z3 both-a2-rel1  vs  cvc5 both
+z3: 32/37 proofs unsat under 5000 ms; 4/5 open searches unsat
+  proof not met: cmp_list-gt-e-prove: unknown (max 11493)
+  proof not met: cmp_list-lt-e-prove: unknown (max 13284)
+  proof not met: cmp_list-lt-u-prove: unsat (max 5051)
+  proof not met: compare-eq-prove: unknown (max 10200)
+  proof not met: compare_build-eq-prove: unknown (max 10347)
+  open search not met: compare_build-open-search: unknown
+  fault numeric sat on: cmp_id-gt, cmp_id-lt
+  fault prefix sat on: no clause
+  fault skip sat on: no clause
+cvc5: 37/37 proofs unsat under 5000 ms; 5/5 open searches unsat
+  fault numeric sat on: cmp_id-gt, cmp_id-lt
+  fault prefix sat on: cmp_list-gt-e, cmp_list-gt-u, cmp_list-lt-e, cmp_list-lt-u
+  fault skip sat on: no clause
+faults sat in both solvers on a clause: {'numeric': True, 'prefix': False, 'skip': False}
+faults sat in some solver: {'numeric': True, 'prefix': True, 'skip': False}
+success rule met: False
+if refutation by one solver's replayed counterexample were allowed, met (replay.py checks the replay): False
+
+=== z3 both-a2  vs  cvc5 both
+z3: 33/37 proofs unsat under 5000 ms; 4/5 open searches unsat
+  proof not met: cmp_list-gt-e-prove: unknown (max 13890)
+  proof not met: cmp_list-lt-e-prove: unknown (max 12882)
+  proof not met: compare-eq-prove: unknown (max 10200)
+  proof not met: compare_build-eq-prove: unknown (max 10275)
+  open search not met: compare_build-open-search: unknown
+  open search unsat but slow: compare-open-search: max 8816 ms
+  fault numeric sat on: cmp_id-gt, cmp_id-lt
+  fault prefix sat on: no clause
+  fault skip sat on: no clause
+cvc5: 37/37 proofs unsat under 5000 ms; 5/5 open searches unsat
+  fault numeric sat on: cmp_id-gt, cmp_id-lt
+  fault prefix sat on: cmp_list-gt-e, cmp_list-gt-u, cmp_list-lt-e, cmp_list-lt-u
+  fault skip sat on: no clause
+faults sat in both solvers on a clause: {'numeric': True, 'prefix': False, 'skip': False}
+faults sat in some solver: {'numeric': True, 'prefix': True, 'skip': False}
+success rule met: False
+if refutation by one solver's replayed counterexample were allowed, met (replay.py checks the replay): False
+
+=== z3 both-plain  vs  cvc5 both
+z3: 31/37 proofs unsat under 5000 ms; 3/5 open searches unsat
+  proof not met: cmp_list-gt-e-prove: unknown (max 13151)
+  proof not met: cmp_list-gt-u-prove: unknown (max 10394)
+  proof not met: cmp_list-lt-e-prove: unknown (max 13578)
+  proof not met: cmp_list-lt-u-prove: unsat (max 8039)
+  proof not met: compare-eq-prove: unknown (max 10234)
+  proof not met: compare_build-eq-prove: unknown (max 10205)
+  open search not met: compare-open-search: unknown
+  open search not met: compare_build-open-search: unknown
+  open search unsat but slow: cmp_list-open-search: max 5695 ms
+  fault numeric sat on: cmp_id-gt, cmp_id-lt
+  fault prefix sat on: no clause
+  fault skip sat on: no clause
+cvc5: 37/37 proofs unsat under 5000 ms; 5/5 open searches unsat
+  fault numeric sat on: cmp_id-gt, cmp_id-lt
+  fault prefix sat on: cmp_list-gt-e, cmp_list-gt-u, cmp_list-lt-e, cmp_list-lt-u
+  fault skip sat on: no clause
+faults sat in both solvers on a clause: {'numeric': True, 'prefix': False, 'skip': False}
+faults sat in some solver: {'numeric': True, 'prefix': True, 'skip': False}
+success rule met: False
+if refutation by one solver's replayed counterexample were allowed, met (replay.py checks the replay): False
+
+=== z3 cases-a2  vs  cvc5 cases
+z3: 44/49 proofs unsat under 5000 ms; 2/5 open searches unsat
+  proof not met: compare-sign-prove: unknownx1/unsatx4 (max 10198)
+  proof not met: compare_build-build-diff-gt-prove: unknown (max 10299)
+  proof not met: compare_build-pre-diff-gt-prove: unsat (max 7418)
+  proof not met: compare_build-pre-diff-lt-prove: unknown (max 10250)
+  proof not met: compare_build-sign-prove: unknown (max 11220)
+  open search not met: cmp_list-open-search: unknown
+  open search not met: compare-open-search: unknown
+  open search not met: compare_build-open-search: unknown
+  fault numeric sat on: cmp_id-gt, cmp_id-lt
+  fault prefix sat on: no clause
+  fault skip sat on: no clause
+cvc5: 49/49 proofs unsat under 5000 ms; 2/5 open searches unsat
+  open search not met: cmp_list-open-search: unknown
+  open search not met: compare-open-search: unknown
+  open search not met: compare_build-open-search: unknown
+  fault numeric sat on: cmp_id-gt, cmp_id-lt
+  fault prefix sat on: cmp_list-long, cmp_list-short
+  fault skip sat on: cmp_list-diff-gt, cmp_list-diff-lt, cmp_list-long, cmp_list-short
+faults sat in both solvers on a clause: {'numeric': True, 'prefix': False, 'skip': False}
+faults sat in some solver: {'numeric': True, 'prefix': True, 'skip': True}
+success rule met: False
+if refutation by one solver's replayed counterexample were allowed, met (replay.py checks the replay): False
+
+=== z3 cases-pin-a2  vs  cvc5 cases-pin
+z3: 48/53 proofs unsat under 5000 ms; 4/5 open searches unsat
+  proof not met: cmp_list-pin-prove: unknown (max 12688)
+  proof not met: compare_build-build-diff-gt-prove: unsat (max 6060)
+  proof not met: compare_build-build-diff-lt-prove: unsat (max 5750)
+  proof not met: compare_build-pre-diff-gt-prove: unknown (max 10389)
+  proof not met: compare_build-sign-prove: unknown (max 11098)
+  open search not met: compare_build-open-search: unknown
+  fault numeric sat on: cmp_id-gt, cmp_id-lt
+  fault prefix sat on: no clause
+  fault skip sat on: no clause
+cvc5: 53/53 proofs unsat under 5000 ms; 5/5 open searches unsat
+  fault numeric sat on: cmp_id-gt, cmp_id-lt
+  fault prefix sat on: cmp_list-long, cmp_list-short
+  fault skip sat on: cmp_list-diff-gt, cmp_list-diff-lt, cmp_list-long, cmp_list-short
+faults sat in both solvers on a clause: {'numeric': True, 'prefix': False, 'skip': False}
+faults sat in some solver: {'numeric': True, 'prefix': True, 'skip': True}
+success rule met: False
+if refutation by one solver's replayed counterexample were allowed, met (replay.py checks the replay): False
+
+=== z3 cases-pin-plain  vs  cvc5 cases-pin
+z3: 46/53 proofs unsat under 5000 ms; 4/5 open searches unsat
+  proof not met: cmp_list-diff-gt-prove: unknown (max 10455)
+  proof not met: cmp_list-diff-lt-prove: unknown (max 10364)
+  proof not met: cmp_list-pin-prove: unknown (max 13086)
+  proof not met: compare_build-build-diff-gt-prove: unsat (max 9907)
+  proof not met: compare_build-pre-diff-gt-prove: unknownx1/unsatx4 (max 10438)
+  proof not met: compare_build-pre-diff-lt-prove: unsat (max 5284)
+  proof not met: compare_build-sign-prove: unknown (max 10383)
+  open search not met: compare_build-open-search: unknown
+  fault numeric sat on: cmp_id-gt, cmp_id-lt
+  fault prefix sat on: no clause
+  fault skip sat on: no clause
+cvc5: 53/53 proofs unsat under 5000 ms; 5/5 open searches unsat
+  fault numeric sat on: cmp_id-gt, cmp_id-lt
+  fault prefix sat on: cmp_list-long, cmp_list-short
+  fault skip sat on: cmp_list-diff-gt, cmp_list-diff-lt, cmp_list-long, cmp_list-short
+faults sat in both solvers on a clause: {'numeric': True, 'prefix': False, 'skip': False}
+faults sat in some solver: {'numeric': True, 'prefix': True, 'skip': True}
+success rule met: False
+if refutation by one solver's replayed counterexample were allowed, met (replay.py checks the replay): False
+
+=== z3 cases-plain  vs  cvc5 cases
+z3: 41/49 proofs unsat under 5000 ms; 2/5 open searches unsat
+  proof not met: cmp_list-diff-gt-prove: unknown (max 10585)
+  proof not met: cmp_list-diff-lt-prove: unknown (max 10258)
+  proof not met: compare-sign-prove: unsat (max 5075)
+  proof not met: compare_build-build-diff-gt-prove: unknownx1/unsatx4 (max 10866)
+  proof not met: compare_build-build-diff-lt-prove: unknownx1/unsatx4 (max 10251)
+  proof not met: compare_build-pre-diff-gt-prove: unsat (max 9608)
+  proof not met: compare_build-pre-diff-lt-prove: unsat (max 5258)
+  proof not met: compare_build-sign-prove: unknown (max 10203)
+  open search not met: cmp_list-open-search: unknown
+  open search not met: compare-open-search: unknown
+  open search not met: compare_build-open-search: unknown
+  fault numeric sat on: cmp_id-gt, cmp_id-lt
+  fault prefix sat on: no clause
+  fault skip sat on: no clause
+cvc5: 49/49 proofs unsat under 5000 ms; 2/5 open searches unsat
+  open search not met: cmp_list-open-search: unknown
+  open search not met: compare-open-search: unknown
+  open search not met: compare_build-open-search: unknown
+  fault numeric sat on: cmp_id-gt, cmp_id-lt
+  fault prefix sat on: cmp_list-long, cmp_list-short
+  fault skip sat on: cmp_list-diff-gt, cmp_list-diff-lt, cmp_list-long, cmp_list-short
+faults sat in both solvers on a clause: {'numeric': True, 'prefix': False, 'skip': False}
+faults sat in some solver: {'numeric': True, 'prefix': True, 'skip': True}
+success rule met: False
+if refutation by one solver's replayed counterexample were allowed, met (replay.py checks the replay): False
+
+=== z3 e-a2  vs  cvc5 e
+z3: 26/31 proofs unsat under 5000 ms; 5/5 open searches unsat
+  proof not met: cmp_list-gt-e-prove: unknown (max 10348)
+  proof not met: cmp_list-lt-e-prove: unknown (max 10348)
+  proof not met: compare-eq-prove: unknown (max 10203)
+  proof not met: compare_build-eq-prove: unknown (max 10156)
+  proof not met: compare_build-gt-e-prove: unsat (max 6415)
+  fault numeric sat on: cmp_id-gt, cmp_id-lt
+  fault prefix sat on: no clause
+  fault skip sat on: no clause
+cvc5: 31/31 proofs unsat under 5000 ms; 5/5 open searches unsat
+  fault numeric sat on: cmp_id-gt, cmp_id-lt
+  fault prefix sat on: cmp_list-gt-e, cmp_list-lt-e
+  fault skip sat on: no clause
+faults sat in both solvers on a clause: {'numeric': True, 'prefix': False, 'skip': False}
+faults sat in some solver: {'numeric': True, 'prefix': True, 'skip': False}
+success rule met: False
+if refutation by one solver's replayed counterexample were allowed, met (replay.py checks the replay): False
+
+=== z3 e-plain  vs  cvc5 e
+z3: 28/31 proofs unsat under 5000 ms; 5/5 open searches unsat
+  proof not met: compare-eq-prove: unknown (max 10180)
+  proof not met: compare_build-eq-prove: unknown (max 10168)
+  proof not met: compare_build-gt-e-prove: unknown (max 10393)
+  open search unsat but slow: compare_build-open-search: max 8090 ms
+  fault numeric sat on: cmp_id-gt, cmp_id-lt
+  fault prefix sat on: no clause
+  fault skip sat on: no clause
+cvc5: 31/31 proofs unsat under 5000 ms; 5/5 open searches unsat
+  fault numeric sat on: cmp_id-gt, cmp_id-lt
+  fault prefix sat on: cmp_list-gt-e, cmp_list-lt-e
+  fault skip sat on: no clause
+faults sat in both solvers on a clause: {'numeric': True, 'prefix': False, 'skip': False}
+faults sat in some solver: {'numeric': True, 'prefix': True, 'skip': False}
+success rule met: False
+if refutation by one solver's replayed counterexample were allowed, met (replay.py checks the replay): False
+
+=== z3 e-prefix-versions-plain  vs  cvc5 e-prefix-versions
+z3: 30/33 proofs unsat under 5000 ms; 5/5 open searches unsat
+  proof not met: cmp_list-gt-e-prove: unknown (max 10419)
+  proof not met: cmp_list-lt-e-prove: unknown (max 10587)
+  proof not met: compare-gt-e-prove: unknown (max 10206)
+  fault numeric sat on: cmp_id-gt, cmp_id-lt
+  fault prefix sat on: no clause
+  fault skip sat on: no clause
+cvc5: 33/33 proofs unsat under 5000 ms; 5/5 open searches unsat
+  fault numeric sat on: cmp_id-gt, cmp_id-lt
+  fault prefix sat on: cmp_list-gt-e, cmp_list-long, cmp_list-lt-e, cmp_list-short
+  fault skip sat on: cmp_list-long, cmp_list-short
+faults sat in both solvers on a clause: {'numeric': True, 'prefix': False, 'skip': False}
+faults sat in some solver: {'numeric': True, 'prefix': True, 'skip': True}
+success rule met: False
+if refutation by one solver's replayed counterexample were allowed, met (replay.py checks the replay): False
+
+=== z3 e-prefix-versions-rel1  vs  cvc5 e-prefix-versions
+z3: 31/33 proofs unsat under 5000 ms; 5/5 open searches unsat
+  proof not met: cmp_list-gt-e-prove: unknown (max 10427)
+  proof not met: cmp_list-lt-e-prove: unknown (max 10807)
+  fault numeric sat on: cmp_id-gt, cmp_id-lt
+  fault prefix sat on: no clause
+  fault skip sat on: no clause
+cvc5: 33/33 proofs unsat under 5000 ms; 5/5 open searches unsat
+  fault numeric sat on: cmp_id-gt, cmp_id-lt
+  fault prefix sat on: cmp_list-gt-e, cmp_list-long, cmp_list-lt-e, cmp_list-short
+  fault skip sat on: cmp_list-long, cmp_list-short
+faults sat in both solvers on a clause: {'numeric': True, 'prefix': False, 'skip': False}
+faults sat in some solver: {'numeric': True, 'prefix': True, 'skip': True}
+success rule met: False
+if refutation by one solver's replayed counterexample were allowed, met (replay.py checks the replay): False
+
+=== z3 e-rel1  vs  cvc5 e
+z3: 28/31 proofs unsat under 5000 ms; 5/5 open searches unsat
+  proof not met: compare-eq-prove: unknown (max 10191)
+  proof not met: compare_build-eq-prove: unknown (max 10240)
+  proof not met: compare_build-gt-e-prove: unknown (max 10437)
+  fault numeric sat on: cmp_id-gt, cmp_id-lt
+  fault prefix sat on: no clause
+  fault skip sat on: no clause
+cvc5: 31/31 proofs unsat under 5000 ms; 5/5 open searches unsat
+  fault numeric sat on: cmp_id-gt, cmp_id-lt
+  fault prefix sat on: cmp_list-gt-e, cmp_list-lt-e
+  fault skip sat on: no clause
+faults sat in both solvers on a clause: {'numeric': True, 'prefix': False, 'skip': False}
+faults sat in some solver: {'numeric': True, 'prefix': True, 'skip': False}
+success rule met: False
+if refutation by one solver's replayed counterexample were allowed, met (replay.py checks the replay): False
+
+=== z3 e-versions-a2-rel1-eager  vs  cvc5 e-versions
+z3: 30/31 proofs unsat under 5000 ms; 5/5 open searches unsat
+  proof not met: cmp_list-lt-e-prove: unsat (max 6247)
+  fault numeric sat on: cmp_id-gt, cmp_id-lt
+  fault prefix sat on: no clause
+  fault skip sat on: no clause
+cvc5: 31/31 proofs unsat under 5000 ms; 5/5 open searches unsat
+  fault numeric sat on: cmp_id-gt, cmp_id-lt
+  fault prefix sat on: cmp_list-gt-e, cmp_list-lt-e
+  fault skip sat on: no clause
+faults sat in both solvers on a clause: {'numeric': True, 'prefix': False, 'skip': False}
+faults sat in some solver: {'numeric': True, 'prefix': True, 'skip': False}
+success rule met: False
+if refutation by one solver's replayed counterexample were allowed, met (replay.py checks the replay): False
+
+=== z3 e-versions-a2  vs  cvc5 e-versions
+z3: 27/31 proofs unsat under 5000 ms; 5/5 open searches unsat
+  proof not met: cmp_list-gt-e-prove: unknown (max 10314)
+  proof not met: cmp_list-lt-e-prove: unknown (max 10339)
+  proof not met: compare_build-gt-e-prove: unsat (max 7210)
+  proof not met: compare_build-lt-e-prove: unsat (max 5817)
+  fault numeric sat on: cmp_id-gt, cmp_id-lt
+  fault prefix sat on: no clause
+  fault skip sat on: no clause
+cvc5: 31/31 proofs unsat under 5000 ms; 5/5 open searches unsat
+  fault numeric sat on: cmp_id-gt, cmp_id-lt
+  fault prefix sat on: cmp_list-gt-e, cmp_list-lt-e
+  fault skip sat on: no clause
+faults sat in both solvers on a clause: {'numeric': True, 'prefix': False, 'skip': False}
+faults sat in some solver: {'numeric': True, 'prefix': True, 'skip': False}
+success rule met: False
+if refutation by one solver's replayed counterexample were allowed, met (replay.py checks the replay): False
+
+=== z3 e-versions-plain  vs  cvc5 e-versions
+z3: 29/31 proofs unsat under 5000 ms; 5/5 open searches unsat
+  proof not met: compare_build-gt-e-prove: unknown (max 10278)
+  proof not met: compare_build-lt-e-prove: unsat (max 7426)
+  fault numeric sat on: cmp_id-gt, cmp_id-lt
+  fault prefix sat on: no clause
+  fault skip sat on: no clause
+cvc5: 31/31 proofs unsat under 5000 ms; 5/5 open searches unsat
+  fault numeric sat on: cmp_id-gt, cmp_id-lt
+  fault prefix sat on: cmp_list-gt-e, cmp_list-lt-e
+  fault skip sat on: no clause
+faults sat in both solvers on a clause: {'numeric': True, 'prefix': False, 'skip': False}
+faults sat in some solver: {'numeric': True, 'prefix': True, 'skip': False}
+success rule met: False
+if refutation by one solver's replayed counterexample were allowed, met (replay.py checks the replay): False
+
+=== z3 e-versions-rel1-alone  vs  cvc5 e-versions
+z3: 31/31 proofs unsat under 5000 ms; 5/5 open searches unsat
+  fault numeric sat on: cmp_id-gt, cmp_id-lt
+  fault prefix sat on: no clause
+  fault skip sat on: no clause
+cvc5: 31/31 proofs unsat under 5000 ms; 5/5 open searches unsat
+  fault numeric sat on: cmp_id-gt, cmp_id-lt
+  fault prefix sat on: cmp_list-gt-e, cmp_list-lt-e
+  fault skip sat on: no clause
+faults sat in both solvers on a clause: {'numeric': True, 'prefix': False, 'skip': False}
+faults sat in some solver: {'numeric': True, 'prefix': True, 'skip': False}
+success rule met: False
+if refutation by one solver's replayed counterexample were allowed, met (replay.py checks the replay): False
+
+=== z3 e-versions-rel1  vs  cvc5 e-versions
+z3: 31/31 proofs unsat under 5000 ms; 5/5 open searches unsat
+  fault numeric sat on: cmp_id-gt, cmp_id-lt
+  fault prefix sat on: no clause
+  fault skip sat on: no clause
+cvc5: 31/31 proofs unsat under 5000 ms; 5/5 open searches unsat
+  fault numeric sat on: cmp_id-gt, cmp_id-lt
+  fault prefix sat on: cmp_list-gt-e, cmp_list-lt-e
+  fault skip sat on: no clause
+faults sat in both solvers on a clause: {'numeric': True, 'prefix': False, 'skip': False}
+faults sat in some solver: {'numeric': True, 'prefix': True, 'skip': False}
+success rule met: False
+if refutation by one solver's replayed counterexample were allowed, met (replay.py checks the replay): False
+
+=== z3 pin-a2  vs  cvc5 pin
+z3: 31/35 proofs unsat under 5000 ms; 4/5 open searches unsat
+  proof not met: cmp_list-gt-u-prove: unknown (max 10384)
+  proof not met: cmp_list-lt-u-prove: unknown (max 10365)
+  proof not met: compare-eq-prove: unknown (max 10211)
+  proof not met: compare_build-eq-prove: unknown (max 10181)
+  open search not met: compare_build-open-search: unknown
+  open search unsat but slow: compare-open-search: max 7080 ms
+  fault numeric sat on: cmp_id-gt, cmp_id-lt
+  fault prefix sat on: no clause
+  fault skip sat on: no clause
+cvc5: 35/35 proofs unsat under 5000 ms; 5/5 open searches unsat
+  fault numeric sat on: cmp_id-gt, cmp_id-lt
+  fault prefix sat on: cmp_list-gt-u, cmp_list-lt-u
+  fault skip sat on: no clause
+faults sat in both solvers on a clause: {'numeric': True, 'prefix': False, 'skip': False}
+faults sat in some solver: {'numeric': True, 'prefix': True, 'skip': False}
+success rule met: False
+if refutation by one solver's replayed counterexample were allowed, met (replay.py checks the replay): False
+
+=== z3 pin-plain  vs  cvc5 pin
+z3: 32/35 proofs unsat under 5000 ms; 3/5 open searches unsat
+  proof not met: cmp_list-lt-u-prove: unknown (max 10467)
+  proof not met: compare-eq-prove: unknown (max 10209)
+  proof not met: compare_build-eq-prove: unknown (max 10182)
+  open search not met: compare-open-search: unknown
+  open search not met: compare_build-open-search: unknown
+  fault numeric sat on: cmp_id-gt, cmp_id-lt
+  fault prefix sat on: no clause
+  fault skip sat on: no clause
+cvc5: 35/35 proofs unsat under 5000 ms; 5/5 open searches unsat
+  fault numeric sat on: cmp_id-gt, cmp_id-lt
+  fault prefix sat on: cmp_list-gt-u, cmp_list-lt-u
+  fault skip sat on: no clause
+faults sat in both solvers on a clause: {'numeric': True, 'prefix': False, 'skip': False}
+faults sat in some solver: {'numeric': True, 'prefix': True, 'skip': False}
+success rule met: False
+if refutation by one solver's replayed counterexample were allowed, met (replay.py checks the replay): False
+
+=== z3 versions-a2-rel1  vs  cvc5 versions
+z3: 34/37 proofs unsat under 5000 ms; 4/5 open searches unsat
+  proof not met: cmp_list-gt-e-prove: unknown (max 11319)
+  proof not met: cmp_list-lt-e-prove: unknown (max 13255)
+  proof not met: compare_build-lt-e-prove: unknown (max 10251)
+  open search not met: compare_build-open-search: unknown
+  fault numeric sat on: cmp_id-gt, cmp_id-lt
+  fault prefix sat on: no clause
+  fault skip sat on: no clause
+cvc5: 37/37 proofs unsat under 5000 ms; 5/5 open searches unsat
+  fault numeric sat on: cmp_id-gt, cmp_id-lt
+  fault prefix sat on: cmp_list-gt-e, cmp_list-gt-u, cmp_list-lt-e, cmp_list-lt-u
+  fault skip sat on: no clause
+faults sat in both solvers on a clause: {'numeric': True, 'prefix': False, 'skip': False}
+faults sat in some solver: {'numeric': True, 'prefix': True, 'skip': False}
+success rule met: False
+if refutation by one solver's replayed counterexample were allowed, met (replay.py checks the replay): False
+
+=== z3 versions-a2  vs  cvc5 versions
+z3: 34/37 proofs unsat under 5000 ms; 4/5 open searches unsat
+  proof not met: cmp_list-gt-e-prove: unknown (max 11197)
+  proof not met: cmp_list-lt-e-prove: unknown (max 13152)
+  proof not met: compare_build-gt-e-prove: unknown (max 10202)
+  open search not met: compare_build-open-search: unknown
+  fault numeric sat on: cmp_id-gt, cmp_id-lt
+  fault prefix sat on: no clause
+  fault skip sat on: no clause
+cvc5: 37/37 proofs unsat under 5000 ms; 5/5 open searches unsat
+  fault numeric sat on: cmp_id-gt, cmp_id-lt
+  fault prefix sat on: cmp_list-gt-e, cmp_list-gt-u, cmp_list-lt-e, cmp_list-lt-u
+  fault skip sat on: no clause
+faults sat in both solvers on a clause: {'numeric': True, 'prefix': False, 'skip': False}
+faults sat in some solver: {'numeric': True, 'prefix': True, 'skip': False}
+success rule met: False
+if refutation by one solver's replayed counterexample were allowed, met (replay.py checks the replay): False
+
+=== z3 versions-plain  vs  cvc5 versions
+z3: 34/37 proofs unsat under 5000 ms; 5/5 open searches unsat
+  proof not met: cmp_list-gt-e-prove: unknown (max 11747)
+  proof not met: cmp_list-gt-u-prove: unknown (max 10316)
+  proof not met: cmp_list-lt-e-prove: unknown (max 13227)
+  fault numeric sat on: cmp_id-gt, cmp_id-lt
+  fault prefix sat on: no clause
+  fault skip sat on: no clause
+cvc5: 37/37 proofs unsat under 5000 ms; 5/5 open searches unsat
+  fault numeric sat on: cmp_id-gt, cmp_id-lt
+  fault prefix sat on: cmp_list-gt-e, cmp_list-gt-u, cmp_list-lt-e, cmp_list-lt-u
+  fault skip sat on: no clause
+faults sat in both solvers on a clause: {'numeric': True, 'prefix': False, 'skip': False}
+faults sat in some solver: {'numeric': True, 'prefix': True, 'skip': False}
+success rule met: False
+if refutation by one solver's replayed counterexample were allowed, met (replay.py checks the replay): False
+
+=== z3 versions-rel1  vs  cvc5 versions
+z3: 31/37 proofs unsat under 5000 ms; 5/5 open searches unsat
+  proof not met: cmp_list-gt-e-prove: unknown (max 12137)
+  proof not met: cmp_list-lt-e-prove: unknown (max 13132)
+  proof not met: cmp_list-lt-u-prove: unknownx3/unsatx2 (max 10339)
+  proof not met: compare_build-gt-e-prove: unsat (max 9037)
+  proof not met: compare_build-lt-e-prove: unknown (max 10490)
+  proof not met: compare_build-lt-u-prove: unsat (max 5363)
+  open search unsat but slow: compare_build-open-search: max 5716 ms
+  fault numeric sat on: cmp_id-gt, cmp_id-lt
+  fault prefix sat on: no clause
+  fault skip sat on: no clause
+cvc5: 37/37 proofs unsat under 5000 ms; 5/5 open searches unsat
+  fault numeric sat on: cmp_id-gt, cmp_id-lt
+  fault prefix sat on: cmp_list-gt-e, cmp_list-gt-u, cmp_list-lt-e, cmp_list-lt-u
+  fault skip sat on: no clause
+faults sat in both solvers on a clause: {'numeric': True, 'prefix': False, 'skip': False}
+faults sat in some solver: {'numeric': True, 'prefix': True, 'skip': False}
+success rule met: False
+if refutation by one solver's replayed counterexample were allowed, met (replay.py checks the replay): False
+

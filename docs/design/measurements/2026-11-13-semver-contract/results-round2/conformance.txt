@@ -1,0 +1,8 @@
+cargo test --workspace --locked, Z3 through a .cmd wrapper that appends the options, cvc5 as it is
+wrapper  options                          seconds  tests ok  ignored  failed  per-test outcomes vs plain
+plain    (none)                               229        97        1       0  identical
+a2       smt.arith.solver=2                   226        97        1       0  identical
+rel1     smt.relevancy=1                      226        97        1       0  identical
+a2rel1   smt.arith.solver=2 smt.relevancy=1     224        97        1       0  identical
+
+The wrapper answers --version with its own line, so one run's evidence-ledger entries, keyed by the tools' versions, aren't reused by another.
