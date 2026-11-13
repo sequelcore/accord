@@ -176,6 +176,88 @@ leaves its callers' proofs current; changing its contract doesn't.
 Blocks are expressions: the last expression is the block's value. There is no
 `return`: an early exit is a decision table.
 
+## Machines
+
+Accepted for stage 10 ([#82](https://github.com/sequelcore/accord/issues/82))
+and not compiled yet. A machine is a state, the ways it starts, the events
+that move it, and what must hold in every state it reaches:
+
+```accord
+/// A failed model call, retried within a budget and a time window.
+pub machine ProviderRetry {
+    intent "Retry a failed model call at most three times within its window, and never call again after cancellation."
+
+    state {
+        phase: RetryPhase,
+        retries: i32,
+        calls: i32,
+        stopped: Bool,
+        calls_at_stop: i32,
+    }
+
+    init start() {
+        next {
+            phase: Failed,
+            retries: 0,
+            calls: 1,
+            stopped: false,
+            calls_at_stop: 0,
+        }
+    }
+
+    event schedule()
+        requires phase == Failed
+    decide {
+        | not stopped and retries < 3 => next { phase: Waiting, retries: retries + 1 }
+        | otherwise                   => next { phase: Ended }
+    }
+
+    event start_call()
+        requires phase == Waiting and not stopped
+    {
+        next { phase: Calling, calls: calls + 1 }
+    }
+
+    event cancel()
+        requires not stopped
+    {
+        next { stopped: true, calls_at_stop: calls }
+    }
+
+    invariant cancel_stops_calls: stopped implies calls == calls_at_stop
+
+    helper invariant calls_follow_retries: calls <= retries + 1
+}
+```
+
+| Form | Meaning |
+| --- | --- |
+| `machine Name { … }` | A `state`, at least one `init`, its events, observers, invariants and helper invariants. `pub` exports it to TypeScript. Its `intent` is about the machine |
+| `state { field: Type, … }` | The fields: fixed-width integers, enums and `Bool`s |
+| `init name(params) clauses body` | A way to start. Its `next { … }` lists every field |
+| `event name(params) clauses body` | A transition. Its `requires` say when it is allowed and which parameters it takes |
+| `next { field: value, … }` | The state after the event. A field it doesn't list keeps its value, and every expression in an `init` or event, conditions and observer calls included, reads the state before it. `next { }` changes nothing |
+| `fn name(params) -> Type` inside a machine | An observer: a pure function of the state, with the usual clauses. Events and observers can call it; an invariant can't, as no specification can call a function |
+| `invariant name: condition` | A claim about every reachable state: proved inductive with the helper invariants, or refuted by a trace from an `init` |
+| `helper invariant name: condition` | A condition proved with the invariants so they can be proved inductive. The receipt reports it as support, not as a claim, and the boundary checks it like an invariant |
+
+- An `init` or event takes `intent` and `requires` only; it has no `result`.
+  Its body is a block that ends in `next { … }`, through `if`, which always
+  has an `else`, or a decision table whose rows give `next { … }`.
+- A parameter can't share a field's name, and `next` is reserved, so no
+  field or parameter can use it.
+- Each event is proved to be allowed in some reachable state, as each row of a
+  decision table is proved reachable.
+- A machine's example names it, its events one per line, and what holds after:
+
+  ```accord
+  example ProviderRetry
+      start()
+      schedule()
+      start_call()
+      gives phase == Calling and calls == 2
+  ```
+
 ## Files and folders
 
 A file is a program on its own. A folder is one program too: every `.accord`
@@ -221,3 +303,14 @@ Accepted on 2026-11-08 ([#27](https://github.com/sequelcore/accord/issues/27)):
    it, for the same reason `intent` is a clause. An open case it doesn't cover makes the function
    incomplete, not failed: whether a freedom is intended is a person's
    decision.
+
+Accepted on 2026-11-12 ([#82](https://github.com/sequelcore/accord/issues/82)):
+
+7. **An event states its next state as `next { field: value }`**, and every
+   expression in it reads the state before the event. In a
+   [probe](probes/2026-11-12-machine-updates/README.md), every reader read
+   that form so, while seven readers of eight read `field = value`, one
+   update per line, as updating in order, and one read `field' = value` so.
+   A program that reads a field after setting it means, in `next { … }`,
+   what its readers expect. `helper invariant` keeps what supports a proof
+   apart from what the machine claims, and every reader told the two apart.

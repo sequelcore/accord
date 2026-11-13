@@ -1,0 +1,20 @@
+Below is code in a programming language you have probably never seen. Don't search the web or look anything up; answer only from reading it.
+
+{code}
+
+The machine compiles to a TypeScript module with one exported function per init and per event: `start(isTerminal)` returns a state, and each event takes a state and the event's parameters, for example `schedule(state, 1)`.
+
+1. Start with start(is_terminal: false), then apply schedule(delay: 1), advance(to: 1) and start_call(), in that order. What are phase, calls, retries, time, last_start and last_due afterwards?
+2. Start with start(is_terminal: false), then apply schedule(delay: 121). What are phase, due and retries afterwards?
+3. A colleague rewrites the body of schedule as:
+
+{rewrite}
+
+   If retries is 2 before this event runs, which phase results?
+4. Which fields does failure(is_terminal: true) change, and which keep their value?
+5. What is the difference between an invariant and a helper invariant?
+6. In TypeScript, after `const after = schedule(state, 1)`, does `state` change?
+7. How confident are you in your answers, from 1 (a guess) to 5 (certain)?
+8. Which part was hardest to read, and why?
+
+Answer each question separately and briefly.
