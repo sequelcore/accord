@@ -15,26 +15,27 @@ export type Switch = {
   readonly presses: number;
 };
 
-function checkSwitch$(where: string, state: Switch): void {
-  if (typeof state !== "object" || state === null) {
-    throw new TypeError(`${where}: state must be a Switch`);
+function checkSwitch$(where$: string, state$: Switch): Switch {
+  if (typeof state$ !== "object" || state$ === null) {
+    throw new TypeError(`${where$}: state must be a Switch`);
   }
-  const { light, presses } = state;
+  const { light, presses } = state$;
   if (!["off", "on"].includes(light)) {
-    throw new TypeError(`${where}: state.light must be a Light`);
+    throw new TypeError(`${where$}: state.light must be a Light`);
   }
   if (typeof presses !== "number") {
-    throw new TypeError(`${where}: state.presses must be an i32`);
+    throw new TypeError(`${where$}: state.presses must be an i32`);
   }
   if (!Number.isInteger(presses) || presses < -2147483648 || presses > 2147483647) {
-    throw new RangeError(`${where}: state.presses must be an i32`);
+    throw new RangeError(`${where$}: state.presses must be an i32`);
   }
   if (!((BigInt(presses) >= 0n) && (BigInt(presses) <= 100n))) {
-    throw new RangeError(`${where}: state breaks invariant pressed: presses >= 0 and presses <= 100`);
+    throw new RangeError(`${where$}: state breaks invariant pressed: presses >= 0 and presses <= 100`);
   }
   if (!(!(light === "on") || (BigInt(presses) > 0n))) {
-    throw new RangeError(`${where}: state breaks helper invariant on_means_pressed: light == On implies presses > 0`);
+    throw new RangeError(`${where$}: state breaks helper invariant on_means_pressed: light == On implies presses > 0`);
   }
+  return { light, presses };
 }
 
 export function start(): Switch {
@@ -65,9 +66,8 @@ function resume$(fromLight: Light, fromPresses: number): Switch {
   return { light: fromLight, presses: fromPresses };
 }
 
-export function press(state: Switch): Switch {
-  checkSwitch$("press", state);
-  const { light, presses } = state;
+export function press(state$: Switch): Switch {
+  const { light, presses } = checkSwitch$("press", state$);
   if (!(BigInt(presses) < 100n)) {
     throw new RangeError("press: requires presses < 100");
   }
@@ -79,9 +79,8 @@ function press$(light: Light, presses: number): Switch {
   return { light: "off", presses: presses + 1 };
 }
 
-export function turnOff(state: Switch): Switch {
-  checkSwitch$("turnOff", state);
-  const { light, presses } = state;
+export function turnOff(state$: Switch): Switch {
+  const { light, presses } = checkSwitch$("turnOff", state$);
   return turnOff$(light, presses);
 }
 
@@ -89,9 +88,8 @@ function turnOff$(light: Light, presses: number): Switch {
   return { light: "off", presses: presses };
 }
 
-export function atLimit(state: Switch): boolean {
-  checkSwitch$("atLimit", state);
-  const { light, presses } = state;
+export function atLimit(state$: Switch): boolean {
+  const { light, presses } = checkSwitch$("atLimit", state$);
   return atLimit$(light, presses);
 }
 
