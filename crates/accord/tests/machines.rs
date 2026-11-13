@@ -127,7 +127,7 @@ fn only_a_proved_pub_machine_is_written_as_typescript() {
     assert!(
         modules[0]
             .source
-            .contains("export function set(state: Dial")
+            .contains("export function set(state$: Dial")
     );
     // A machine without `pub` writes nothing.
     let built = build_of(&proved).expect("the program is accepted");
@@ -148,6 +148,99 @@ pub machine M {
         panic!("colliding names were built");
     };
     assert!(refusal.message.contains("start"), "{}", refusal.message);
+}
+
+#[test]
+fn an_enum_and_a_machine_may_not_share_an_exported_type_name() {
+    let solvers = Solvers::from_env().expect("Z3 and cvc5 are available");
+    let source = "pub enum M { A }
+pub machine M {
+    state { x: i32 }
+    init start() { next { x: 0 } }
+}
+";
+    let Err(refusal) = build(&[("m.accord".to_string(), source.to_string())], &solvers) else {
+        panic!("colliding type names were built");
+    };
+    assert!(refusal.message.contains("type M"), "{}", refusal.message);
+}
+
+/// Writes the modules `source` builds to a folder of its own and runs
+/// `script`, a module that imports `./m.ts`, in Node; returns its output.
+fn node(source: &str, script: &str) -> String {
+    let solvers = Solvers::from_env().expect("Z3 and cvc5 are available");
+    let built = build(&[("m.accord".to_string(), source.to_string())], &solvers)
+        .expect("the program is accepted");
+    let modules = built.modules.expect("every obligation is proved");
+    let dir = std::env::temp_dir().join(format!(
+        "accord-machines-{}-{}",
+        std::process::id(),
+        script.len()
+    ));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).expect("a folder");
+    std::fs::write(dir.join("package.json"), "{\"type\":\"module\"}\n").expect("written");
+    for module in &modules {
+        std::fs::write(dir.join(&module.name), &module.source).expect("written");
+    }
+    std::fs::write(dir.join("run.mjs"), script).expect("written");
+    let node = std::env::var("ACCORD_NODE").unwrap_or_else(|_| "node".to_string());
+    let output = std::process::Command::new(node)
+        .arg("--experimental-strip-types")
+        .arg(dir.join("run.mjs"))
+        .output()
+        .expect("Node runs");
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+    String::from_utf8(output.stdout).expect("text")
+}
+
+#[test]
+fn a_state_is_read_once_and_the_event_runs_on_what_was_checked() {
+    let source = "pub machine Counter {
+    state { presses: i32 }
+    init start() { next { presses: 0 } }
+    event press() requires presses < 100 { next { presses: presses + 1 } }
+    event keep() { next { } }
+    fn doubled() -> i32 { presses }
+    invariant pressed: presses >= 0 and presses <= 100
+}
+";
+    let out = node(
+        source,
+        "import * as m from './m.ts';
+const attack = () => { let reads = 0; return { get presses() { return reads++ === 0 ? 5 : -5; } }; };
+console.log(JSON.stringify([
+  m.press(attack()).presses,
+  m.keep(attack()).presses,
+  m.doubled(attack()),
+]));
+",
+    );
+    assert_eq!(out.trim(), "[6,5,5]");
+}
+
+#[test]
+fn fields_named_state_and_where_build_and_import() {
+    let source = "pub machine Odd {
+    state { state: i32, where: i32 }
+    init start() { next { state: 0, where: 1 } }
+    event swap() { next { state: where, where: state } }
+    invariant small: state >= 0 and state <= 1 and where >= 0 and where <= 1
+}
+";
+    let out = node(
+        source,
+        "import * as m from './m.ts';
+const s = m.swap(m.start());
+console.log(JSON.stringify(s));
+",
+    );
+    assert_eq!(out.trim(), "{\"state\":1,\"where\":0}");
 }
 
 const STEPPED: &str = "machine Pair {

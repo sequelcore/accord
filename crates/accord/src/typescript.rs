@@ -102,7 +102,11 @@ fn check_exports(program: &Program, names: &[String]) -> Result<(), Diagnostic> 
             declared.push((format!("{exported}$"), function.line));
             declared.push((exported, function.line));
         }
+        for e in program.enums.iter().filter(|e| e.file == file) {
+            declared.push((format!("type {}", e.name), e.line));
+        }
         for machine in machines(program, file) {
+            declared.push((format!("type {}", machine.name), machine.line));
             declared.push((format!("check{}$", machine.name), machine.line));
             for member in machine.members() {
                 let exported = camel(&member.name);

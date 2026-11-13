@@ -26,7 +26,7 @@ const TEXT_RANGE: &str = "must hold only characters up to U+2FFFF, with no lone 
 /// A template literal that starts with `${where}: `, so a check of a state
 /// says which exported function it runs for. The message is escaped.
 fn template(message: &str) -> String {
-    let mut out = String::from("`${where}: ");
+    let mut out = String::from("`${where$}: ");
     for c in message.chars() {
         if matches!(c, '\\' | '`' | '$') {
             out.push('\\');
@@ -139,13 +139,10 @@ fn param_checks(program: &Program, params: &[(String, Type)], words: &Words) -> 
     (out, text)
 }
 
-/// `const { a, b } = state;`, naming every field.
-fn destructure(machine: &Machine) -> String {
-    if machine.state.is_empty() {
-        return String::new();
-    }
+/// The fields as a comma-separated list of camel-case names.
+fn field_names(machine: &Machine) -> String {
     let names: Vec<String> = machine.state.iter().map(|(n, _)| camel(n)).collect();
-    format!("  const {{ {} }} = state;\n", names.join(", "))
+    names.join(", ")
 }
 
 /// The machine's state as a type: its fields, in order.
@@ -162,13 +159,13 @@ pub(super) fn state_type(machine: &Machine) -> String {
 /// invariant. Also whether it checks a text.
 pub(super) fn state_check(program: &Program, machine: &Machine) -> (String, bool) {
     let name = &machine.name;
-    let mut out = format!("function check{name}$(where: string, state: {name}): void {{\n");
+    let mut out = format!("function check{name}$(where$: string, state$: {name}): {name} {{\n");
     out += &throw(
-        "typeof state !== \"object\" || state === null",
+        "typeof state$ !== \"object\" || state$ === null",
         "TypeError",
         &template(&format!("state must be a {name}")),
     );
-    out += &destructure(machine);
+    out += &format!("  const {{ {} }} = state$;\n", field_names(machine));
     let (checks, text) = param_checks(
         program,
         &machine.state,
@@ -195,6 +192,7 @@ pub(super) fn state_check(program: &Program, machine: &Machine) -> (String, bool
             );
         }
     }
+    out += &format!("  return {{ {} }};\n", field_names(machine));
     (out + "}\n", text)
 }
 
@@ -217,7 +215,7 @@ pub(super) fn wrapper(
     };
     let mut params: Vec<String> = Vec::new();
     if let (true, Some(machine)) = (reads_state, machine) {
-        params.push(format!("state: {}", machine.name));
+        params.push(format!("state$: {}", machine.name));
     }
     params.extend(
         own.iter()
@@ -225,8 +223,12 @@ pub(super) fn wrapper(
     );
     let mut out = format!("export function {name}({}): {ret} {{\n", params.join(", "));
     if let (true, Some(machine)) = (reads_state, machine) {
-        out += &format!("  check{}$({}, state);\n", machine.name, string(&name));
-        out += &destructure(machine);
+        out += &format!(
+            "  const {{ {} }} = check{}$({}, state$);\n",
+            field_names(machine),
+            machine.name,
+            string(&name)
+        );
     }
     let (checks, text) = param_checks(
         program,
