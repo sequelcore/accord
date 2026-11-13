@@ -84,6 +84,32 @@ Node 20, so CI doesn't run it. The port is licensed under Apache-2.0;
 attribution is in [`programs/axios-retry/NOTICE`](programs/axios-retry/NOTICE)
 and the source header.
 
+## opossum circuit breaker
+
+[`programs/opossum/`](programs/opossum) ports the state and decisions of
+opossum's `CircuitBreaker` from opossum 10.0.0 at commit
+`decbedf63d7815049233e544dcb351590ff0c84e` as a machine, with two faults,
+`opossum-admits-call-fault` and `opossum-trip-fault`, in [`cases/`](cases). Emitted events, timers, the cache,
+the semaphore, the rolling statistics and fallbacks stay in opossum. Where
+opossum's behaviour isn't what its states suggest, the port keeps it and
+claims no more: any success while half-open closes the breaker, a late one
+included. Two divergences are deliberate: the error rate is compared exactly,
+so `errorThresholdPercentage` must be a whole number, and a restored state
+that says it is both closed and half-open is rejected.
+
+[`adapter.patch`](programs/opossum/adapter.patch) is written by hand: it makes
+opossum's own `lib/circuit.js` keep its state in the generated `breaker.ts`,
+copied into opossum as `lib/breaker.mts` (in a `"type": "commonjs"` package,
+Node loads it only under that extension), and ask it for each decision. It
+throws a `TypeError` at construction for a fractional threshold.
+`scripts/check-opossum.sh <empty folder>` runs opossum's lint and tests as
+released and with the generated module in place. It needs git, Node 22 or
+later and network access, so CI doesn't run it. On the machine it was written
+on, test 331, a rolling window of 10 ms, and tests 547 to 549, health-check
+timers that fire after their test ended, fail in both runs; the check accepts
+those only. The port is licensed under Apache-2.0; attribution is in
+[`programs/opossum/NOTICE`](programs/opossum/NOTICE).
+
 ## Cedar partial authorization
 
 [`programs/cedar/`](programs/cedar) ports the Boolean decision in Cedar's

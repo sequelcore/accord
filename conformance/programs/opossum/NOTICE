@@ -1,0 +1,10 @@
+opossum circuit breaker state
+Author: Red Hat, Inc. (opossum's package.json)
+
+The port in breaker.accord is derived from opossum,
+https://github.com/nodeshift/opossum, release 10.0.0 at commit
+decbedf63d7815049233e544dcb351590ff0c84e (lib/circuit.js).
+It is licensed under Apache-2.0 (see LICENSE-APACHE at the repository root).
+The port states the breaker's state and its decisions as a machine;
+adapter.patch changes opossum's own lib/circuit.js to keep its state in the
+generated module and to ask it for each decision.

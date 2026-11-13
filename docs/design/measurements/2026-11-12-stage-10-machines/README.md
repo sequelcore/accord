@@ -147,3 +147,28 @@ violation in the correct model.
 - Solver times: each file ran once with a 10-second limit, and none timed
   out.
 - That the stand-in matches opossum on paths its tests don't reach.
+
+## The port against tla-ts, 2026-11-12
+
+Once machines were checked, the ProviderRetry port
+(`conformance/cases/provider-retry.accord`) was compared with Tesota's TLA+
+model run by [tla-ts](https://github.com/aidenybai/tla-ts), a TLC
+replacement in TypeScript, at `8067c48`:
+
+```
+node <tla-ts>/packages/tla-ts/dist/cli.js ProviderRetry.tla -config <cfg>
+```
+
+with the model and its three configurations from Tesota at `4ef9b191`.
+
+| Configuration | tla-ts | Accord's explorer |
+| --- | --- | --- |
+| `ProviderRetry.cfg` | 148 distinct states, no violation | 148 states, all of them; every obligation proved |
+| `ProviderRetry-no-cancel.cfg` | `CancelStopsCalls` violated after Schedule, Advance, Cancel, StartCall | `start_call` refuted after `schedule(1)`, `advance_to_due()`, `cancel()`, `start_call()` |
+| `ProviderRetry-replay-tool.cfg` | `ToolsAndRouteStay` violated after Schedule, Advance, StartCall | `start_call` refuted after `schedule(1)`, `advance_to_due()`, `start_call()` |
+
+The state counts agree, and so do the shortest traces, step for step. The
+port writes `Advance`'s choice of the next time as two events, since the
+choice depends on the state; the states it reaches are the model's. This is
+agreement with a second checker on one model, not a proof that the explorer
+is complete.
