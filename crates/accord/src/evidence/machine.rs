@@ -11,7 +11,7 @@ use crate::obligation::{self, Claim, Obligation};
 use crate::syntax::{Machine, Program, Role};
 use crate::{
     Definition, DefinitionKind, ExampleRun, Exploration, Inputs, ObligationKind, Outcome,
-    Refutation, Run, Solvers, Standing, TraceStep, Verdict, identity, syntax,
+    Refutation, Run, Solvers, Standing, TraceStep, Verdict, identity,
 };
 
 /// What checking a machine established, short of its standing.
@@ -27,17 +27,9 @@ pub(super) struct Checked {
 /// machine's observers as functions known by their contracts, without the
 /// invariants they assume.
 fn callee_view(program: &Program, machine: &Machine) -> Program {
-    let mut functions = program.functions.clone();
-    for observer in &machine.observers {
-        let mut callee = observer.clone();
-        callee
-            .clauses
-            .retain(|c| c.kind != syntax::ClauseKind::Invariant);
-        functions.push(callee);
-    }
     Program {
         enums: program.enums.clone(),
-        functions,
+        functions: machine.functions(&program.functions),
         machines: Vec::new(),
         examples: Vec::new(),
         machine_examples: Vec::new(),

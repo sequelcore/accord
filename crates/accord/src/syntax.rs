@@ -301,6 +301,19 @@ pub(crate) struct Machine {
 }
 
 impl Machine {
+    /// The functions a member of this machine may call: `globals`, and the
+    /// machine's observers as callees know them, without the invariants they
+    /// assume of the state they read.
+    pub fn functions(&self, globals: &[Function]) -> Vec<Function> {
+        let mut functions = globals.to_vec();
+        for observer in &self.observers {
+            let mut callee = observer.clone();
+            callee.clauses.retain(|c| c.kind != ClauseKind::Invariant);
+            functions.push(callee);
+        }
+        functions
+    }
+
     /// Inits, then events, then observers: the order of the machine's
     /// obligations.
     pub fn members(&self) -> impl Iterator<Item = &Function> {

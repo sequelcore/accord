@@ -113,13 +113,41 @@ fn the_receipt_names_the_outcome_and_the_exploration() {
 }
 
 #[test]
-fn a_machine_is_not_written_as_typescript() {
+fn only_a_proved_pub_machine_is_written_as_typescript() {
     let solvers = Solvers::from_env().expect("Z3 and cvc5 are available");
-    let files = [("dial.accord".to_string(), DIAL.to_string())];
-    let Err(refusal) = build(&files, &solvers) else {
-        panic!("a machine was built");
+    let build_of =
+        |source: &str| build(&[("dial.accord".to_string(), source.to_string())], &solvers);
+    // `bounded` is refuted, so nothing is written.
+    let built = build_of(DIAL).expect("the program is accepted");
+    assert!(built.modules.is_none());
+    let proved = DIAL.replace("level <= 10", "level <= 12");
+    let built = build_of(&proved.replace("machine Dial", "pub machine Dial"))
+        .expect("the program is accepted");
+    let modules = built.modules.expect("every obligation is proved");
+    assert!(
+        modules[0]
+            .source
+            .contains("export function set(state: Dial")
+    );
+    // A machine without `pub` writes nothing.
+    let built = build_of(&proved).expect("the program is accepted");
+    let modules = built.modules.expect("every obligation is proved");
+    assert!(!modules[0].source.contains("Dial"));
+}
+
+#[test]
+fn names_that_would_collide_in_a_module_are_refused() {
+    let solvers = Solvers::from_env().expect("Z3 and cvc5 are available");
+    let source = "pub fn start() -> i32 { 1 }
+pub machine M {
+    state { x: i32 }
+    init start() { next { x: 0 } }
+}
+";
+    let Err(refusal) = build(&[("m.accord".to_string(), source.to_string())], &solvers) else {
+        panic!("colliding names were built");
     };
-    assert!(refusal.message.contains("machine"), "{}", refusal.message);
+    assert!(refusal.message.contains("start"), "{}", refusal.message);
 }
 
 const STEPPED: &str = "machine Pair {
