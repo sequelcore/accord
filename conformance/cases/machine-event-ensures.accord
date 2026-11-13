@@ -1,0 +1,17 @@
+// expect: error
+// An event takes `intent` and `requires` only: it has no result to ensure.
+machine Switch {
+    state {
+        presses: i32,
+    }
+
+    init start() {
+        next { presses: 0 }
+    }
+
+    event press()
+        ensures presses >= 0
+    {
+        next { presses: presses + 1 }
+    }
+}

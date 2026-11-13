@@ -1,0 +1,33 @@
+// expect: proved, proved, proved, proved, proved, proved, refuted
+// `reset` needs more presses than the invariant allows, so no state the
+// machine reaches allows it: the solvers prove that none does.
+enum Light { Off, On }
+
+machine Switch {
+    state {
+        light: Light,
+        presses: i32,
+    }
+
+    init start() {
+        next { light: Off, presses: 0 }
+    }
+
+    event press()
+        requires presses < 100
+    {
+        if light == Off {
+            next { light: On, presses: presses + 1 }
+        } else {
+            next { light: Off, presses: presses + 1 }
+        }
+    }
+
+    event reset()
+        requires presses > 100
+    {
+        next { light: Off, presses: 0 }
+    }
+
+    invariant pressed: presses >= 0 and presses <= 100
+}

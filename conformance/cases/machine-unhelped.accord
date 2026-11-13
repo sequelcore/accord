@@ -1,0 +1,22 @@
+// expect: proved, not_inductive, proved, proved, proved
+// `y` never passes 3, since it moves with `x`, but the invariant alone doesn't
+// say so: from `y == 3` and `x < 3`, which no run reaches, `step` breaks it.
+// That is not a failure of the machine: a helper invariant settles it.
+machine Pair {
+    state {
+        x: i32,
+        y: i32,
+    }
+
+    init start() {
+        next { x: 0, y: 0 }
+    }
+
+    event step()
+        requires x < 3
+    {
+        next { x: x + 1, y: y + 1 }
+    }
+
+    invariant y_bounded: y <= 3
+}

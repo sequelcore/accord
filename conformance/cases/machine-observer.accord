@@ -1,0 +1,30 @@
+// expect: proved, proved, proved, proved, proved, proved
+// `press` asks the observer `at_limit` whether to count, and knows its answer
+// only through its contract. The observer's own `ensures` is proved too.
+machine Counter {
+    state {
+        presses: i32,
+    }
+
+    init start() {
+        next { presses: 0 }
+    }
+
+    event press() {
+        if at_limit() {
+            next { }
+        } else {
+            next { presses: presses + 1 }
+        }
+    }
+
+    /// Whether another press would pass the limit.
+    fn at_limit() -> Bool
+        ensures result implies presses == 100
+        ensures presses == 100 implies result
+    {
+        presses == 100
+    }
+
+    invariant pressed: presses >= 0 and presses <= 100
+}

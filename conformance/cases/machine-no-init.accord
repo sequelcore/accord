@@ -1,0 +1,11 @@
+// expect: error
+// A machine needs a way to start.
+machine Switch {
+    state {
+        presses: i32,
+    }
+
+    event press() {
+        next { presses: presses + 1 }
+    }
+}

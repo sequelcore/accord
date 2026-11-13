@@ -22,6 +22,24 @@ listed after every obligation, in source order; `error` means the file must
 be rejected before any obligation is generated. A case named `x-fault` or `x-<what>-fault`
 plants a fault in the correct case `x`, and must be refuted or fail.
 
+A machine's obligations come in source order with its functions':
+
+- for each `init`, in order: that some input is allowed, when it has a
+  `requires`; that its state meets every invariant and helper invariant;
+  then its arithmetic and decision tables, as a function's;
+- for each event, in order: that it preserves every invariant and helper
+  invariant; that it is allowed in some state an `init` reaches; then its
+  arithmetic and decision tables, as a function's, each assuming the
+  invariants and helper invariants;
+- its observers, as functions.
+
+An invariant is refuted only by a trace from an `init`, which the explorer
+finds and the interpreter replays. Where the solvers refute an obligation
+from a state no trace reaches, its outcome is `not_inductive`. An event is
+allowed in a reachable state when the explorer reaches one where its
+`requires` holds. A machine's `example` is listed as `passed` or `failed`
+with the other examples.
+
 `cargo test --test conformance` runs every case through both solvers. It
 needs Z3 and cvc5: on the `PATH` as `z3` and `cvc5`, or named by the
 `ACCORD_Z3` and `ACCORD_CVC5` environment variables. Without them the

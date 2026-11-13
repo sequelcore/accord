@@ -1,0 +1,17 @@
+// expect: error
+// An invariant is a specification, and no specification can call a function.
+machine Switch {
+    state {
+        presses: i32,
+    }
+
+    init start() {
+        next { presses: 0 }
+    }
+
+    fn many() -> Bool {
+        presses > 10
+    }
+
+    invariant few: not many()
+}

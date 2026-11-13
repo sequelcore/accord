@@ -1,0 +1,32 @@
+// expect: proved, refuted, proved, proved, proved, passed
+// `press` is allowed at 100 presses, so a run of 101 presses breaks the
+// invariant.
+enum Light { Off, On }
+
+machine Switch {
+    state {
+        light: Light,
+        presses: i32,
+    }
+
+    init start() {
+        next { light: Off, presses: 0 }
+    }
+
+    event press()
+        requires presses <= 100
+    {
+        if light == Off {
+            next { light: On, presses: presses + 1 }
+        } else {
+            next { light: Off, presses: presses + 1 }
+        }
+    }
+
+    invariant pressed: presses >= 0 and presses <= 100
+}
+
+example Switch
+    start()
+    press()
+    gives light == On and presses == 1

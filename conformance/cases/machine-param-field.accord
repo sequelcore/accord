@@ -1,0 +1,11 @@
+// expect: error
+// A parameter can't share a field's name.
+machine Switch {
+    state {
+        presses: i32,
+    }
+
+    init start(presses: i32) {
+        next { presses: presses }
+    }
+}
