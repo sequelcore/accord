@@ -25,8 +25,8 @@ mod inputs;
 use super::expr::camel;
 use crate::Solvers;
 use crate::interpret::{self, Value};
-use crate::syntax::{Enum, Function, Type, Width};
-use inputs::{SAFE, Seeded, inputs};
+use crate::syntax::{Enum, Function, Machine, Role, Type, Width};
+use inputs::{SAFE, Seeded, inputs, member_inputs};
 
 fn to_json(value: &Value, enums: &[Enum]) -> Json {
     match value {
@@ -71,6 +71,78 @@ fn expected(
             "{}: no result for an admitted input: {reason}",
             function.name
         ),
+    }
+}
+
+/// A state as the object the module takes and returns.
+fn state_json(machine: &Machine, values: &[Value], enums: &[Enum]) -> Json {
+    machine
+        .state
+        .iter()
+        .zip(values)
+        .map(|((field, _), value)| (camel(field), to_json(value, enums)))
+        .collect::<serde_json::Map<String, Json>>()
+        .into()
+}
+
+/// What a machine's init, event or observer must do in `state` with `args`:
+/// refuse a state that breaks an invariant or helper invariant, and
+/// otherwise behave as the interpreter does.
+fn expected_member(
+    machine: &Machine,
+    member: &Function,
+    state: &[Value],
+    args: &[Value],
+    functions: &[Function],
+    enums: &[Enum],
+) -> Json {
+    let skip = member.machine.map_or(0, |m| m.state);
+    let role = member.machine.map(|m| m.role);
+    let unsafe_i64 = |ty: &Type, v: &Value| {
+        *ty == Type::Int(Width::I64) && matches!(v, Value::Int(n) if n.abs() > SAFE)
+    };
+    let own = &member.params[skip..];
+    let mut names: interpret::Names = Vec::new();
+    if role != Some(Role::Init) {
+        names.extend(interpret::fields(member, state));
+        if machine
+            .state
+            .iter()
+            .zip(state)
+            .any(|((_, ty), v)| unsafe_i64(ty, v))
+            || !matches!(interpret::broken_invariant(member, state), Ok(None))
+        {
+            return json!({"error": "RangeError"});
+        }
+    }
+    names.extend(own.iter().map(|(n, _)| n.clone()).zip(args.iter().cloned()));
+    if own.iter().zip(args).any(|((_, ty), v)| unsafe_i64(ty, v)) {
+        return json!({"error": "RangeError"});
+    }
+    match interpret::broken_requires(member, &names) {
+        Ok(Some(_)) => return json!({"error": "RangeError"}),
+        Ok(None) => {}
+        Err(reason) => panic!("{}: requires can't be evaluated: {reason}", member.name),
+    }
+    if role == Some(Role::Observer) {
+        return match interpret::result(member, &names, functions) {
+            Ok(result) if unsafe_i64(&member.ret, &result) => json!({"error": "RangeError"}),
+            Ok(result) => json!({"ok": to_json(&result, enums)}),
+            Err(reason) => panic!("{}: no result for an admitted state: {reason}", member.name),
+        };
+    }
+    match interpret::transition(member, &names, functions) {
+        Ok(next)
+            if machine
+                .state
+                .iter()
+                .zip(&next)
+                .any(|((_, ty), v)| unsafe_i64(ty, v)) =>
+        {
+            json!({"error": "RangeError"})
+        }
+        Ok(next) => json!({"ok": state_json(machine, &next, enums)}),
+        Err(reason) => panic!("{}: no state for an admitted state: {reason}", member.name),
     }
 }
 
@@ -178,6 +250,35 @@ fn generated_modules_agree_with_the_interpreter() {
                     "name": camel(&function.name),
                     "args": args.iter().map(|a| to_json(a, &program.enums)).collect::<Vec<_>>(),
                 }));
+            }
+        }
+        for machine in program.machines.iter().filter(|m| m.public) {
+            let module = dir.join(format!(
+                "{}.ts",
+                names[machine.file]
+                    .strip_suffix(".accord")
+                    .unwrap_or(&names[machine.file])
+            ));
+            let callable = machine.functions(&program.functions);
+            for member in machine.members() {
+                let reads = member.machine.is_some_and(|m| m.role != Role::Init);
+                for (state, args) in member_inputs(&program, machine, member, &mut seeded) {
+                    wanted.push((
+                        name.clone(),
+                        member.name.clone(),
+                        expected_member(machine, member, &state, &args, &callable, &program.enums),
+                    ));
+                    let mut given: Vec<Json> = Vec::new();
+                    if reads {
+                        given.push(state_json(machine, &state, &program.enums));
+                    }
+                    given.extend(args.iter().map(|a| to_json(a, &program.enums)));
+                    calls.push(json!({
+                        "module": module.display().to_string(),
+                        "name": camel(&member.name),
+                        "args": given,
+                    }));
+                }
             }
         }
     }

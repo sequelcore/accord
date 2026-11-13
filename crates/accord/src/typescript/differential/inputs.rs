@@ -1,7 +1,7 @@
 //! The inputs each exported function is called with.
 
 use crate::interpret::{self, Value};
-use crate::syntax::{Body, Expr, Function, Program, Type, Width};
+use crate::syntax::{Body, Expr, Function, Machine, Program, Role, Type, Width};
 use crate::{Outcome, Report};
 
 pub(super) const LIMIT: usize = 4096;
@@ -122,6 +122,71 @@ fn combinations(domains: &[Vec<Value>], seeded: &mut Seeded) -> Vec<Vec<Value>> 
             })
             .collect(),
     }
+}
+
+/// The integer literals in `expr`.
+fn integers(expr: &Expr, found: &mut Vec<i128>) {
+    match expr {
+        Expr::Int(n, _) if !found.contains(n) => found.push(*n),
+        Expr::Not(inner) | Expr::Neg(inner, _) => integers(inner, found),
+        Expr::Binary(_, l, r) | Expr::Arith(_, l, r, _) => {
+            integers(l, found);
+            integers(r, found);
+        }
+        Expr::If(c, a, b) => [c, a, b].iter().for_each(|e| integers(e, found)),
+        _ => {}
+    }
+}
+
+/// Every state, with every set of arguments, that `member` of `machine` is
+/// called with: the combinations of its fields' and parameters' values, which
+/// include each integer the machine's clauses name and its neighbours, so that
+/// some states meet its invariants and others break them. An init takes no
+/// state, so its states are empty.
+pub(super) fn member_inputs(
+    program: &Program,
+    machine: &Machine,
+    member: &Function,
+    seeded: &mut Seeded,
+) -> Vec<(Vec<Value>, Vec<Value>)> {
+    let words = literals(program);
+    let mut named = Vec::new();
+    for clause in machine
+        .members()
+        .flat_map(|m| m.clauses.iter())
+        .chain(&machine.invariants)
+    {
+        integers(&clause.expr, &mut named);
+    }
+    let fields = member.machine.map_or(0, |m| m.state);
+    let reads = member.machine.is_some_and(|m| m.role != Role::Init);
+    let types: Vec<&Type> = member.params[if reads { 0 } else { fields }..]
+        .iter()
+        .map(|(_, ty)| ty)
+        .collect();
+    let domains: Vec<Vec<Value>> = types
+        .iter()
+        .map(|ty| {
+            let mut values = domain(ty, program, &words, seeded);
+            if let Type::Int(width) = ty {
+                for n in named.iter().flat_map(|n| [n - 1, *n, n + 1]) {
+                    let value = Value::Int(n);
+                    if (width.min()..=width.max()).contains(&n) && !values.contains(&value) {
+                        values.push(value);
+                    }
+                }
+            }
+            values
+        })
+        .collect();
+    let split = if reads { fields } else { 0 };
+    combinations(&domains, seeded)
+        .into_iter()
+        .map(|mut all| {
+            let args = all.split_off(split);
+            (all, args)
+        })
+        .collect()
 }
 
 /// An `example` argument's value: examples are written with literals.

@@ -1,0 +1,47 @@
+/// Whether the light is on.
+pub enum Light { Off, On }
+
+/// A switch that counts its presses.
+pub machine Switch {
+    state {
+        light: Light,
+        presses: i32,
+    }
+
+    init start() {
+        next { light: Off, presses: 0 }
+    }
+
+    init resume(from_light: Light, from_presses: i32)
+        requires from_presses >= 0 and from_presses <= 100 and (from_light == Off or from_presses > 0)
+    {
+        next { light: from_light, presses: from_presses }
+    }
+
+    event press()
+        requires presses < 100
+    decide {
+        | light == Off => next { light: On, presses: presses + 1 }
+        | otherwise    => next { light: Off, presses: presses + 1 }
+    }
+
+    event turn_off() {
+        next { light: Off }
+    }
+
+    /// Whether the switch has reached its limit.
+    fn at_limit() -> Bool
+        ensures result implies presses == 100
+    {
+        presses == 100
+    }
+
+    invariant pressed: presses >= 0 and presses <= 100
+
+    helper invariant on_means_pressed: light == On implies presses > 0
+}
+
+example Switch
+    start()
+    press()
+    gives light == On and presses == 1

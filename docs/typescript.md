@@ -10,7 +10,8 @@ imports with no runtime dependency.
 when every obligation is proved and every `example` passes; otherwise it writes
 nothing and exits 1 when something failed, or 3 when something wasn't proved.
 An open case doesn't stop it: the module's header names each function with
-one.
+one. A machine is written only when all its obligations are proved: one that is
+`not_inductive` or undecided stops the build, like any other obligation.
 
 | Code | Meaning |
 | --- | --- |
@@ -38,6 +39,8 @@ Node runs them directly.
 | `i64` | `number` for the caller, `bigint` inside |
 | `List<T>` | `readonly T[]` |
 | `requires` | A check on entry |
+| `pub machine M` | A type, a state check, and an exported function for each init, event and observer, below |
+| `machine` without `pub` | Nothing |
 | `ensures`, `open when`, `example`, `intent` | Nothing: they don't run |
 
 Inside, a decision table is an `if` chain in row order. Where no row is
@@ -62,6 +65,25 @@ never import each other's functions.
 fit `i32`, so it is well inside the integers a `number` holds exactly. `i64`
 arithmetic runs in `bigint`.
 
+## Machines
+
+A `pub machine Switch` becomes `export type Switch = { readonly light: Light;
+readonly presses: number; }`, its fields in order and in `camelCase`, and
+a function `checkSwitch$` that no module exports. Each init, event and
+observer is an exported function named in `camelCase`, with its body unexported
+beside it, as for a function:
+
+- an init takes its parameters and returns the state it gives;
+- an event takes the state, then its parameters, and returns the next state,
+  a new object that lists every field; it leaves the state it was given
+  unchanged;
+- an observer takes the state, then its parameters, and returns its result.
+
+An `i64` field is a `number` in the state, and an event that would leave one
+that isn't a safe integer throws a `RangeError`, as a function does for its
+result. A module whose exported names, or their bodies' names, would collide, or whose exported types (enums and machines) share a name, is
+refused, and nothing is written.
+
 ## The boundary
 
 The proofs assume the caller is checked code. A TypeScript caller isn't, so
@@ -74,6 +96,17 @@ each exported function checks, in order, before it runs:
 | A text holds only characters up to U+2FFFF, the solvers' alphabet, with no lone surrogates | `RangeError` |
 | Each `requires` holds, evaluated with mathematical integers (`bigint`) | `RangeError`, naming the clause |
 
+An event or observer first checks the state it is given, before its own
+parameters. It reads the state once: the check copies the fields into a fresh
+object, and the event or observer runs on that checked copy, so a getter that
+answers differently each time can't pass the check and then give the body
+another value. The generated names in a state check end in `$`, which no Accord
+name can, so a field may be called `state` or `where`. The check: it is an object (`TypeError`), each field has its type and range
+(`TypeError`, `RangeError`, worded `state.<field> must be …`), and then it
+meets every invariant, then every helper invariant, evaluated with
+mathematical integers (`RangeError`, `state breaks invariant <name>: …`). An
+init has no state to check; its result meets the invariants by proof.
+
 An `i64` result that isn't a safe integer throws a `RangeError` instead of
 losing precision. So the generated function accepts fewer inputs than the
 proofs cover, and never runs on one they don't.
@@ -85,5 +118,8 @@ compiler's own tests compare each module with the interpreter: on every
 combination of `Bool` and enum values, each integer width's boundaries and a
 seeded sample, the program's text literals and characters beyond ASCII, each
 `example`'s call and every input a solver gave, with a seeded sample past
-4,096 combinations per function. Agreement on those inputs is evidence, not a
+4,096 combinations per function. For a machine, the same inputs for each
+init, event and observer, and for events and observers, states built from its
+fields' values and the integers its clauses name, most of them breaking an
+invariant or helper invariant, which the module must reject. Agreement on those inputs is evidence, not a
 proof.
