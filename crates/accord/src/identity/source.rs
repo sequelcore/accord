@@ -65,22 +65,57 @@ impl Unit<'_> {
                     .map(|v| self.source_value_tree(v))
                     .collect(),
             ),
-            Value::Variant(owner, variant) => {
+            Value::Variant(owner, variant, fields) => {
+                let fields = self.source_fields(fields);
                 let source = (|| {
-                    let e = self
-                        .enums
-                        .get(owner.strip_prefix('E')?.parse::<usize>().ok()?)?;
-                    let name = e
-                        .variants
-                        .get(variant.strip_prefix('v')?.parse::<usize>().ok()?)?;
-                    Some(Value::Variant(e.name.clone(), name.clone()))
+                    let e = self.enums.get(position(&owner, 'E')?)?;
+                    let index = position(&variant, 'v')?;
+                    let name = e.variants.get(index)?;
+                    let labels = relabel(&fields, &e.fields[index])?;
+                    Some(Value::Variant(e.name.clone(), name.clone(), labels))
                 })();
-                source.unwrap_or(Value::Variant(owner, variant))
+                source.unwrap_or(Value::Variant(owner, variant, fields))
+            }
+            Value::Record(name, fields) => {
+                let fields = self.source_fields(fields);
+                let source = (|| {
+                    let r = self.records.get(position(&name, 'R')?)?;
+                    Some(Value::Record(r.name.clone(), relabel(&fields, &r.fields)?))
+                })();
+                source.unwrap_or(Value::Record(name, fields))
             }
             other => other,
         }
     }
 
+    fn source_fields(&self, fields: Vec<(String, Value)>) -> Vec<(String, Value)> {
+        fields
+            .into_iter()
+            .map(|(name, value)| (name, self.source_value_tree(value)))
+            .collect()
+    }
+}
+
+/// The index in a normalized name such as `E2`, after its `prefix`.
+fn position(name: &str, prefix: char) -> Option<usize> {
+    name.strip_prefix(prefix)?.parse().ok()
+}
+
+/// Normalized fields, `x0`, `x1`, ..., under their source names.
+fn relabel(
+    fields: &[(String, Value)],
+    declared: &[(String, Type)],
+) -> Option<Vec<(String, Value)>> {
+    fields
+        .iter()
+        .map(|(name, value)| {
+            let (source, _) = declared.get(position(name, 'x')?)?;
+            Some((source.clone(), value.clone()))
+        })
+        .collect()
+}
+
+impl Unit<'_> {
     /// An outcome about the normalized function, in source terms.
     pub fn source_outcome(&self, outcome: Outcome) -> Outcome {
         match outcome {

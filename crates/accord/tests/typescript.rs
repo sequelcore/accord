@@ -71,3 +71,29 @@ fn every_case_emits_exactly_its_expected_modules() {
         }
     }
 }
+
+#[test]
+fn structured_data_is_refused_before_anything_is_written() {
+    let solvers =
+        Solvers::from_env().expect("Z3 and cvc5 are available (see conformance/README.md)");
+    for (source, what) in [
+        ("record Pair {\n    a: Bool,\n}\n", "records"),
+        (
+            "enum Id { Numeric(digits: Text) }\n",
+            "variants with fields",
+        ),
+        (
+            "enum Light { Red, Green }\npub fn red(l: Light) -> Bool\n{\n    match l {\n        | Red   => true\n        | Green => false\n    }\n}\n",
+            "`match`",
+        ),
+    ] {
+        let refused = build(&[("rule.accord".to_string(), source.to_string())], &solvers)
+            .expect_err("refused");
+        assert!(
+            refused
+                .message
+                .contains(&format!("doesn't write {what} as TypeScript yet")),
+            "{refused:?}"
+        );
+    }
+}

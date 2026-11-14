@@ -2,8 +2,8 @@
 //! its contract.
 
 use super::operations::{Operation, for_every};
-use super::smt::{all, in_range, sort, term};
-use crate::syntax::{ClauseKind, Expr, Function, Program, Type};
+use super::smt::{all, fits, sort, term};
+use crate::syntax::{ClauseKind, Expr, Function, Program};
 
 /// `name` applied to `args`; a function of no arguments is a constant.
 pub(super) fn apply(name: &str, args: Vec<String>) -> String {
@@ -101,9 +101,7 @@ pub(crate) fn call_facts<'a>(
             with_result.push(value.clone());
             with_result
         })];
-        if let Type::Int(width) = f.ret {
-            holds.push(in_range(&value, width));
-        }
+        holds.extend(fits(&value, &f.ret, program));
         let fact = format!(
             "(=> {} {})",
             apply(&format!("{}.requires", f.name), args),

@@ -66,6 +66,7 @@ fn proved(report: &Report) -> bool {
 /// names the functions that have one.
 pub fn build(files: &[(String, String)], solvers: &Solvers) -> Result<Build, Diagnostic> {
     let (program, names) = crate::program_of(files)?;
+    check_writable(&program, &names)?;
     check_exports(&program, &names)?;
     let report = crate::report(&program, None, &names, solvers);
     let modules = proved(&report).then(|| {
@@ -75,6 +76,44 @@ pub fn build(files: &[(String, String)], solvers: &Solvers) -> Result<Build, Dia
             .collect()
     });
     Ok(Build { report, modules })
+}
+
+/// Rejects a program with a record, a variant with fields or a `match`,
+/// which aren't written as TypeScript yet.
+fn check_writable(program: &Program, names: &[String]) -> Result<(), Diagnostic> {
+    let refuse = |what: &str, line: usize, file: usize| {
+        Err(Diagnostic::new(
+            line,
+            format!("`accord build` doesn't write {what} as TypeScript yet"),
+        )
+        .in_file(names.get(file).map_or("", String::as_str)))
+    };
+    if let Some(r) = program.records.first() {
+        return refuse("records", r.line, r.file);
+    }
+    if let Some(e) = program.enums.iter().find(|e| e.has_fields()) {
+        return refuse("variants with fields", e.line, e.file);
+    }
+    fn has_match(expr: &Expr) -> bool {
+        matches!(expr, Expr::Match(..)) || expr.children().into_iter().any(has_match)
+    }
+    let members = program.machines.iter().flat_map(Machine::members);
+    for function in program.functions.iter().chain(members) {
+        let mut exprs: Vec<&Expr> = function.clauses.iter().map(|c| &c.expr).collect();
+        match &function.body {
+            Body::Expr(body) => exprs.push(body),
+            Body::Decide(rows, _) => {
+                for row in rows {
+                    exprs.extend(row.condition.as_ref());
+                    exprs.push(&row.result);
+                }
+            }
+        }
+        if exprs.into_iter().any(has_match) {
+            return refuse("`match`", function.line, function.file);
+        }
+    }
+    Ok(())
 }
 
 /// The public machines declared in `file`.
@@ -313,7 +352,7 @@ fn outer(ty: &Type) -> String {
         Type::Int(_) => "number".to_string(),
         Type::Text => "string".to_string(),
         Type::List(element) => format!("readonly {}[]", outer(element)),
-        Type::Enum(name) => name.clone(),
+        Type::Enum(name) | Type::Record(name) => name.clone(),
     }
 }
 

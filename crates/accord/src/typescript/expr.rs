@@ -165,6 +165,11 @@ impl Scope<'_> {
             Expr::Next(..) => {
                 unreachable!("a `next` is written by a machine's body, never as a value")
             }
+            Expr::Construct(..)
+            | Expr::Record(..)
+            | Expr::Field(..)
+            | Expr::Match(..)
+            | Expr::Is(..) => unreachable!("`build` refuses structured data before writing"),
         }
     }
 

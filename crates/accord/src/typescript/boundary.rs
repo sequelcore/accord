@@ -116,6 +116,7 @@ fn param_checks(program: &Program, params: &[(String, Type)], words: &Words) -> 
                     &must(&format!("a {e}")),
                 );
             }
+            Type::Record(_) => unreachable!("`build` refuses records before writing"),
             Type::List(element) => {
                 let item = match element.as_ref() {
                     Type::Bool => "typeof item === \"boolean\"".to_string(),

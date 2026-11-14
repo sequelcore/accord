@@ -2,7 +2,7 @@
 
 use super::{Value, broken_requires};
 use crate::obligation::{Guard, term};
-use crate::syntax::{Arith, Body, Expr, Function, Op, Quantifier, Range};
+use crate::syntax::{Arith, Body, Expr, Function, Op, Owner, Quantifier, Range};
 
 #[derive(Clone, Copy, PartialEq)]
 pub(super) enum Mode {
@@ -50,7 +50,58 @@ impl Env<'_> {
                     .map(|i| self.eval(i))
                     .collect::<Result<_, _>>()?,
             )),
-            Expr::Variant(owner, name, _) => Ok(Value::Variant(owner.clone(), name.clone())),
+            Expr::Variant(owner, name, _) => {
+                Ok(Value::Variant(owner.clone(), name.clone(), Vec::new()))
+            }
+            Expr::Construct(owner, name, args, _) => Ok(Value::Variant(
+                owner.clone(),
+                name.clone(),
+                args.iter()
+                    .map(|(label, arg)| Ok((label.clone().unwrap_or_default(), self.eval(arg)?)))
+                    .collect::<Result<_, String>>()?,
+            )),
+            Expr::Record(name, fields, _) => Ok(Value::Record(
+                name.clone(),
+                fields
+                    .iter()
+                    .map(|(field, value)| Ok((field.clone(), self.eval(value)?)))
+                    .collect::<Result<_, String>>()?,
+            )),
+            Expr::Field(value, owner, field, _) => {
+                let fields = match (self.eval(value)?, owner) {
+                    (Value::Record(_, fields), Some(Owner::Record(_))) => fields,
+                    (Value::Variant(_, got, fields), Some(Owner::Variant(_, want)))
+                        if got == *want =>
+                    {
+                        fields
+                    }
+                    (other, _) => {
+                        return Err(format!("`{}` has no field `{field}`", other.source()));
+                    }
+                };
+                fields
+                    .into_iter()
+                    .find(|(name, _)| name == field)
+                    .map(|(_, value)| value)
+                    .ok_or(format!("no field `{field}`"))
+            }
+            Expr::Is(value, _, want) => match self.eval(value)? {
+                Value::Variant(_, got, _) => Ok(Value::Bool(got == *want)),
+                other => Err(format!("`{}` isn't a variant", other.source())),
+            },
+            // The first arm whose test holds; the tests cover every variant.
+            Expr::Match(value, arms, _) => {
+                for arm in arms {
+                    let holds = match &arm.test {
+                        Some(test) => self.boolean(test)?,
+                        None => true,
+                    };
+                    if holds {
+                        return self.eval(&arm.result);
+                    }
+                }
+                Err(format!("no arm matches `{}`", self.eval(value)?.source()))
+            }
             Expr::Name(name, _) if name == "result" => self
                 .result
                 .cloned()

@@ -3,7 +3,9 @@
 
 use super::calls::apply;
 use super::lists::{MAX_LENGTH, contains, quantified};
-use crate::syntax::{Arith, Body, ClauseKind, Expr, Function, Op, Program, Role, Row, Type, Width};
+use crate::syntax::{
+    Arith, Body, ClauseKind, Enum, Expr, Function, Op, Owner, Program, Role, Row, Type, Width,
+};
 
 pub(crate) fn sort(ty: &Type) -> String {
     match ty {
@@ -11,7 +13,7 @@ pub(crate) fn sort(ty: &Type) -> String {
         Type::Int(_) => "Int".to_string(),
         Type::Text => "String".to_string(),
         Type::List(element) => format!("(Seq {})", sort(element)),
-        Type::Enum(name) => name.clone(),
+        Type::Enum(name) | Type::Record(name) => name.clone(),
     }
 }
 pub(crate) fn term(expr: &Expr) -> String {
@@ -84,6 +86,29 @@ pub(crate) fn term(expr: &Expr) -> String {
                 .collect::<Vec<_>>()
                 .join(" ")
         ),
+        Expr::Construct(owner, variant, args, _) => apply(
+            &format!("{owner}.{variant}"),
+            args.iter().map(|(_, a)| term(a)).collect(),
+        ),
+        Expr::Record(name, fields, _) => {
+            apply(name, fields.iter().map(|(_, value)| term(value)).collect())
+        }
+        Expr::Field(value, owner, field, _) => match owner {
+            Some(Owner::Variant(e, variant)) => format!("({e}.{variant}.{field} {})", term(value)),
+            Some(Owner::Record(name)) => format!("({name}.{field} {})", term(value)),
+            None => unreachable!("`check` resolves every field: `{field}`"),
+        },
+        // The arms' tests cover every variant, so the last arm needs none.
+        Expr::Match(_, arms, _) => {
+            let Some((last, earlier)) = arms.split_last() else {
+                return String::new();
+            };
+            earlier.iter().rev().fold(term(&last.result), |rest, arm| {
+                let test = arm.test.as_ref().map_or("true".to_string(), term);
+                format!("(ite {test} {} {rest})", term(&arm.result))
+            })
+        }
+        Expr::Is(value, e, variant) => format!("((_ is {e}.{variant}) {})", term(value)),
     }
 }
 /// A text as an SMT-LIB string literal. SMT-LIB reads `\u{...}` in a
@@ -139,18 +164,57 @@ fn decide_term(rows: &[Row]) -> String {
         format!("(ite {} {} {rest})", condition(row), term(&row.result))
     })
 }
-/// What every script about `function` starts with: the enums it uses, its
+/// That `term`, a value of `ty`, is one a program can hold: each integer in
+/// it within its width and each list within its length; `None` when every
+/// value of `ty` is.
+pub(crate) fn fits(term: &str, ty: &Type, program: &Program) -> Option<String> {
+    let conjunction = |parts: Vec<String>| (!parts.is_empty()).then(|| all("and", parts, "true"));
+    match ty {
+        Type::Int(width) => Some(in_range(term, *width)),
+        Type::List(_) => Some(format!("(<= (seq.len {term}) {MAX_LENGTH})")),
+        Type::Record(name) => {
+            let record = program.records.iter().find(|r| r.name == *name)?;
+            conjunction(
+                record
+                    .fields
+                    .iter()
+                    .filter_map(|(field, ty)| {
+                        fits(&format!("({name}.{field} {term})"), ty, program)
+                    })
+                    .collect(),
+            )
+        }
+        Type::Enum(name) => {
+            let e = program.enums.iter().find(|e| e.name == *name)?;
+            conjunction(
+                e.variants
+                    .iter()
+                    .zip(&e.fields)
+                    .filter_map(|(variant, fields)| {
+                        let each = conjunction(
+                            fields
+                                .iter()
+                                .filter_map(|(field, ty)| {
+                                    fits(&format!("({name}.{variant}.{field} {term})"), ty, program)
+                                })
+                                .collect(),
+                        )?;
+                        Some(format!("(=> ((_ is {name}.{variant}) {term}) {each})"))
+                    })
+                    .collect(),
+            )
+        }
+        Type::Bool | Type::Text => None,
+    }
+}
+/// What every script about `function` starts with: the types it uses, its
 /// parameters within their ranges, and its `requires` assumed.
-pub(crate) fn prelude(function: &Function, datatypes: &str) -> String {
+pub(crate) fn prelude(function: &Function, program: &Program, datatypes: &str) -> String {
     let mut prelude = format!("(set-option :produce-models true)\n(set-logic ALL)\n{datatypes}");
     for (name, ty) in &function.params {
         prelude += &format!("(declare-const {name} {})\n", sort(ty));
-        match ty {
-            Type::Int(width) => prelude += &format!("(assert {})\n", in_range(name, *width)),
-            Type::List(_) => {
-                prelude += &format!("(assert (<= (seq.len {name}) {MAX_LENGTH}))\n");
-            }
-            _ => {}
+        if let Some(fact) = fits(name, ty, program) {
+            prelude += &format!("(assert {fact})\n");
         }
     }
     // An init has no state before it, so no invariant to assume.
@@ -258,22 +322,50 @@ pub(crate) fn meets_invariants(function: &Function) -> String {
         .collect();
     format!("(let ({}) {invariants})", bindings.join(" "))
 }
-/// The SMT-LIB declarations of a program's enums.
-pub(crate) fn datatypes(program: &Program) -> String {
-    program
-        .enums
+/// An enum's constructors: each variant, with a selector for each field.
+fn constructors(e: &Enum) -> String {
+    let constructors: Vec<String> = e
+        .variants
         .iter()
-        .map(|e| {
-            let constructors: Vec<String> = e
-                .variants
+        .zip(&e.fields)
+        .map(|(v, fields)| {
+            let selectors: String = fields
                 .iter()
-                .map(|v| format!("({}.{v})", e.name))
+                .map(|(field, ty)| format!(" ({}.{v}.{field} {})", e.name, sort(ty)))
                 .collect();
-            format!(
-                "(declare-datatype {} ({}))\n",
-                e.name,
-                constructors.join(" ")
-            )
+            format!("({}.{v}{selectors})", e.name)
         })
-        .collect()
+        .collect();
+    format!("({})", constructors.join(" "))
+}
+/// The SMT-LIB declarations of a program's enums and records. Enums without
+/// fields come first, each on its own; the rest are declared together, so
+/// each may hold the others whatever their order.
+pub(crate) fn datatypes(program: &Program) -> String {
+    let (plain, structured): (Vec<&Enum>, Vec<&Enum>) =
+        program.enums.iter().partition(|e| !e.has_fields());
+    let mut out: String = plain
+        .iter()
+        .map(|e| format!("(declare-datatype {} {})\n", e.name, constructors(e)))
+        .collect();
+    let mut names: Vec<&str> = structured.iter().map(|e| e.name.as_str()).collect();
+    let mut bodies: Vec<String> = structured.iter().map(|e| constructors(e)).collect();
+    for record in &program.records {
+        names.push(&record.name);
+        let selectors: String = record
+            .fields
+            .iter()
+            .map(|(field, ty)| format!(" ({}.{field} {})", record.name, sort(ty)))
+            .collect();
+        bodies.push(format!("(({}{selectors}))", record.name));
+    }
+    if !names.is_empty() {
+        let sorts: Vec<String> = names.iter().map(|name| format!("({name} 0)")).collect();
+        out += &format!(
+            "(declare-datatypes ({}) ({}))\n",
+            sorts.join(" "),
+            bodies.join(" ")
+        );
+    }
+    out
 }

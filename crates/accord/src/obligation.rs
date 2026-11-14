@@ -39,7 +39,7 @@ use operations::{
     Operation, assumption, body_operations, for_some, guard_term, range_assumption, spec_indexes,
 };
 pub(crate) use scripts::{mutant_scripts, open_script};
-pub(crate) use smt::{all, datatypes, ending, in_range, sort, term};
+pub(crate) use smt::{all, datatypes, ending, fits, sort, term};
 use smt::{meets_invariants, prelude, value};
 
 /// Whether an obligation is about every input or about some input.
@@ -86,7 +86,7 @@ fn obligations_of<'a>(
     }
     let prelude = format!(
         "{}{}{}{facts}",
-        prelude(function, datatypes),
+        prelude(function, program, datatypes),
         list_facts(&[function]),
         declarations(program, &callees)
     );

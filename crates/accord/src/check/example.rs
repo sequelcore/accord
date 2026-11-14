@@ -1,14 +1,15 @@
 //! Checks an `example`'s call: the function it names, its labels and the
 //! types of its arguments and expected result.
 
+use super::Types;
 use super::{Scope, ordered, type_name};
 use crate::Diagnostic;
-use crate::syntax::{Enum, Example, Function};
+use crate::syntax::{Example, Function};
 
 /// Checks an example's call against its function, and puts its arguments in
 /// the order of the parameters, each labelled.
 pub(super) fn check(
-    enums: &[Enum],
+    types: Types<'_>,
     functions: &[Function],
     example: &mut Example,
 ) -> Result<(), Diagnostic> {
@@ -22,7 +23,7 @@ pub(super) fn check(
     let args = std::mem::take(&mut example.args);
     let ordered = ordered(&function.name, &function.params, args, line)?;
     let scope = Scope {
-        enums,
+        types,
         params: &[],
         result: None,
         spec: false,

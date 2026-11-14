@@ -5,22 +5,20 @@
 
 use super::calls::{Signature, check_recursion, ordered};
 use super::expr::Scope;
-use super::{check_clauses, check_function, check_type, type_name};
+use super::{Types, check_clauses, check_function, check_type, type_name};
 use crate::Diagnostic;
-use crate::syntax::{
-    Body, Enum, Expr, Function, Machine, MachineExample, Member, Program, Role, Type,
-};
+use crate::syntax::{Body, Expr, Function, Machine, MachineExample, Member, Program, Role, Type};
 
-/// Checks `machine` against the program's `enums` and `functions`, whose
+/// Checks `machine` against the program's `types` and `functions`, whose
 /// signatures are `globals`, and desugars it.
 pub(super) fn check(
-    enums: &[Enum],
+    types: Types<'_>,
     globals: &[Signature],
     functions: &[Function],
     machine: &mut Machine,
 ) -> Result<(), Diagnostic> {
     let state = machine.state.clone();
-    check_state(enums, machine)?;
+    check_state(types, machine)?;
     if machine.inits.is_empty() {
         return Err(Diagnostic::new(
             machine.line,
@@ -34,8 +32,19 @@ pub(super) fn check(
         .chain(&machine.events)
         .chain(&machine.observers)
     {
+        let types_used = member.params.iter().map(|(_, ty)| ty).chain([&member.ret]);
+        if let Some(ty) = types_used.into_iter().find(|ty| types.structured(ty)) {
+            return Err(Diagnostic::new(
+                member.line,
+                format!(
+                    "`{}` takes or gives a `{}`: a machine can't hold records or variants with fields yet",
+                    member.name,
+                    type_name(ty)
+                ),
+            ));
+        }
         for (param, ty) in &member.params {
-            check_type(enums, ty, member.line)?;
+            check_type(types, ty, member.line)?;
             if param == "next" || state.iter().any(|(field, _)| field == param) {
                 return Err(Diagnostic::new(
                     member.line,
@@ -54,21 +63,22 @@ pub(super) fn check(
     for init in &mut machine.inits {
         // An init doesn't read the state: its fields are placeholders, added
         // once its body is checked.
-        check_clauses(enums, init)?;
-        check_body(enums, globals, init, &state)?;
+        check_clauses(types, init)?;
+        check_body(types, globals, init, &state)?;
         with_state(init, &state);
     }
     for event in &mut machine.events {
         with_state(event, &state);
-        check_clauses(enums, event)?;
-        check_body(enums, &signatures, event, &state)?;
+        check_clauses(types, event)?;
+        check_body(types, &signatures, event, &state)?;
     }
     for observer in &mut machine.observers {
         with_state(observer, &state);
-        check_function(enums, &signatures, observer)?;
+        check_function(types, &signatures, observer)?;
     }
     check_recursion(&Program {
         enums: Vec::new(),
+        records: Vec::new(),
         functions: functions
             .iter()
             .chain(&machine.observers)
@@ -80,7 +90,7 @@ pub(super) fn check(
     })?;
     for invariant in &mut machine.invariants {
         let scope = Scope {
-            enums,
+            types,
             params: &state,
             result: None,
             spec: true,
@@ -102,10 +112,10 @@ pub(super) fn check(
     Ok(())
 }
 
-fn check_state(enums: &[Enum], machine: &Machine) -> Result<(), Diagnostic> {
+fn check_state(types: Types<'_>, machine: &Machine) -> Result<(), Diagnostic> {
     for (index, (field, ty)) in machine.state.iter().enumerate() {
-        check_type(enums, ty, machine.line)?;
-        if !matches!(ty, Type::Bool | Type::Int(_) | Type::Enum(_)) {
+        check_type(types, ty, machine.line)?;
+        if !matches!(ty, Type::Bool | Type::Int(_) | Type::Enum(_)) || types.structured(ty) {
             return Err(Diagnostic::new(
                 machine.line,
                 format!(
@@ -169,14 +179,14 @@ fn with_state(member: &mut Function, state: &[(String, Type)]) {
 /// Checks an init's or event's body, which ends in `next` through `if` or a
 /// decision table. An init's scope has no fields.
 fn check_body(
-    enums: &[Enum],
+    types: Types<'_>,
     signatures: &[Signature],
     member: &mut Function,
     state: &[(String, Type)],
 ) -> Result<(), Diagnostic> {
     let init = member.machine.is_some_and(|m| m.role == Role::Init);
     let scope = Scope {
-        enums,
+        types,
         params: &member.params,
         result: None,
         spec: false,
@@ -261,7 +271,7 @@ fn step(
 /// Checks an example's run of `machine`: an init, then events, each with
 /// arguments put in the order of its parameters, and the condition it gives.
 pub(super) fn check_run(
-    enums: &[Enum],
+    types: Types<'_>,
     machines: &[Machine],
     run: &mut MachineExample,
 ) -> Result<(), Diagnostic> {
@@ -278,7 +288,7 @@ pub(super) fn check_run(
         ));
     }
     let constants = Scope {
-        enums,
+        types,
         params: &[],
         result: None,
         spec: false,
@@ -317,7 +327,7 @@ pub(super) fn check_run(
         }
     }
     let scope = Scope {
-        enums,
+        types,
         params: &machine.state,
         result: None,
         spec: true,

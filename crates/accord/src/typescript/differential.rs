@@ -34,10 +34,11 @@ fn to_json(value: &Value, enums: &[Enum]) -> Json {
         Value::Int(n) => i64::try_from(*n).map_or_else(|_| json!(n.to_string()), |n| json!(n)),
         Value::Text(t) => json!(t),
         Value::List(items) => Json::Array(items.iter().map(|v| to_json(v, enums)).collect()),
-        Value::Variant(owner, name) => {
+        Value::Variant(owner, name, _) => {
             let e = enums.iter().find(|e| e.name == *owner);
             json!(e.expect("a variant of a declared enum").text(name))
         }
+        Value::Record(..) => unreachable!("`build` refuses records"),
     }
 }
 

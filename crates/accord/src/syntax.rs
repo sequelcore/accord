@@ -1,5 +1,6 @@
-//! The syntax tree for the subset Accord compiles today: enums, and functions
-//! over `Bool`, fixed-width integers, enums, texts and lists with `requires`,
+//! The syntax tree for the subset Accord compiles today: enums, whose
+//! variants may carry fields, records, and functions over `Bool`,
+//! fixed-width integers, enums, records, texts and lists with `requires`,
 //! `ensures` and a body that is an expression or a decision table, which may
 //! call other functions.
 
@@ -22,8 +23,11 @@ pub enum Type {
     Text,
     /// A list whose elements have this type.
     List(Box<Type>),
-    /// An enum, by name.
+    /// An enum, by name. The parser reads every name it doesn't know as an
+    /// enum; the checker turns a record's name into [`Type::Record`].
     Enum(String),
+    /// A record, by name.
+    Record(String),
 }
 
 /// A signed integer type's width.
@@ -69,7 +73,7 @@ impl Type {
             Self::Int(width) => width.name().to_string(),
             Self::Text => "Text".to_string(),
             Self::List(element) => format!("List<{}>", element.name()),
-            Self::Enum(name) => name.clone(),
+            Self::Enum(name) | Self::Record(name) => name.clone(),
         }
     }
 }
@@ -138,6 +142,48 @@ pub(crate) enum Expr {
     /// its line. Only a machine's init or event ends in one; once checked, it
     /// gives every field of the state, in the state's order.
     Next(Vec<(String, Expr)>, usize),
+    /// A variant with fields built like a call: its enum, which the checker
+    /// sets where it is written bare, the variant, and each field with its
+    /// label where written. The checker puts the fields in their declared
+    /// order, each labelled.
+    Construct(String, String, Vec<(Option<String>, Expr)>, usize),
+    /// `Name { field: value, ... }`: a record's value. The checker puts the
+    /// fields in their declared order.
+    Record(String, Vec<(String, Expr)>, usize),
+    /// `value.field`, with what the field belongs to once checked. A name a
+    /// `match` arm binds becomes the field of the value matched, read only
+    /// where the arm's variant is the value's.
+    Field(Box<Expr>, Option<Owner>, String, usize),
+    /// `match value { | Pattern => result ... }`, with its line.
+    Match(Box<Expr>, Vec<Arm>, usize),
+    /// Whether the value is the named variant of the named enum. Only the
+    /// checker writes one: the condition under which a `match` arm runs.
+    Is(Box<Expr>, String, String),
+}
+
+/// What a field belongs to.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) enum Owner {
+    /// The named record.
+    Record(String),
+    /// The named enum's named variant.
+    Variant(String, String),
+}
+
+/// A pattern's name for one field, with the field's label where written;
+/// the name is `None` for `_`.
+pub(crate) type Binding = (Option<String>, Option<String>);
+
+/// One row of a `match`: a variant, a name for each of its fields or `_`
+/// for none, and the result. The checker puts the names in the fields'
+/// declared order and sets `test`, the condition under which the arm runs.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct Arm {
+    pub variant: String,
+    pub bindings: Vec<Binding>,
+    pub test: Option<Expr>,
+    pub result: Expr,
+    pub line: usize,
 }
 
 impl Expr {
@@ -152,14 +198,86 @@ impl Expr {
             | Expr::List(_, _, line)
             | Expr::Quantified(.., line)
             | Expr::Next(_, line)
+            | Expr::Construct(.., line)
+            | Expr::Record(_, _, line)
+            | Expr::Field(.., line)
+            | Expr::Match(_, _, line)
             | Expr::Length(_, line) => *line,
             Expr::Arith(.., site)
             | Expr::Neg(_, site)
             | Expr::Call(.., site)
             | Expr::Index(.., site) => site.line,
-            Expr::Not(inner) => inner.line(),
+            Expr::Not(inner) | Expr::Is(inner, ..) => inner.line(),
             Expr::Binary(_, left, _) | Expr::If(left, _, _) => left.line(),
             Expr::Bool(_) => 0,
+        }
+    }
+
+    /// The expressions directly inside this one.
+    pub fn children(&self) -> Vec<&Expr> {
+        match self {
+            Expr::Bool(_) | Expr::Int(..) | Expr::Text(..) | Expr::Name(..) | Expr::Variant(..) => {
+                Vec::new()
+            }
+            Expr::List(items, ..) => items.iter().collect(),
+            Expr::Not(inner)
+            | Expr::Neg(inner, _)
+            | Expr::Length(inner, _)
+            | Expr::Field(inner, ..)
+            | Expr::Is(inner, ..) => vec![inner],
+            Expr::Binary(_, left, right)
+            | Expr::Arith(_, left, right, _)
+            | Expr::Index(left, right, _) => vec![left, right],
+            Expr::If(condition, then, otherwise) => vec![condition, then, otherwise],
+            Expr::Call(_, args, _) | Expr::Construct(_, _, args, _) => {
+                args.iter().map(|(_, arg)| arg).collect()
+            }
+            Expr::Quantified(_, _, range, condition, _) => vec![range.list(), condition],
+            Expr::Next(fields, _) | Expr::Record(_, fields, _) => {
+                fields.iter().map(|(_, value)| value).collect()
+            }
+            Expr::Match(value, arms, _) => {
+                let mut out: Vec<&Expr> = vec![value];
+                for arm in arms {
+                    out.extend(arm.test.as_ref());
+                    out.push(&arm.result);
+                }
+                out
+            }
+        }
+    }
+
+    /// The expressions directly inside this one, to change them.
+    pub fn children_mut(&mut self) -> Vec<&mut Expr> {
+        match self {
+            Expr::Bool(_) | Expr::Int(..) | Expr::Text(..) | Expr::Name(..) | Expr::Variant(..) => {
+                Vec::new()
+            }
+            Expr::List(items, ..) => items.iter_mut().collect(),
+            Expr::Not(inner)
+            | Expr::Neg(inner, _)
+            | Expr::Length(inner, _)
+            | Expr::Field(inner, ..)
+            | Expr::Is(inner, ..) => vec![inner],
+            Expr::Binary(_, left, right)
+            | Expr::Arith(_, left, right, _)
+            | Expr::Index(left, right, _) => vec![left, right],
+            Expr::If(condition, then, otherwise) => vec![condition, then, otherwise],
+            Expr::Call(_, args, _) | Expr::Construct(_, _, args, _) => {
+                args.iter_mut().map(|(_, arg)| arg).collect()
+            }
+            Expr::Quantified(_, _, range, condition, _) => vec![range.list_mut(), condition],
+            Expr::Next(fields, _) | Expr::Record(_, fields, _) => {
+                fields.iter_mut().map(|(_, value)| value).collect()
+            }
+            Expr::Match(value, arms, _) => {
+                let mut out: Vec<&mut Expr> = vec![value];
+                for arm in arms {
+                    out.extend(arm.test.as_mut());
+                    out.push(&mut arm.result);
+                }
+                out
+            }
         }
     }
 }
@@ -341,6 +459,32 @@ pub(crate) struct Enum {
     pub variants: Vec<String>,
     /// Each variant's value outside Accord, where written: `Cancelled = "CANCELLED"`.
     pub values: Vec<Option<String>>,
+    /// Each variant's fields, in order; empty for a variant without any.
+    pub fields: Vec<Vec<(String, Type)>>,
+    pub line: usize,
+    pub file: usize,
+}
+
+impl Enum {
+    /// The fields of the named variant.
+    pub fn fields_of(&self, variant: &str) -> &[(String, Type)] {
+        self.variants
+            .iter()
+            .position(|v| v == variant)
+            .map_or(&[], |index| &self.fields[index])
+    }
+
+    /// Whether some variant carries fields.
+    pub fn has_fields(&self) -> bool {
+        self.fields.iter().any(|f| !f.is_empty())
+    }
+}
+
+/// `record Name { field: Type, ... }`: a value made of named fields.
+#[derive(Clone, Debug)]
+pub(crate) struct Record {
+    pub name: String,
+    pub fields: Vec<(String, Type)>,
     pub line: usize,
     pub file: usize,
 }
@@ -380,6 +524,7 @@ pub(crate) struct Example {
 #[derive(Clone, Debug)]
 pub(crate) struct Program {
     pub enums: Vec<Enum>,
+    pub records: Vec<Record>,
     pub functions: Vec<Function>,
     pub machines: Vec<Machine>,
     pub examples: Vec<Example>,

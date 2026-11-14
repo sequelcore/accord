@@ -116,6 +116,11 @@ pub(crate) fn callees(expr: &Expr, out: &mut Vec<String>) {
             }
         }
         Expr::Not(inner) | Expr::Neg(inner, _) => callees(inner, out),
+        Expr::Construct(..)
+        | Expr::Record(..)
+        | Expr::Field(..)
+        | Expr::Match(..)
+        | Expr::Is(..) => expr.children().into_iter().for_each(|c| callees(c, out)),
         Expr::Binary(_, left, right) | Expr::Arith(_, left, right, _) => {
             callees(left, out);
             callees(right, out);

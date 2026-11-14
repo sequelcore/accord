@@ -4,8 +4,8 @@
 use super::calls::{call_facts, declarations};
 use super::lists::list_facts;
 use super::operations::calls_in;
-use super::smt::{all, ending, in_range, prelude, sort, term, value};
-use crate::syntax::{ClauseKind, Function, Program, Type};
+use super::smt::{all, ending, fits, prelude, sort, term, value};
+use crate::syntax::{ClauseKind, Function, Program};
 
 /// The two scripts that judge a mutant of `original` against its contract.
 /// `survives` asserts that the mutant breaks some `ensures`, so `unsat` means
@@ -30,7 +30,7 @@ pub(crate) fn mutant_scripts(
     }
     let prelude = format!(
         "{}{}{}{}",
-        prelude(original, datatypes),
+        prelude(original, program, datatypes),
         list_facts(&[original, mutant]),
         declarations(program, &callees),
         call_facts(program, &calls).0
@@ -75,7 +75,7 @@ pub(crate) fn mutant_scripts(
 /// no `open when` covers, with two different results, `r0` and `r1`, that
 /// both meet every `ensures`. `sat` finds one; `unsat` means the contract determines the
 /// result for every admitted input.
-pub(crate) fn open_script(function: &Function, datatypes: &str) -> String {
+pub(crate) fn open_script(function: &Function, program: &Program, datatypes: &str) -> String {
     let ret = sort(&function.ret);
     let ensures = all(
         "and",
@@ -88,9 +88,9 @@ pub(crate) fn open_script(function: &Function, datatypes: &str) -> String {
         "true",
     );
     let mut results = format!("(declare-const r0 {ret})\n(declare-const r1 {ret})\n");
-    if let Type::Int(width) = &function.ret {
-        for r in ["r0", "r1"] {
-            results += &format!("(assert {})\n", in_range(r, *width));
+    for r in ["r0", "r1"] {
+        if let Some(fact) = fits(r, &function.ret, program) {
+            results += &format!("(assert {fact})\n");
         }
     }
     let free = all(
@@ -107,7 +107,7 @@ pub(crate) fn open_script(function: &Function, datatypes: &str) -> String {
     named.extend(["r0".to_string(), "r1".to_string()]);
     format!(
         "{}{}(define-fun contract ((result {ret})) Bool {ensures})\n{results}(assert (and (not {free}) (contract r0) (contract r1) (not (= r0 r1))))\n{}",
-        prelude(function, datatypes),
+        prelude(function, program, datatypes),
         list_facts(&[function]),
         ending(&named)
     )

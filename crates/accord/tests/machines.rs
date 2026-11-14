@@ -96,7 +96,7 @@ fn the_receipt_names_the_outcome_and_the_exploration() {
     let report = report(source);
     let json: serde_json::Value =
         serde_json::from_str(&receipt::json(&report, "pair")).expect("JSON");
-    assert_eq!(json["receipt"], 4);
+    assert_eq!(json["receipt"], 5);
     let definition = &json["definitions"][0];
     assert_eq!(definition["kind"], "machine");
     let stuck = definition["obligations"]

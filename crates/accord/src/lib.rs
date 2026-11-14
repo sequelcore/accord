@@ -359,6 +359,7 @@ fn program_of(files: &[(String, String)]) -> Result<(syntax::Program, Vec<String
     let names: Vec<String> = files.iter().map(|(name, _)| name.clone()).collect();
     let mut program = syntax::Program {
         enums: Vec::new(),
+        records: Vec::new(),
         functions: Vec::new(),
         machines: Vec::new(),
         examples: Vec::new(),
@@ -367,6 +368,7 @@ fn program_of(files: &[(String, String)]) -> Result<(syntax::Program, Vec<String
     for (index, (name, source)) in files.iter().enumerate() {
         let mut part = syntax::parse(source).map_err(|d| d.in_file(name))?;
         part.enums.iter_mut().for_each(|e| e.file = index);
+        part.records.iter_mut().for_each(|r| r.file = index);
         part.functions.iter_mut().for_each(|f| f.file = index);
         part.machines.iter_mut().for_each(|m| m.file = index);
         part.examples.iter_mut().for_each(|e| e.file = index);
@@ -374,6 +376,7 @@ fn program_of(files: &[(String, String)]) -> Result<(syntax::Program, Vec<String
             .iter_mut()
             .for_each(|e| e.file = index);
         program.enums.extend(part.enums);
+        program.records.extend(part.records);
         program.functions.extend(part.functions);
         program.machines.extend(part.machines);
         program.examples.extend(part.examples);

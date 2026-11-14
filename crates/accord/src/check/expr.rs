@@ -1,13 +1,14 @@
 //! The type of each expression, given the type its context expects; it
 //! resolves bare variants and the width of integer literals and arithmetic.
 
+use super::Types;
 use super::calls::Signature;
 use super::type_name;
 use crate::Diagnostic;
-use crate::syntax::{Enum, Expr, Type};
+use crate::syntax::{Expr, Type};
 
 pub(super) struct Scope<'a> {
-    pub enums: &'a [Enum],
+    pub types: Types<'a>,
     pub params: &'a [(String, Type)],
     pub result: Option<&'a Type>,
     /// In `requires` and `ensures`, integers are mathematical: a literal
@@ -22,16 +23,26 @@ pub(super) struct Scope<'a> {
 }
 
 impl Scope<'_> {
-    fn param(&self, name: &str) -> Option<&Type> {
+    pub(super) fn param(&self, name: &str) -> Option<&Type> {
         self.params.iter().find(|(n, _)| n == name).map(|(_, t)| t)
     }
 
+    /// Whether `name` is a function a call here may name.
+    fn is_function(&self, name: &str) -> bool {
+        self.functions
+            .is_some_and(|functions| functions.iter().any(|f| f.name == name))
+    }
+
     /// Whether `expr` takes its type from its context: a bare variant (a name
-    /// that isn't `result` or a parameter), an integer literal, or arithmetic
-    /// made only of those.
+    /// that isn't `result` or a parameter, or a variant built like a call),
+    /// an integer literal, or arithmetic made only of those.
     pub(super) fn needs_context(&self, expr: &Expr) -> bool {
         match expr {
             Expr::Name(name, _) => name != "result" && self.param(name).is_none(),
+            Expr::Call(name, ..) => {
+                !self.is_function(name)
+                    && self.types.enums.iter().any(|e| e.variants.contains(name))
+            }
             Expr::Int(..) => true,
             Expr::List(items, ..) => items.iter().all(|item| self.needs_context(item)),
             Expr::Neg(inner, _) => self.needs_context(inner),
@@ -161,11 +172,12 @@ impl Scope<'_> {
                 if let Some(Type::Enum(expected)) = expected
                     && self.has_variant(expected, name)
                 {
+                    self.fieldless(expected, name, *line)?;
                     let ty = Type::Enum(expected.clone());
                     *expr = Expr::Variant(expected.clone(), name.clone(), *line);
                     return Ok(ty);
                 }
-                match self.enums.iter().find(|e| e.variants.contains(name)) {
+                match self.types.enums.iter().find(|e| e.variants.contains(name)) {
                     Some(owner) => Err(Diagnostic::new(
                         *line,
                         format!(
@@ -176,10 +188,17 @@ impl Scope<'_> {
                     None => Err(Diagnostic::new(*line, format!("unknown name `{name}`"))),
                 }
             }
+            // `value.field`, which reads like a qualified variant.
+            Expr::Variant(owner, name, line) if self.param(owner).is_some() => {
+                let value = Expr::Name(std::mem::take(owner), *line);
+                *expr = Expr::Field(Box::new(value), None, std::mem::take(name), *line);
+                self.infer(expr, expected)
+            }
             Expr::Variant(owner, name, line) => {
-                if !self.enums.iter().any(|e| e.name == *owner) {
+                if !self.types.enums.iter().any(|e| e.name == *owner) {
                     Err(Diagnostic::new(*line, format!("unknown type `{owner}`")))
                 } else if self.has_variant(owner, name) {
+                    self.fieldless(owner, name, *line)?;
                     Ok(Type::Enum(owner.clone()))
                 } else {
                     Err(Diagnostic::new(
@@ -193,7 +212,39 @@ impl Scope<'_> {
                 Ok(Type::Bool)
             }
             Expr::Binary(op, left, right) => self.binary(*op, left, right),
-            Expr::Call(name, args, site) => self.call(name, args, site.line),
+            Expr::Call(name, args, site) => {
+                let line = site.line;
+                if let Some(Type::Enum(owner)) = expected
+                    && self.has_variant(owner, name)
+                {
+                    *expr = Expr::Construct(
+                        owner.clone(),
+                        std::mem::take(name),
+                        std::mem::take(args),
+                        line,
+                    );
+                    return self.infer(expr, expected);
+                }
+                if !self.is_function(name)
+                    && let Some(owner) = self.types.enums.iter().find(|e| e.variants.contains(name))
+                {
+                    return Err(Diagnostic::new(
+                        line,
+                        format!(
+                            "the type of `{name}` isn't known here: write `{}.{name}(…)`",
+                            owner.name
+                        ),
+                    ));
+                }
+                self.call(name, args, line)
+            }
+            Expr::Construct(owner, variant, args, line) => {
+                self.construct(owner, variant, args, *line)
+            }
+            Expr::Record(name, fields, line) => self.record_value(name, fields, *line),
+            Expr::Field(value, owner, field, line) => self.field(value, owner, field, *line),
+            Expr::Match(value, arms, line) => self.matched(value, arms, expected, *line),
+            Expr::Is(..) => Ok(Type::Bool),
             Expr::Quantified(quantifier, name, range, condition, line) => {
                 self.quantified(*quantifier, name, range, condition, *line)
             }
@@ -219,8 +270,9 @@ impl Scope<'_> {
         }
     }
 
-    fn has_variant(&self, owner: &str, name: &str) -> bool {
-        self.enums
+    pub(super) fn has_variant(&self, owner: &str, name: &str) -> bool {
+        self.types
+            .enums
             .iter()
             .any(|e| e.name == owner && e.variants.iter().any(|v| v == name))
     }

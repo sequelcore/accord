@@ -1,27 +1,31 @@
 //! Normalizing a function: its names replaced by positions, and the
 //! canonical text its identity hashes.
 
-use crate::syntax::{Body, ClauseKind, Enum, Expr, Function, Program, Type};
+use crate::syntax::{Body, ClauseKind, Enum, Expr, Function, Owner, Program, Record, Type};
 
-/// The enum at `index` with its names replaced by positions: `E{index}`,
-/// with variants `v0`, `v1`, ... and no written values, which no proof reads.
-pub(super) fn enumeration(index: usize, e: &Enum) -> Enum {
-    Enum {
-        name: format!("E{index}"),
-        variants: (0..e.variants.len()).map(|v| format!("v{v}")).collect(),
-        values: vec![None; e.variants.len()],
-        line: 0,
-        file: 0,
-    }
+/// The name of the field at `index`, normalized.
+fn field_name(index: usize) -> String {
+    format!("x{index}")
+}
+
+/// The position of `name` among `fields`.
+fn position(fields: &[(String, Type)], name: &str) -> usize {
+    fields
+        .iter()
+        .position(|(f, _)| f == name)
+        .unwrap_or_default()
 }
 
 pub(super) struct Renamer<'a> {
     pub(super) program: &'a Program,
     pub(super) enums: Vec<&'a Enum>,
+    pub(super) records: Vec<&'a Record>,
     pub(super) functions: Vec<&'a Function>,
 }
 
 impl<'a> Renamer<'a> {
+    /// The enum's position, found or added; the types its fields hold are
+    /// added with it.
     fn enum_index(&mut self, name: &str) -> usize {
         if let Some(index) = self.enums.iter().position(|e| e.name == name) {
             return index;
@@ -30,7 +34,66 @@ impl<'a> Renamer<'a> {
             unreachable!("`check` rejects the unknown enum `{name}`")
         };
         self.enums.push(e);
-        self.enums.len() - 1
+        for (_, ty) in e.fields.iter().flatten() {
+            self.ty(ty);
+        }
+        self.enums
+            .iter()
+            .position(|o| o.name == name)
+            .unwrap_or_default()
+    }
+
+    /// The record's position, found or added; the types its fields hold are
+    /// added with it.
+    fn record_index(&mut self, name: &str) -> usize {
+        if let Some(index) = self.records.iter().position(|r| r.name == name) {
+            return index;
+        }
+        let Some(r) = self.program.records.iter().find(|r| r.name == name) else {
+            unreachable!("`check` rejects the unknown record `{name}`")
+        };
+        self.records.push(r);
+        for (_, ty) in &r.fields {
+            self.ty(ty);
+        }
+        self.records
+            .iter()
+            .position(|o| o.name == name)
+            .unwrap_or_default()
+    }
+
+    /// The enum at `index` with its names replaced by positions: `E{index}`,
+    /// with variants `v0`, `v1`, ..., fields `x0`, `x1`, ... and no written
+    /// values, which no proof reads.
+    pub(super) fn enumeration(&mut self, index: usize) -> Enum {
+        let e = self.enums[index];
+        Enum {
+            name: format!("E{index}"),
+            variants: (0..e.variants.len()).map(|v| format!("v{v}")).collect(),
+            values: vec![None; e.variants.len()],
+            fields: e.fields.iter().map(|fields| self.fields(fields)).collect(),
+            line: 0,
+            file: 0,
+        }
+    }
+
+    /// The record at `index` with its names replaced by positions.
+    pub(super) fn record(&mut self, index: usize) -> Record {
+        let r = self.records[index];
+        Record {
+            name: format!("R{index}"),
+            fields: self.fields(&r.fields),
+            line: 0,
+            file: 0,
+        }
+    }
+
+    fn fields(&mut self, fields: &[(String, Type)]) -> Vec<(String, Type)> {
+        fields
+            .iter()
+            .enumerate()
+            .map(|(index, (_, ty))| (field_name(index), self.ty(ty)))
+            .collect()
     }
 
     fn function_index(&mut self, name: &str) -> usize {
@@ -47,6 +110,7 @@ impl<'a> Renamer<'a> {
     fn ty(&mut self, ty: &Type) -> Type {
         match ty {
             Type::Enum(name) => Type::Enum(format!("E{}", self.enum_index(name))),
+            Type::Record(name) => Type::Record(format!("R{}", self.record_index(name))),
             Type::List(element) => Type::List(Box::new(self.ty(element))),
             other => other.clone(),
         }
@@ -59,15 +123,59 @@ impl<'a> Renamer<'a> {
                     *name = format!("p{index}");
                 }
             }
-            Expr::Variant(owner, variant, _) => {
-                let index = self.enum_index(owner);
-                let position = self.enums[index]
-                    .variants
-                    .iter()
-                    .position(|v| v == variant)
-                    .unwrap_or_default();
-                *owner = format!("E{index}");
-                *variant = format!("v{position}");
+            Expr::Variant(owner, variant, _) => self.variant(owner, variant),
+            Expr::Construct(owner, variant, args, _) => {
+                let (e, v) = (owner.clone(), variant.clone());
+                self.variant(owner, variant);
+                let fields = self.source_enum(&e).fields_of(&v).to_vec();
+                for (label, arg) in args {
+                    self.expr(arg, params);
+                    if let Some(label) = label {
+                        *label = field_name(position(&fields, label));
+                    }
+                }
+            }
+            Expr::Record(name, fields, _) => {
+                let index = self.record_index(name);
+                let declared = &self.records[index].fields;
+                let mut renamed: Vec<(String, Expr)> = std::mem::take(fields)
+                    .into_iter()
+                    .map(|(field, value)| (field_name(position(declared, &field)), value))
+                    .collect();
+                for (_, value) in &mut renamed {
+                    self.expr(value, params);
+                }
+                *fields = renamed;
+                *name = format!("R{index}");
+            }
+            Expr::Field(value, owner, field, _) => {
+                self.expr(value, params);
+                match owner {
+                    Some(Owner::Record(name)) => {
+                        let index = self.record_index(name);
+                        *field = field_name(position(&self.records[index].fields, field));
+                        *name = format!("R{index}");
+                    }
+                    Some(Owner::Variant(e, variant)) => {
+                        let fields = self.source_enum(e).fields_of(variant).to_vec();
+                        *field = field_name(position(&fields, field));
+                        self.variant(e, variant);
+                    }
+                    None => {}
+                }
+            }
+            Expr::Is(value, e, variant) => {
+                self.expr(value, params);
+                self.variant(e, variant);
+            }
+            Expr::Match(value, arms, _) => {
+                self.expr(value, params);
+                for arm in arms {
+                    if let Some(test) = &mut arm.test {
+                        self.expr(test, params);
+                    }
+                    self.expr(&mut arm.result, params);
+                }
             }
             Expr::Not(inner) | Expr::Neg(inner, _) => self.expr(inner, params),
             Expr::Binary(_, left, right) | Expr::Arith(_, left, right, _) => {
@@ -116,6 +224,26 @@ impl<'a> Renamer<'a> {
             }
             Expr::Bool(_) | Expr::Int(..) | Expr::Text(..) | Expr::Name(..) => {}
         }
+    }
+
+    /// The source enum named `name`.
+    fn source_enum(&self, name: &str) -> &'a Enum {
+        let Some(e) = self.program.enums.iter().find(|e| e.name == name) else {
+            unreachable!("`check` rejects the unknown enum `{name}`")
+        };
+        e
+    }
+
+    /// A variant of a source enum, as `E{index}` and `v{position}`.
+    fn variant(&mut self, owner: &mut String, variant: &mut String) {
+        let index = self.enum_index(owner);
+        let position = self.enums[index]
+            .variants
+            .iter()
+            .position(|v| v == variant)
+            .unwrap_or_default();
+        *owner = format!("E{index}");
+        *variant = format!("v{position}");
     }
 
     /// `source` with its parameters, types and clauses normalized, and its

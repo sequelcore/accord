@@ -5,7 +5,7 @@ use super::Loosening;
 use crate::identity::Unit;
 use crate::interpret;
 use crate::obligation::{self, Polarity};
-use crate::syntax::{ClauseKind, Function, Type};
+use crate::syntax::{ClauseKind, Function};
 use crate::{Inputs, Outcome, Solvers};
 
 fn condition(function: &Function, kind: ClauseKind) -> String {
@@ -34,8 +34,8 @@ pub(super) fn at_least_as_strong(
     let mut prelude = format!("(set-option :produce-models true)\n(set-logic ALL)\n{datatypes}");
     for (name, ty) in &s.params {
         prelude += &format!("(declare-const {name} {})\n", obligation::sort(ty));
-        if let Type::Int(width) = ty {
-            prelude += &format!("(assert {})\n", obligation::in_range(name, *width));
+        if let Some(fact) = obligation::fits(name, ty, &unit.program) {
+            prelude += &format!("(assert {fact})\n");
         }
     }
     let params: Vec<String> = s.params.iter().map(|(n, _)| n.clone()).collect();
@@ -73,8 +73,8 @@ pub(super) fn at_least_as_strong(
     // On those inputs, the stronger contract promises what the weaker does.
     let ret = obligation::sort(&s.ret);
     let mut result = format!("(declare-const result {ret})\n");
-    if let Type::Int(width) = &s.ret {
-        result += &format!("(assert {})\n", obligation::in_range("result", *width));
+    if let Some(fact) = obligation::fits("result", &s.ret, &unit.program) {
+        result += &format!("(assert {fact})\n");
     }
     let mut named = params.clone();
     named.push("result".to_string());

@@ -1,7 +1,7 @@
 //! The mistakes planted in a body, and how each is described.
 
 use crate::identity::Unit;
-use crate::syntax::{Body, Expr, Function, Op, Program};
+use crate::syntax::{Body, Expr, Function, Op, Owner, Program};
 
 /// A planted change, before it's written in source terms.
 pub(super) enum Change {
@@ -113,7 +113,22 @@ fn mutate_expr(expr: &mut Expr, n: &mut usize) -> Option<Change> {
             .iter_mut()
             .find_map(|(_, value)| mutate_expr(value, n)),
         Expr::Index(list, index, _) => mutate_expr(list, n).or_else(|| mutate_expr(index, n)),
-        Expr::Bool(_) | Expr::Text(..) | Expr::Name(..) | Expr::Variant(..) => None,
+        Expr::Construct(_, _, args, _) => args.iter_mut().find_map(|(_, arg)| mutate_expr(arg, n)),
+        Expr::Record(_, fields, _) => fields
+            .iter_mut()
+            .find_map(|(_, value)| mutate_expr(value, n)),
+        Expr::Field(value, Some(Owner::Record(_)), ..) => mutate_expr(value, n),
+        // The value matched is read again by every arm's test and fields, so
+        // only the arms' results change.
+        Expr::Match(_, arms, _) => arms
+            .iter_mut()
+            .find_map(|arm| mutate_expr(&mut arm.result, n)),
+        Expr::Field(..)
+        | Expr::Is(..)
+        | Expr::Bool(_)
+        | Expr::Text(..)
+        | Expr::Name(..)
+        | Expr::Variant(..) => None,
     }
 }
 
@@ -141,7 +156,7 @@ pub(super) fn mutate(function: &mut Function, program: &Program, mut n: usize) -
                         .map(|e| {
                             e.variants
                                 .iter()
-                                .filter(|v| *v != variant)
+                                .filter(|v| *v != variant && e.fields_of(v).is_empty())
                                 .map(|v| Expr::Variant(owner.clone(), v.clone(), *line))
                                 .collect()
                         })

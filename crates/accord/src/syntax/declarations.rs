@@ -1,9 +1,9 @@
-//! Declarations: types, enums, functions with their clauses and bodies,
-//! decision tables, and examples.
+//! Declarations: types, enums, records, functions with their clauses and
+//! bodies, decision tables, and examples.
 
 use super::parser::Parser;
 use super::token::Token;
-use super::{Body, Clause, ClauseKind, Enum, Example, Function, Row, Type, Width};
+use super::{Body, Clause, ClauseKind, Enum, Example, Function, Record, Row, Type, Width};
 use crate::Diagnostic;
 
 impl Parser<'_> {
@@ -29,9 +29,14 @@ impl Parser<'_> {
         self.expect_word("enum")?;
         let name = self.name()?;
         self.expect_sym("{")?;
-        let (mut variants, mut values) = (Vec::new(), Vec::new());
+        let (mut variants, mut values, mut fields) = (Vec::new(), Vec::new(), Vec::new());
         while !self.at_sym("}") {
             variants.push(self.name()?);
+            fields.push(if self.at_sym("(") {
+                self.parameters()?
+            } else {
+                Vec::new()
+            });
             values.push(if self.at_sym("=") {
                 self.pos += 1;
                 match self.peek().cloned() {
@@ -56,9 +61,43 @@ impl Parser<'_> {
             name,
             variants,
             values,
+            fields,
             line,
             file: 0,
         })
+    }
+
+    /// `record Name { field: Type, ... }`.
+    pub(super) fn record(&mut self) -> Result<Record, Diagnostic> {
+        let line = self.line();
+        self.expect_word("record")?;
+        let name = self.name()?;
+        let fields = self.fields()?;
+        if fields.is_empty() {
+            return Err(Diagnostic::new(line, format!("`{name}` has no fields")));
+        }
+        Ok(Record {
+            name,
+            fields,
+            line,
+            file: 0,
+        })
+    }
+
+    /// `{ field: Type, ... }`, as a record or a machine's state declares them.
+    pub(super) fn fields(&mut self) -> Result<Vec<(String, Type)>, Diagnostic> {
+        self.expect_sym("{")?;
+        let mut fields = Vec::new();
+        while !self.at_sym("}") {
+            let field = self.name()?;
+            self.expect_sym(":")?;
+            fields.push((field, self.ty()?));
+            if !self.at_sym("}") {
+                self.expect_sym(",")?;
+            }
+        }
+        self.expect_sym("}")?;
+        Ok(fields)
     }
 
     /// `(name: Type, ...)`.
