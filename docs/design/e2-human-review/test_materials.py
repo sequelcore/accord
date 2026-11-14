@@ -6,7 +6,7 @@ import materials
 
 class WireTests(unittest.TestCase):
     def setUp(self):
-        self.report = dict(receipt=4, status="checked", definitions=[], diagnostics=[dict(code="ACC0012", evidence="/definitions")])
+        self.report = dict(receipt=5, status="checked", definitions=[], diagnostics=[dict(code="ACC0012", evidence="/definitions")])
 
     def test_known_wire_contract_has_resolvable_evidence(self):
         materials.validate_wire(self.report)
