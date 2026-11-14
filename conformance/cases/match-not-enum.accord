@@ -1,0 +1,9 @@
+// expect: error
+// Only an enum can be matched.
+fn same(flag: Bool) -> Bool
+{
+    match flag {
+        | Yes => true
+        | No  => false
+    }
+}

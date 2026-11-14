@@ -1,0 +1,11 @@
+// expect: error
+// A `match` has no catch-all: every variant is named.
+enum PreId { Numeric(digits: Text), Alpha(text: Text) }
+
+fn is_numeric(id: PreId) -> Bool
+{
+    match id {
+        | Numeric(_) => true
+        | _          => false
+    }
+}

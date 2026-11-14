@@ -1,0 +1,16 @@
+// expect: refuted, passed, passed
+// Without an upper bound on the amount, the arm's sum overflows.
+enum Step { Stay, Add(amount: i32) }
+
+fn apply(step: Step, n: i32) -> i32
+    requires n >= 0 and n <= 100
+    requires match step { | Stay => true | Add(a) => a >= 0 }
+{
+    match step {
+        | Stay   => n
+        | Add(a) => n + a
+    }
+}
+
+example apply(step: Add(amount: 3), n: 4) == 7
+example apply(step: Stay, n: 4) == 4

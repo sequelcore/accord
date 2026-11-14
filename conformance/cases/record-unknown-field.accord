@@ -1,0 +1,11 @@
+// expect: error
+// A record has only the fields it declares.
+record Version {
+    major: i64,
+    minor: i64,
+}
+
+fn minor(v: Version) -> i64
+{
+    v.minr
+}

@@ -1,0 +1,8 @@
+// expect: error
+// A type can't contain itself yet.
+enum Chain { End, Link(next: Chain) }
+
+fn ends(c: Chain) -> Bool
+{
+    c == End
+}

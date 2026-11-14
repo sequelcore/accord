@@ -1,0 +1,11 @@
+// expect: error
+// A record value names every field.
+record Version {
+    major: i64,
+    minor: i64,
+}
+
+fn first() -> Version
+{
+    Version { major: 1 }
+}

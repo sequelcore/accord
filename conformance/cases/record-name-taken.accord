@@ -1,0 +1,7 @@
+// expect: error
+// A record and an enum can't share a name.
+enum Version { Old, New }
+
+record Version {
+    major: i64,
+}
