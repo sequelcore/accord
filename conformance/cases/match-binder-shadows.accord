@@ -1,0 +1,11 @@
+// expect: error
+// A binding can't hide a name in scope.
+enum PreId { Numeric(digits: Text), Alpha(text: Text) }
+
+fn digits_are(id: PreId, text: Text) -> Bool
+{
+    match id {
+        | Numeric(text) => text == "1"
+        | Alpha(_)      => false
+    }
+}

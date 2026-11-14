@@ -1,0 +1,15 @@
+// expect: proved, proved, proved, passed
+// A field of a list's element, in code and in an `ensures`.
+record Tag {
+    name: Text,
+    pinned: Bool,
+}
+
+fn first_pinned(tags: List<Tag>) -> Bool
+    requires length(tags) > 0
+    ensures result == tags[0].pinned
+{
+    tags[0].pinned
+}
+
+example first_pinned(tags: [Tag { name: "a", pinned: true }, Tag { name: "b", pinned: false }]) == true

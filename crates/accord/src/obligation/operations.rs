@@ -5,7 +5,7 @@
 use super::calls::{has_requires, requires_of};
 use super::lists::{at_index, in_bounds, index_name};
 use super::smt::{all, in_range, term};
-use crate::syntax::{Body, Expr, Function, Op, Program};
+use crate::syntax::{Arm, Body, Expr, Function, Op, Owner, Program};
 
 /// A condition that must have a given value for code to run; `None` is a
 /// row's `otherwise`, which always holds.
@@ -25,6 +25,16 @@ pub(super) struct Operation<'a> {
     pub(super) expr: &'a Expr,
     pub(super) guards: Vec<Guard<'a>>,
     pub(super) bound: Vec<&'a Expr>,
+}
+/// `guards` and the condition under which `arm` runs: its variant is the
+/// value matched.
+fn arm_guards<'a>(guards: &[Guard<'a>], arm: &'a Arm) -> Vec<Guard<'a>> {
+    let mut out = guards.to_vec();
+    out.push(Guard {
+        condition: arm.test.as_ref(),
+        holds: true,
+    });
+    out
 }
 /// Whether an operation is an arithmetic operation, a call or an index.
 fn carries_obligation(expr: &Expr) -> bool {
@@ -70,7 +80,24 @@ fn operations<'a>(
             each(range.list(), out);
             operations(condition, guards, &[bound, &[expr]].concat(), out);
         }
-        Expr::Bool(_) | Expr::Int(..) | Expr::Text(..) | Expr::Name(..) | Expr::Variant(..) => {}
+        Expr::Construct(_, _, args, _) => args.iter().for_each(|(_, arg)| each(arg, out)),
+        Expr::Record(_, fields, _) => fields.iter().for_each(|(_, value)| each(value, out)),
+        Expr::Field(value, Some(Owner::Record(_)), ..) => each(value, out),
+        Expr::Match(value, arms, _) => {
+            each(value, out);
+            for arm in arms {
+                operations(&arm.result, &arm_guards(guards, arm), bound, out);
+            }
+        }
+        // The value an arm reads a field of, or tests, is the one its
+        // `match` already evaluated.
+        Expr::Field(..)
+        | Expr::Is(..)
+        | Expr::Bool(_)
+        | Expr::Int(..)
+        | Expr::Text(..)
+        | Expr::Name(..)
+        | Expr::Variant(..) => {}
     }
     if carries_obligation(expr) {
         out.push(Operation {
@@ -126,10 +153,22 @@ pub(super) fn spec_indexes<'a>(
         Expr::List(items, ..) => items
             .iter()
             .for_each(|i| spec_indexes(i, guards, bound, out)),
-        Expr::Call(_, args, _) => args
+        Expr::Call(_, args, _) | Expr::Construct(_, _, args, _) => args
             .iter()
             .for_each(|(_, a)| spec_indexes(a, guards, bound, out)),
-        Expr::Bool(_)
+        Expr::Record(_, fields, _) => fields
+            .iter()
+            .for_each(|(_, value)| spec_indexes(value, guards, bound, out)),
+        Expr::Field(value, Some(Owner::Record(_)), ..) => spec_indexes(value, guards, bound, out),
+        Expr::Match(value, arms, _) => {
+            spec_indexes(value, guards, bound, out);
+            for arm in arms {
+                spec_indexes(&arm.result, &arm_guards(guards, arm), bound, out);
+            }
+        }
+        Expr::Field(..)
+        | Expr::Is(..)
+        | Expr::Bool(_)
         | Expr::Int(..)
         | Expr::Text(..)
         | Expr::Name(..)

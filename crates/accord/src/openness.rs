@@ -52,7 +52,11 @@ fn search(unit: &Unit, solvers: &Solvers) -> Option<Determinacy> {
     {
         return None;
     }
-    let script = obligation::open_script(function, &obligation::datatypes(&unit.program));
+    let script = obligation::open_script(
+        function,
+        &unit.program,
+        &obligation::datatypes(&unit.program),
+    );
     let mut named: Vec<String> = function.params.iter().map(|(n, _)| n.clone()).collect();
     named.extend(["r0".to_string(), "r1".to_string()]);
     let read = |inputs: &Inputs, name: &str| {

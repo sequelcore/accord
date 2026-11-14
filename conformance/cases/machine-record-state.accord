@@ -1,0 +1,16 @@
+// expect: error
+// A machine's state holds fixed-width integers, enums and `Bool`s only.
+record Window {
+    start: i32,
+    end: i32,
+}
+
+machine Clock {
+    state {
+        window: Window,
+    }
+
+    init start() {
+        next { window: Window { start: 0, end: 1 } }
+    }
+}

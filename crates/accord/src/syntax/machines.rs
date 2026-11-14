@@ -76,18 +76,7 @@ impl Parser<'_> {
     /// `state { field: Type, ... }`.
     fn state(&mut self) -> Result<Vec<(String, Type)>, Diagnostic> {
         self.expect_word("state")?;
-        self.expect_sym("{")?;
-        let mut fields = Vec::new();
-        while !self.at_sym("}") {
-            let field = self.name()?;
-            self.expect_sym(":")?;
-            fields.push((field, self.ty()?));
-            if !self.at_sym("}") {
-                self.expect_sym(",")?;
-            }
-        }
-        self.expect_sym("}")?;
-        Ok(fields)
+        self.fields()
     }
 
     /// An init or event: its name and parameters, `intent` and `requires`,

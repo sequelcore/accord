@@ -1,0 +1,22 @@
+// expect: proved, proved, passed, passed
+// A `match` is an expression: in an arm, and in an `ensures`.
+enum PreId { Numeric(digits: Text), Alpha(text: Text) }
+
+fn same_kind(x: PreId, y: PreId) -> Bool
+    ensures x == y implies result
+    ensures result implies match x { | Numeric(_) => y != Alpha(text: "") | Alpha(_) => true }
+{
+    match x {
+        | Numeric(_) => match y {
+            | Numeric(_) => true
+            | Alpha(_)   => false
+        }
+        | Alpha(_) => match y {
+            | Numeric(_) => false
+            | Alpha(_)   => true
+        }
+    }
+}
+
+example same_kind(x: Numeric(digits: "1"), y: Numeric(digits: "2")) == true
+example same_kind(x: Alpha(text: "rc"), y: Numeric(digits: "2")) == false

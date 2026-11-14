@@ -1,0 +1,18 @@
+// expect: proved, proved, proved, passed, passed
+// A record is a value with named fields: built naming every field, read
+// with `.`, and compared field by field.
+record Version {
+    major: i64,
+    minor: i64,
+}
+
+fn bump_minor(v: Version) -> Version
+    requires v.minor < 1000
+    ensures result.major == v.major
+    ensures result.minor == v.minor + 1
+{
+    Version { major: v.major, minor: v.minor + 1 }
+}
+
+example bump_minor(v: Version { major: 1, minor: 2 }) == Version { major: 1, minor: 3 }
+example bump_minor(v: Version { minor: 0, major: 4 }) == Version { major: 4, minor: 1 }

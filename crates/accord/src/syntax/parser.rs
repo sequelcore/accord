@@ -137,10 +137,11 @@ pub(super) fn is_keyword(word: &str) -> bool {
             | "count"
             | "length"
             | "indices"
+            | "match"
     )
 }
 
-/// Parses every enum and function in `source`.
+/// Parses every enum, record, function, machine and example in `source`.
 pub(crate) fn parse(source: &str) -> Result<Program, Diagnostic> {
     let mut parser = Parser {
         source: source.lines().collect(),
@@ -149,6 +150,7 @@ pub(crate) fn parse(source: &str) -> Result<Program, Diagnostic> {
     };
     let mut program = Program {
         enums: Vec::new(),
+        records: Vec::new(),
         functions: Vec::new(),
         machines: Vec::new(),
         examples: Vec::new(),
@@ -163,6 +165,8 @@ pub(crate) fn parse(source: &str) -> Result<Program, Diagnostic> {
         }
         if parser.at_word("enum") {
             program.enums.push(parser.enumeration()?);
+        } else if parser.at_word("record") {
+            program.records.push(parser.record()?);
         } else if parser.at_word("machine") {
             let mut machine = parser.machine()?;
             machine.public = public;

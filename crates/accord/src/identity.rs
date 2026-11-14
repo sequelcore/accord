@@ -16,10 +16,10 @@
 mod normalize;
 mod source;
 
-use normalize::{Renamer, canonical, enumeration};
+use normalize::{Renamer, canonical};
 use sha2::{Digest, Sha256};
 
-use crate::syntax::{Enum, Function, Program};
+use crate::syntax::{Enum, Function, Program, Record};
 
 /// One function, normalized, with what's needed to read results back.
 pub(crate) struct Unit<'a> {
@@ -33,6 +33,8 @@ pub(crate) struct Unit<'a> {
     /// Each normalized enum's source declaration, by index, including those
     /// only a callee's body uses.
     enums: Vec<&'a Enum>,
+    /// Each normalized record's source declaration, by index.
+    records: Vec<&'a Record>,
     /// The source name of each normalized callee, by index.
     pub callees: Vec<String>,
     /// The hash of every callee's body, directly called or not, which a
@@ -72,6 +74,7 @@ pub(crate) fn unit<'a>(program: &'a Program, source: &'a Function) -> Unit<'a> {
     let mut renamer = Renamer {
         program,
         enums: Vec::new(),
+        records: Vec::new(),
         functions: Vec::new(),
     };
     let mut function = renamer.contract(source);
@@ -88,6 +91,7 @@ pub(crate) fn unit<'a>(program: &'a Program, source: &'a Function) -> Unit<'a> {
         })
         .collect();
     let visible = renamer.enums.len();
+    let visible_records = renamer.records.len();
     let mut index = 0;
     while index < renamer.functions.len() {
         let callee = renamer.functions[index];
@@ -99,14 +103,18 @@ pub(crate) fn unit<'a>(program: &'a Program, source: &'a Function) -> Unit<'a> {
         renamer.body(&mut callees[index], &callee.params);
         index += 1;
     }
-    let enums: Vec<Enum> = renamer.enums[..visible]
-        .iter()
-        .enumerate()
-        .map(|(index, e)| enumeration(index, e))
-        .collect();
+    let enums: Vec<Enum> = (0..visible).map(|i| renamer.enumeration(i)).collect();
+    let records: Vec<Record> = (0..visible_records).map(|i| renamer.record(i)).collect();
     let mut text = String::from("(fn");
     for e in &enums {
-        text += &format!(" (enum {} {})", e.name, e.variants.len());
+        text += &format!(" (enum {} {}", e.name, e.variants.len());
+        if e.has_fields() {
+            text += &format!(" {:?}", e.fields);
+        }
+        text += ")";
+    }
+    for r in &records {
+        text += &format!(" (record {} {:?})", r.name, r.fields);
     }
     text += &canonical(&function, true);
     for callee in &callees[..direct] {
@@ -129,6 +137,7 @@ pub(crate) fn unit<'a>(program: &'a Program, source: &'a Function) -> Unit<'a> {
     Unit {
         program: Program {
             enums,
+            records,
             functions,
             machines: Vec::new(),
             examples: Vec::new(),
@@ -136,6 +145,7 @@ pub(crate) fn unit<'a>(program: &'a Program, source: &'a Function) -> Unit<'a> {
         },
         source,
         enums: renamer.enums,
+        records: renamer.records,
         callees: callee_names,
         callee_bodies,
         hash,
@@ -257,6 +267,49 @@ fn twice(n: i32) -> i32
     fn renaming_a_callee_changes_no_identity() {
         let renamed = CALLS.replace("successor", "next");
         assert_eq!(without_names(CALLS), without_names(&renamed));
+    }
+
+    const STRUCTURED: &str = "enum Bound { Open, Below(limit: i64), Between(low: i64, high: i64) }
+
+record Window {
+    bound: Bound,
+    size: i64,
+    note: Bool,
+}
+
+fn admits(w: Window, n: i64) -> Bool
+    ensures w.bound == Open implies result
+{
+    match w.bound {
+        | Open                     => true
+        | Below(limit)             => n < limit and n < w.size
+        | Between(low: a, high: b) => a <= n and n <= b
+    }
+}
+";
+
+    #[test]
+    fn renaming_a_record_its_fields_or_a_match_binding_changes_no_identity() {
+        let renamed = STRUCTURED
+            .replace("Window", "Frame")
+            .replace("bound", "edge")
+            .replace("size", "width")
+            .replace("limit", "most")
+            .replace("low: a", "low: least")
+            .replace("a <=", "least <=")
+            .replace("Bound", "Range");
+        assert_eq!(without_names(STRUCTURED), without_names(&renamed));
+    }
+
+    #[test]
+    fn a_field_type_or_order_is_part_of_the_meaning() {
+        let other = STRUCTURED.replace("note: Bool", "note: Text");
+        assert_ne!(identities(STRUCTURED)[0].1, identities(&other)[0].1);
+        let reordered = STRUCTURED.replace(
+            "    bound: Bound,\n    size: i64,",
+            "    size: i64,\n    bound: Bound,",
+        );
+        assert_ne!(identities(STRUCTURED)[0].1, identities(&reordered)[0].1);
     }
 
     #[test]

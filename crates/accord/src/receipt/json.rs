@@ -26,6 +26,7 @@ fn type_json(ty: &Type) -> Value {
         Type::Int(width) => json!({"kind": "integer", "width": width.name()}),
         Type::Text => json!({"kind": "text"}),
         Type::Enum(name) => json!({"kind": "enum", "name": name}),
+        Type::Record(name) => json!({"kind": "record", "name": name}),
         Type::List(element) => json!({"kind": "list", "element": type_json(element)}),
     }
 }
@@ -36,9 +37,23 @@ fn value_json(value: crate::interpret::Value) -> Value {
         V::Bool(b) => json!(b),
         V::Int(n) => json!(n.to_string()),
         V::Text(s) => json!(s),
-        V::Variant(_, variant) => json!(variant),
+        V::Variant(_, variant, fields) if fields.is_empty() => json!(variant),
+        V::Variant(_, variant, fields) => {
+            json!({"variant": variant, "fields": fields_json(fields)})
+        }
+        V::Record(_, fields) => fields_json(fields),
         V::List(items) => items.into_iter().map(value_json).collect(),
     }
+}
+
+/// Fields as a JSON object, each decoded.
+fn fields_json(fields: Vec<(String, crate::interpret::Value)>) -> Value {
+    Value::Object(
+        fields
+            .into_iter()
+            .map(|(name, value)| (name, value_json(value)))
+            .collect(),
+    )
 }
 
 fn typed(source: &str, ty: &Type) -> Value {

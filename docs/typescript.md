@@ -82,7 +82,8 @@ beside it, as for a function:
 An `i64` field is a `number` in the state, and an event that would leave one
 that isn't a safe integer throws a `RangeError`, as a function does for its
 result. A module whose exported names, or their bodies' names, would collide, or whose exported types (enums and machines) share a name, is
-refused, and nothing is written.
+refused, and nothing is written. So is a program that declares a record or a
+variant with fields, or uses `match`: they aren't written as TypeScript yet.
 
 ## The boundary
 

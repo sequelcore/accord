@@ -1,0 +1,11 @@
+// expect: error
+// A variant with more than one field binds them by label.
+enum Bound { Unbounded, Between(low: i64, high: i64) }
+
+fn admits(bound: Bound, n: i64) -> Bool
+{
+    match bound {
+        | Unbounded     => true
+        | Between(a, b) => a <= n and n <= b
+    }
+}

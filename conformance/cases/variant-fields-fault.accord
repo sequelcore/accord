@@ -1,0 +1,18 @@
+// expect: proved, proved, refuted, passed, passed
+// The labels bind each name to the other field.
+enum Bound { Unbounded, Below(limit: i64), Between(low: i64, high: i64) }
+
+fn admits(bound: Bound, n: i64) -> Bool
+    ensures bound == Unbounded implies result
+    ensures bound == Below(limit: 0) implies result == (n < 0)
+    ensures bound == Between(low: 1, high: 3) implies result == (n >= 1 and n <= 3)
+{
+    match bound {
+        | Unbounded                => true
+        | Below(limit)             => n < limit
+        | Between(low: b, high: a) => a <= n and n <= b
+    }
+}
+
+example admits(bound: Below(limit: 5), n: 4) == true
+example admits(bound: Between(high: 3, low: 1), n: 4) == false

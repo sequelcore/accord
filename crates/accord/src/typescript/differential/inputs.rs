@@ -68,7 +68,7 @@ fn domain(ty: &Type, program: &Program, words: &[String], seeded: &mut Seeded) -
             .expect("a checked enum");
         e.variants
             .iter()
-            .map(|v| Value::Variant(owner.to_string(), v.clone()))
+            .map(|v| Value::Variant(owner.to_string(), v.clone(), Vec::new()))
             .collect()
     };
     match ty {
@@ -85,6 +85,7 @@ fn domain(ty: &Type, program: &Program, words: &[String], seeded: &mut Seeded) -
         }
         Type::Text => words.iter().cloned().map(Value::Text).collect(),
         Type::Enum(owner) => variants(owner),
+        Type::Record(_) => unreachable!("`build` refuses records"),
         Type::List(element) => {
             let items = domain(element, program, words, seeded);
             let mut lists = vec![Value::List(Vec::new()), Value::List(items.clone())];
@@ -204,7 +205,9 @@ fn literal(expr: &Expr) -> Option<Value> {
             .map(literal)
             .collect::<Option<_>>()
             .map(Value::List),
-        Expr::Variant(owner, variant, _) => Some(Value::Variant(owner.clone(), variant.clone())),
+        Expr::Variant(owner, variant, _) => {
+            Some(Value::Variant(owner.clone(), variant.clone(), Vec::new()))
+        }
         _ => None,
     }
 }

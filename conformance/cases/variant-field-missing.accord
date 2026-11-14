@@ -1,0 +1,8 @@
+// expect: error
+// A variant is built with every field.
+enum Bound { Unbounded, Between(low: i64, high: i64) }
+
+fn narrow() -> Bound
+{
+    Between(low: 1)
+}

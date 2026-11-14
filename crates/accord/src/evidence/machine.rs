@@ -29,6 +29,7 @@ pub(super) struct Checked {
 fn callee_view(program: &Program, machine: &Machine) -> Program {
     Program {
         enums: program.enums.clone(),
+        records: program.records.clone(),
         functions: machine.functions(&program.functions),
         machines: Vec::new(),
         examples: Vec::new(),

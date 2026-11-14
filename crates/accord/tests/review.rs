@@ -130,3 +130,32 @@ fn enum_list_counterexamples_use_source_variants_in_typed_values() {
     );
     assert!(input["source"].as_str().unwrap().contains("Verdict.Retry"));
 }
+
+#[test]
+fn record_and_variant_counterexamples_decode_their_fields() {
+    let solvers = Solvers::from_env().unwrap();
+    let source = "enum Step { Stay, Add(amount: i32) }
+record Pair {
+    left: Step,
+    total: i64,
+}
+fn wrong(pair: Pair) -> Bool
+    ensures not result
+{ pair.left != Stay and pair.total > 0 }";
+    let report = verify(source, &solvers).unwrap();
+    let j: serde_json::Value = serde_json::from_str(&receipt::json(&report, "rule")).unwrap();
+    let input = &j["definitions"][0]["obligations"][0]["counterexample"][0];
+    assert_eq!(input["valid"], true, "{input}");
+    assert_eq!(
+        input["type"],
+        serde_json::json!({"kind": "record", "name": "Pair"})
+    );
+    assert_eq!(input["value"]["left"]["variant"], "Add", "{input}");
+    assert!(input["value"]["left"]["fields"]["amount"].is_string());
+    assert!(input["value"]["total"].is_string());
+    let written = input["source"].as_str().unwrap();
+    assert!(
+        written.starts_with("Pair { left: Step.Add(amount: "),
+        "{written}"
+    );
+}

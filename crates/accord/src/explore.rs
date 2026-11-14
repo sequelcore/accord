@@ -261,11 +261,11 @@ fn instances(member: &Member) -> Option<Vec<Vec<Value>>> {
                     .find(|e| e.name == *owner)?;
                 e.variants
                     .iter()
-                    .map(|v| Value::Variant(owner.clone(), v.clone()))
+                    .map(|v| Value::Variant(owner.clone(), v.clone(), Vec::new()))
                     .collect()
             }
             Type::Int(width) => integers(name, *width, &requires)?,
-            Type::Text | Type::List(_) => return None,
+            Type::Text | Type::List(_) | Type::Record(_) => return None,
         };
         if combinations.len().checked_mul(domain.len())? > MAX_STEPS {
             return None;

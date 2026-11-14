@@ -70,7 +70,8 @@ example larger(a: 2, b: 5) == 5
 
 | Form | Meaning |
 | --- | --- |
-| `enum Name { A, B, … }` | A type whose values are exactly the listed variants. A variant may give its value outside Accord as a string, `A = "A_VALUE"`; otherwise it is its name in `snake_case`. No two variants of an enum share a value |
+| `enum Name { A, B, … }` | A type whose values are exactly the listed variants. A variant may give its value outside Accord as a string, `A = "A_VALUE"`; otherwise it is its name in `snake_case`. No two variants of an enum share a value. A variant may carry fields: `B(field: Type, …)` ([records, variants with fields and `match`](#records-variants-with-fields-and-match)) |
+| `record Name { field: Type, … }` | A type whose values have every one of the named fields |
 | `fn name(params) -> Type clauses body` | A pure, total function |
 | `example call == value` | A concrete case, checked by running it |
 | `pub` before a function | Exported from its file's [TypeScript module](../typescript.md); within a folder every file sees every declaration either way |
@@ -131,8 +132,9 @@ condition can never be the first to hold.
   later one is rejected. Texts are compared with `==` and `!=` and have no
   other operations yet.
 - `List<T>`: a sequence of values of type `T`, written `["read", "grep"]`
-  or `[]`. `T` is `Bool`, an enum or `Text`; lists of integers wait for a
-  target that needs them. A list literal takes its element type from its
+  or `[]`. `T` is `Bool`, `Text`, an enum or a record whose values hold no
+  integer and no list, however deep; lists of integers wait for a target
+  that needs them. A list literal takes its element type from its
   context where its elements don't give it, as `[]` always does. Lists are
   compared with `==` and `!=`, and `x in list` asks whether `x` is one of the
   elements; it binds like a comparison, so `not tool in readers` needs no
@@ -166,6 +168,7 @@ condition can never be the first to hold.
 | Choice | `if condition { a } else { b }`, always with `else` |
 | Quantifier | `all x in list: condition`, `any x in list: condition` and `count x in list: condition`, by element; `all k in indices(list): condition` and the same for `any` and `count`, by index. `all` and `any` are `Bool`, `count` an `i64`. The condition extends as far as an expression does, so `(all x in xs: x) and ready` needs its parentheses. The name can't be a parameter's, and `count` can't be inside another quantifier yet |
 | Length and index | `length(list)`, `list[k]` |
+| Records and variants | `Name { field: value, … }`, `value.field`, `Variant(field: value, …)`, `match value { \| Pattern => result … }` |
 | Call | `name(label: value, …)`; labels are required when the function has more than one parameter. A body or a decision table can call any function of its program; a specification and an example's arguments can't yet. A function can't call itself, directly or through others |
 
 A call is proved through the callee's contract, never its body: the caller
@@ -175,6 +178,58 @@ leaves its callers' proofs current; changing its contract doesn't.
 
 Blocks are expressions: the last expression is the block's value. There is no
 `return`: an early exit is a decision table.
+
+## Records, variants with fields and `match`
+
+Accepted for stage 11 ([#83](https://github.com/sequelcore/accord/issues/83)),
+syntax decisions 8 to 10. `accord check` checks them; `accord build` doesn't
+write them as TypeScript yet, and refuses a program that declares a record or
+a variant with fields, or uses `match`.
+
+```accord
+/// Where a count may fall.
+enum Bound { Unbounded, Below(limit: i64), Between(low: i64, high: i64) }
+
+/// A count and the bound it must keep.
+record Gauge {
+    bound: Bound,
+    level: i64,
+}
+
+fn within(gauge: Gauge) -> Bool
+    ensures gauge.bound == Unbounded implies result
+{
+    match gauge.bound {
+        | Unbounded                => true
+        | Below(limit)             => gauge.level < limit
+        | Between(low: a, high: b) => a <= gauge.level and gauge.level <= b
+    }
+}
+
+example within(gauge: Gauge { bound: Below(limit: 5), level: 4 }) == true
+```
+
+- **A variant with fields** is built like a call: `Below(limit: 5)`, bare
+  where its enum is known and `Bound.Below(limit: 5)` where it isn't. Its
+  labels follow call labels: optional for one field, required for more, in
+  any order. A variant without fields is written as before.
+- **A record's value** names every field once, in any order: there is no
+  shorthand and no empty record, so `Name {` followed by `field:` is always a
+  record and `if x == On { On }` stays a block. `value.field` reads a field.
+- **Records and variants are immutable values.** `==` and `!=` compare them
+  field by field.
+- **`match`** has the rows of `decide`, and is an expression, in code and in
+  specifications. Each row names a variant of the value's enum, every
+  variant once: there is no catch-all, and a variant left out or named twice
+  is an error that names it. A pattern binds a single field by position,
+  `Below(limit)`, and several by label, `Between(low: a, high: b)`; `_`
+  binds nothing, and a variant with fields lists each. A name it binds can't
+  hide a name in scope. A row's arithmetic, calls and indexing run only when
+  its variant is the value's, and their obligations hold only there.
+- **A type can't contain itself yet**, directly or through others, and a
+  machine's state and parameters can't hold a record or a variant with
+  fields yet.
+- `match` is a reserved word.
 
 ## Machines
 
@@ -317,7 +372,7 @@ Accepted on 2026-11-12 ([#82](https://github.com/sequelcore/accord/issues/82)):
    apart from what the machine claims, and every reader told the two apart.
 
 Accepted on 2026-11-13 ([#83](https://github.com/sequelcore/accord/issues/83)),
-for stage 11 and not yet implemented. In a
+for stage 11; 8 to 10 are implemented, 11 and 12 not yet. In a
 [probe](probes/2026-11-13-structured-data/README.md), twelve readers read three
 spellings of the SemVer comparator as Accord means them; an independent review
 then found what the probe couldn't show, since its variants each had one field.

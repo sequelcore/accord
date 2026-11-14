@@ -1,10 +1,10 @@
 //! Expressions, by precedence: `implies`, `or`, `and`, `not`, comparison,
-//! `+` and `-`, `*`, unary `-`, then literals, names, calls, `if` and
-//! parentheses.
+//! `+` and `-`, `*`, unary `-`, then literals, names, calls, records, `if`,
+//! `match` and parentheses, each followed by any `[index]` or `.field`.
 
 use super::parser::Parser;
 use super::token::Token;
-use super::{Arith, Expr, Op, Quantifier, Range};
+use super::{Arith, Arm, Binding, Expr, Op, Quantifier, Range};
 use crate::Diagnostic;
 
 impl Parser<'_> {
@@ -108,17 +108,107 @@ impl Parser<'_> {
         Ok(Expr::Neg(Box::new(inner), self.site(start)))
     }
 
-    /// An atom, then any `[index]` after it.
+    /// An atom, then any `[index]` or `.field` after it.
     fn primary(&mut self) -> Result<Expr, Diagnostic> {
         let start = self.pos;
         let mut expr = self.atom()?;
-        while self.at_sym("[") {
-            self.pos += 1;
-            let index = self.expr()?;
-            self.expect_sym("]")?;
-            expr = Expr::Index(Box::new(expr), Box::new(index), self.site(start));
+        loop {
+            if self.at_sym("[") {
+                self.pos += 1;
+                let index = self.expr()?;
+                self.expect_sym("]")?;
+                expr = Expr::Index(Box::new(expr), Box::new(index), self.site(start));
+            } else if self.at_sym(".") {
+                let line = self.line();
+                self.pos += 1;
+                expr = Expr::Field(Box::new(expr), None, self.name()?, line);
+            } else {
+                return Ok(expr);
+            }
         }
-        Ok(expr)
+    }
+
+    /// `match value { | Pattern => result ... }`.
+    fn matched(&mut self) -> Result<Expr, Diagnostic> {
+        let line = self.line();
+        self.expect_word("match")?;
+        let value = self.expr()?;
+        self.expect_sym("{")?;
+        let mut arms = Vec::new();
+        while self.at_sym("|") {
+            self.pos += 1;
+            let arm_line = self.line();
+            if self.at_word("_") {
+                return self.error("a `match` has no catch-all: name every variant");
+            }
+            let variant = self.name()?;
+            let bindings = if self.at_sym("(") {
+                self.bindings()?
+            } else {
+                Vec::new()
+            };
+            self.expect_sym("=>")?;
+            arms.push(Arm {
+                variant,
+                bindings,
+                test: None,
+                result: self.expr()?,
+                line: arm_line,
+            });
+        }
+        if arms.is_empty() {
+            return self.error("expected a row starting with `|`");
+        }
+        self.expect_sym("}")?;
+        Ok(Expr::Match(Box::new(value), arms, line))
+    }
+
+    /// A pattern's parenthesized names, each with its label where written;
+    /// `_` names nothing.
+    fn bindings(&mut self) -> Result<Vec<Binding>, Diagnostic> {
+        self.expect_sym("(")?;
+        let mut bindings = Vec::new();
+        while !self.at_sym(")") {
+            let labelled = matches!(self.tokens.get(self.pos + 1), Some((Token::Sym(":"), ..)));
+            let label = if labelled {
+                let label = self.name()?;
+                self.expect_sym(":")?;
+                Some(label)
+            } else {
+                None
+            };
+            let name = self.name()?;
+            bindings.push((label, (name != "_").then_some(name)));
+            if !self.at_sym(")") {
+                self.expect_sym(",")?;
+            }
+        }
+        self.expect_sym(")")?;
+        Ok(bindings)
+    }
+
+    /// Whether a `{` here opens a record's value: one is followed by a field
+    /// and `:`, which no block starts with.
+    fn at_record(&self) -> bool {
+        self.at_sym("{")
+            && matches!(self.tokens.get(self.pos + 1), Some((Token::Word(_), ..)))
+            && matches!(self.tokens.get(self.pos + 2), Some((Token::Sym(":"), ..)))
+    }
+
+    /// `{ field: value, ... }` after a record's name.
+    fn record_value(&mut self, name: String, line: usize) -> Result<Expr, Diagnostic> {
+        self.expect_sym("{")?;
+        let mut fields = Vec::new();
+        while !self.at_sym("}") {
+            let field = self.name()?;
+            self.expect_sym(":")?;
+            fields.push((field, self.expr()?));
+            if !self.at_sym("}") {
+                self.expect_sym(",")?;
+            }
+        }
+        self.expect_sym("}")?;
+        Ok(Expr::Record(name, fields, line))
     }
 
     /// `all name in range: condition`, `any …` or `count …`: the condition
@@ -153,6 +243,9 @@ impl Parser<'_> {
             if self.at_word(quantifier.name()) {
                 return self.quantified(quantifier);
             }
+        }
+        if self.at_word("match") {
+            return self.matched();
         }
         if self.at_word("length") {
             let line = self.line();
@@ -229,8 +322,18 @@ impl Parser<'_> {
         let start = self.pos;
         let name = self.name()?;
         if self.at_sym(".") {
+            // `Type.Variant`, or a value's field, which the checker tells
+            // apart.
             self.pos += 1;
-            return Ok(Expr::Variant(name, self.name()?, line));
+            let variant = self.name()?;
+            if self.at_sym("(") {
+                let args = self.arguments()?;
+                return Ok(Expr::Construct(name, variant, args, line));
+            }
+            return Ok(Expr::Variant(name, variant, line));
+        }
+        if self.at_record() {
+            return self.record_value(name, line);
         }
         if self.at_sym("(") {
             let args = self.arguments()?;

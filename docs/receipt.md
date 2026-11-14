@@ -1,6 +1,6 @@
 # The receipt and review view
 
-**Status: version 4, unstable until the first release.** `accord check <file or
+**Status: version 5, unstable until the first release.** `accord check <file or
 folder>` produces a per-function terminal review view. Add `--json` for the
 same facts as a structured record with stable diagnostic codes. Both report
 only checks actually performed; neither records human approval.
@@ -48,15 +48,16 @@ they are not failed proof attempts. In text mode pre-check errors go to stderr
 with an ACC code. A crash, interrupted command, empty output, or unreadable JSON
 must never be accepted as verified.
 
-## JSON version 4
+## JSON version 5
 
 Object keys have no fixed order; arrays keep source order. This replaces receipt
-version 3, which had no machines; there is no legacy-format switch. `accord diff` retains its separately
+version 4, which had no records and no variants with fields; there is no
+legacy-format switch. `accord diff` retains its separately
 versioned [comparison format](diff.md).
 
 | Field | Meaning |
 | --- | --- |
-| `receipt` | Schema version, now 4 |
+| `receipt` | Schema version, now 5 |
 | `accord` | Compiler package version |
 | `file` | Input path as passed to check |
 | `status` | checked, rejected, or unavailable |
@@ -156,7 +157,10 @@ Result values use the same shape without name. Types are:
   avoiding loss in clients with floating-point JSON numbers.
 - `{"kind":"text"}`: value is a JSON string without Accord quotes.
 - `{"kind":"enum","name":"Light"}`: value is a variant name; declared variants
-  are in the definition's types inventory.
+  are in the definition's types inventory. A variant with fields is an object
+  instead, `{"variant":"Below","fields":{"limit":"5"}}`, each field decoded.
+- `{"kind":"record","name":"Gauge"}`: value is an object of the record's
+  fields by name, each decoded.
 - `{"kind":"list","element":{"kind":"text"}}`: value is a JSON array of
   decoded element values, including an empty array.
 

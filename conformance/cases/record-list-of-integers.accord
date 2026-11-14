@@ -1,0 +1,10 @@
+// expect: error
+// A list can't hold values with integers yet, as it can't hold integers.
+record Version {
+    major: i64,
+}
+
+fn how_many(versions: List<Version>) -> i64
+{
+    length(versions)
+}

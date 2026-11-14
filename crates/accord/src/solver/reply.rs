@@ -141,14 +141,33 @@ fn elements(value: &Sexp) -> Option<Vec<String>> {
 }
 
 /// A value in Accord source: a symbol or number as printed, `(- n)` as `-n`,
-/// a string in quotes, a sequence as a list literal.
+/// a string in quotes, a sequence as a list literal, and a constructor with
+/// fields as a variant's or a record's value. Scripts are written from
+/// normalized programs, whose fields are `x0`, `x1`, ... by position, and
+/// whose variants, unlike records, have a `.` in their constructor's name.
 fn source(value: &Sexp) -> Option<String> {
     match value {
         Sexp::Atom(atom) => Some(atom.clone()),
         Sexp::Str(text) => Some(format!("\"{text}\"")),
         Sexp::List(items) => match items.as_slice() {
             [Sexp::Atom(minus), Sexp::Atom(n)] if minus == "-" => Some(format!("-{n}")),
-            _ => elements(value).map(|items| format!("[{}]", items.join(", "))),
+            [Sexp::Atom(f), ..] if f.starts_with("seq.") || f == "as" => {
+                elements(value).map(|items| format!("[{}]", items.join(", ")))
+            }
+            [Sexp::Atom(constructor), fields @ ..] if !fields.is_empty() => {
+                let fields = fields
+                    .iter()
+                    .enumerate()
+                    .map(|(index, field)| Some(format!("x{index}: {}", source(field)?)))
+                    .collect::<Option<Vec<_>>>()?
+                    .join(", ");
+                Some(if constructor.contains('.') {
+                    format!("{constructor}({fields})")
+                } else {
+                    format!("{constructor} {{ {fields} }}")
+                })
+            }
+            _ => None,
         },
     }
 }
@@ -246,6 +265,22 @@ mod tests {
                 ("s".to_string(), "[\"x)\", \"café\"]".to_string()),
                 ("c".to_string(), "[E0.v1]".to_string()),
                 ("e".to_string(), "[]".to_string())
+            ])
+        );
+    }
+
+    #[test]
+    fn variants_and_records_read_as_source() {
+        // Z3's form, then cvc5's, with a field that is itself a sequence.
+        let output = "sat\n((p0 (R0 4 (seq.++ (seq.unit (E0.v0 \"!0!\")) (seq.unit E0.v2))))\n (p1 (E0.v1 (- 1) 0)))\n";
+        assert_eq!(
+            parse_answer(output, &names(&["p0", "p1"])),
+            Answer::Sat(vec![
+                (
+                    "p0".to_string(),
+                    "R0 { x0: 4, x1: [E0.v0(x0: \"!0!\"), E0.v2] }".to_string()
+                ),
+                ("p1".to_string(), "E0.v1(x0: -1, x1: 0)".to_string())
             ])
         );
     }

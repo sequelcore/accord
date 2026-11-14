@@ -1,0 +1,8 @@
+// expect: error
+// A variant with more than one field is built with every label.
+enum Bound { Unbounded, Between(low: i64, high: i64) }
+
+fn narrow() -> Bound
+{
+    Between(1, 3)
+}

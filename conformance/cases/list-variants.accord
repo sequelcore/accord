@@ -1,0 +1,15 @@
+// expect: proved, passed, passed
+// A list of variants with fields, with `in` and a quantifier over it.
+enum PreId { Numeric(digits: Text), Alpha(text: Text) }
+
+fn numeric_only(ids: List<PreId>) -> Bool
+    ensures result implies not (Alpha(text: "rc") in ids)
+{
+    all id in ids: match id {
+        | Numeric(_) => true
+        | Alpha(_)   => false
+    }
+}
+
+example numeric_only(ids: [Numeric(digits: "1"), Alpha(text: "rc")]) == false
+example numeric_only(ids: []) == true
