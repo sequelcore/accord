@@ -167,8 +167,31 @@ pub(crate) fn body_callees(function: &Function) -> Vec<String> {
 /// that call each other, whose termination isn't proved.
 pub(super) fn check_recursion(program: &Program) -> Result<(), Diagnostic> {
     for function in &program.functions {
-        let mut pending = body_callees(function);
-        let direct = pending.contains(&function.name);
+        let callees = body_callees(function);
+        let direct = callees.contains(&function.name);
+        let mut pending: Vec<String> = callees
+            .into_iter()
+            .filter(|name| *name != function.name)
+            .collect();
+        let mut seen: Vec<String> = Vec::new();
+        while let Some(name) = pending.pop() {
+            if name == function.name {
+                return Err(Diagnostic::new(
+                    function.line,
+                    format!(
+                        "`{}` calls itself through another function: recursion through other functions isn't supported",
+                        function.name
+                    ),
+                ));
+            }
+            if seen.contains(&name) {
+                continue;
+            }
+            if let Some(callee) = program.functions.iter().find(|f| f.name == name) {
+                pending.extend(body_callees(callee));
+            }
+            seen.push(name);
+        }
         let measured = function
             .clauses
             .iter()
@@ -190,26 +213,6 @@ pub(super) fn check_recursion(program: &Program) -> Result<(), Diagnostic> {
                     function.name
                 ),
             ));
-        }
-        pending.retain(|name| *name != function.name);
-        let mut seen: Vec<String> = Vec::new();
-        while let Some(name) = pending.pop() {
-            if name == function.name {
-                return Err(Diagnostic::new(
-                    function.line,
-                    format!(
-                        "`{}` calls itself through another function: recursion through other functions isn't supported",
-                        function.name
-                    ),
-                ));
-            }
-            if seen.contains(&name) {
-                continue;
-            }
-            if let Some(callee) = program.functions.iter().find(|f| f.name == name) {
-                pending.extend(body_callees(callee));
-            }
-            seen.push(name);
         }
     }
     Ok(())
