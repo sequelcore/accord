@@ -1,0 +1,8 @@
+// expect: error
+// A measure is known before the body runs, so it can't read `result`.
+fn steps(n: i32) -> i32
+    requires n >= 0
+    decreases result
+{
+    if n == 0 { 0 } else { steps(n - 1) + 1 }
+}

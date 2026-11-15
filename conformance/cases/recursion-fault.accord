@@ -1,0 +1,13 @@
+// expect: refuted, proved, proved, proved, proved, failed, failed
+// The call's contract supports the proof only where the body makes it good:
+// a wrong base case is refuted, though the recursive call assumes `ensures`.
+fn steps(n: i32) -> i32
+    requires n >= 0
+    decreases n
+    ensures result == n
+{
+    if n == 0 { 1 } else { steps(n - 1) + 1 }
+}
+
+example steps(n: 0) == 0
+example steps(n: 5) == 5

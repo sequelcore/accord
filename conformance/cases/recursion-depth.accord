@@ -1,0 +1,13 @@
+// expect: proved, proved, proved, proved, proved, passed, failed
+// The interpreter runs at most 1000 calls inside one another. An example
+// that needs more fails rather than passing, though it would end.
+fn steps(n: i32) -> i32
+    requires n >= 0
+    decreases n
+    ensures result == n
+{
+    if n == 0 { 0 } else { steps(n - 1) + 1 }
+}
+
+example steps(n: 999) == 999
+example steps(n: 1000) == 1000

@@ -1,0 +1,8 @@
+// expect: error
+// `decreases` comes after every `requires`.
+fn steps(n: i32) -> i32
+    decreases n
+    requires n >= 0
+{
+    if n == 0 { 0 } else { steps(n - 1) + 1 }
+}

@@ -1,0 +1,8 @@
+// expect: error
+// A measure is an integer.
+fn steps(n: i32) -> i32
+    requires n >= 0
+    decreases n > 0
+{
+    if n == 0 { 0 } else { steps(n - 1) + 1 }
+}

@@ -1,5 +1,5 @@
 // expect: error
-// A function can't call itself: termination isn't proved yet.
+// A function that calls itself needs a `decreases` measure.
 fn countdown(n: i32) -> i32
     requires n >= 0
 {
