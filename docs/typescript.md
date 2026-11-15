@@ -59,7 +59,10 @@ A call runs the callee's body directly, with no boundary check, since each
 call's `requires` is proved. Every function a module's exported functions call,
 directly or not, is written into that module unexported, even when another
 file declares it: no module exports a body without its checks, and modules
-never import each other's functions.
+never import each other's functions. A function that calls itself is written
+as a TypeScript function that calls itself. Its termination is proved, but
+not its stack depth: deep enough recursion throws Node's `RangeError` for
+the call stack.
 
 `i32` arithmetic in `number` is exact: every operation's result is proved to
 fit `i32`, so it is well inside the integers a `number` holds exactly. `i64`
@@ -122,5 +125,7 @@ seeded sample, the program's text literals and characters beyond ASCII, each
 4,096 combinations per function. For a machine, the same inputs for each
 init, event and observer, and for events and observers, states built from its
 fields' values and the integers its clauses name, most of them breaking an
-invariant or helper invariant, which the module must reject. Agreement on those inputs is evidence, not a
+invariant or helper invariant, which the module must reject. An input that
+needs more than the interpreter's 1000 calls inside one another isn't
+compared. Agreement on those inputs is evidence, not a
 proof.

@@ -33,6 +33,7 @@ fn reproduces(
         mode: Mode::Math,
         functions: obligation.functions,
         assumed,
+        depth: 0,
     };
     Ok(match &obligation.claim {
         Claim::Allowed => true,
@@ -66,19 +67,27 @@ fn reproduces(
         } => runs(&env, guards)? && !(width.min()..=width.max()).contains(&env.int(expr)?),
         Claim::Requires { call, guards } => {
             let runs = runs(&env, guards)?;
-            let Expr::Call(name, args, _) = call else {
+            let Some((callee, names)) = arguments(obligation, &env, call)? else {
                 return Ok(false);
             };
-            let Some(callee) = obligation.functions.iter().find(|f| f.name == *name) else {
-                return Ok(false);
-            };
-            let names = callee
-                .params
-                .iter()
-                .zip(args)
-                .map(|((param, _), (_, arg))| Ok((param.clone(), env.eval(arg)?)))
-                .collect::<Result<Vec<_>, String>>()?;
             runs && broken_requires(callee, &names)?.is_some()
+        }
+        Claim::Decreases {
+            call,
+            measure,
+            guards,
+        } => {
+            let runs = runs(&env, guards)?;
+            let Some((_, names)) = arguments(obligation, &env, call)? else {
+                return Ok(false);
+            };
+            let old = env.int(measure)?;
+            let new = Env {
+                names: &names,
+                ..env
+            }
+            .int(measure)?;
+            runs && !(0 <= new && new < old)
         }
         Claim::InBounds {
             index,
@@ -111,6 +120,28 @@ pub(crate) fn fails(obligation: &Obligation, names: &Names) -> Result<bool, Stri
     reproduces(obligation, names, None)
 }
 
+/// The function `call` names, with its parameters named by the arguments'
+/// values; `None` when it names none.
+fn arguments<'a>(
+    obligation: &'a Obligation,
+    env: &Env,
+    call: &Expr,
+) -> Result<Option<(&'a crate::syntax::Function, Names)>, String> {
+    let Expr::Call(name, args, _) = call else {
+        return Ok(None);
+    };
+    let Some(callee) = obligation.functions.iter().find(|f| f.name == *name) else {
+        return Ok(None);
+    };
+    let names = callee
+        .params
+        .iter()
+        .zip(args)
+        .map(|((param, _), (_, arg))| Ok((param.clone(), env.eval(arg)?)))
+        .collect::<Result<Names, String>>()?;
+    Ok(Some((callee, names)))
+}
+
 /// Whether every guard holds, each evaluated whatever the others give.
 fn runs(env: &Env, guards: &[Guard]) -> Result<bool, String> {
     let mut runs = true;
@@ -139,6 +170,7 @@ fn bind(obligation: &Obligation, inputs: &Inputs, mut names: Names) -> Result<Na
             mode: Mode::Math,
             functions: obligation.functions,
             assumed: None,
+            depth: 0,
         };
         let items = env.list(range.list())?;
         let item = items

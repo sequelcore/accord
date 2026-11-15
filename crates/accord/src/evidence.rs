@@ -109,6 +109,7 @@ pub(crate) fn report(
                     obligation::Claim::InRange { .. } => ObligationKind::Overflow,
                     obligation::Claim::Requires { .. } => ObligationKind::Precondition,
                     obligation::Claim::InBounds { .. } => ObligationKind::Bounds,
+                    obligation::Claim::Decreases { .. } => ObligationKind::Termination,
                     obligation::Claim::Invariants => ObligationKind::Invariant,
                     obligation::Claim::Allowed => ObligationKind::Allowed,
                 },
@@ -176,6 +177,8 @@ pub(crate) fn report(
             let unverified_callees: Vec<String> = unit
                 .callees
                 .iter()
+                // A function that calls itself has its own standing already.
+                .filter(|name| **name != unit.source.name)
                 .filter(|name| standing_of_name(name) != Standing::Verified)
                 .cloned()
                 .collect();

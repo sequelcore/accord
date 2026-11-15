@@ -1,10 +1,10 @@
 //! Calls between functions: their arguments, the functions a body calls,
-//! and the recursion that isn't supported yet.
+//! and which of them may call themselves.
 
 use super::expr::Scope;
 use super::type_name;
 use crate::Diagnostic;
-use crate::syntax::{Body, Expr, Function, Program, Type};
+use crate::syntax::{Body, ClauseKind, Expr, Function, Program, Type};
 
 /// What a call needs to know about the function it calls.
 #[derive(Clone)]
@@ -162,18 +162,24 @@ pub(crate) fn body_callees(function: &Function) -> Vec<String> {
     out
 }
 
-/// Rejects a function that calls itself, directly or through others, since
-/// termination isn't proved yet.
+/// Accepts a function that calls itself only with a `decreases` measure,
+/// and a measure only on a function that calls itself. Rejects functions
+/// that call each other, whose termination isn't proved.
 pub(super) fn check_recursion(program: &Program) -> Result<(), Diagnostic> {
     for function in &program.functions {
+        let callees = body_callees(function);
+        let direct = callees.contains(&function.name);
+        let mut pending: Vec<String> = callees
+            .into_iter()
+            .filter(|name| *name != function.name)
+            .collect();
         let mut seen: Vec<String> = Vec::new();
-        let mut pending = body_callees(function);
         while let Some(name) = pending.pop() {
             if name == function.name {
                 return Err(Diagnostic::new(
                     function.line,
                     format!(
-                        "`{}` calls itself, directly or through another function: recursion isn't supported yet",
+                        "`{}` calls itself through another function: recursion through other functions isn't supported",
                         function.name
                     ),
                 ));
@@ -185,6 +191,28 @@ pub(super) fn check_recursion(program: &Program) -> Result<(), Diagnostic> {
                 pending.extend(body_callees(callee));
             }
             seen.push(name);
+        }
+        let measured = function
+            .clauses
+            .iter()
+            .any(|c| c.kind == ClauseKind::Decreases);
+        if direct && !measured {
+            return Err(Diagnostic::new(
+                function.line,
+                format!(
+                    "`{}` calls itself: give it a `decreases` measure",
+                    function.name
+                ),
+            ));
+        }
+        if measured && !direct {
+            return Err(Diagnostic::new(
+                function.line,
+                format!(
+                    "`{}` has a `decreases` measure but doesn't call itself",
+                    function.name
+                ),
+            ));
         }
     }
     Ok(())

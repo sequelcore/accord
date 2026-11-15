@@ -1,6 +1,6 @@
 # The receipt and review view
 
-**Status: version 5, unstable until the first release.** `accord check <file or
+**Status: version 6, unstable until the first release.** `accord check <file or
 folder>` produces a per-function terminal review view. Add `--json` for the
 same facts as a structured record with stable diagnostic codes. Both report
 only checks actually performed; neither records human approval.
@@ -48,16 +48,16 @@ they are not failed proof attempts. In text mode pre-check errors go to stderr
 with an ACC code. A crash, interrupted command, empty output, or unreadable JSON
 must never be accepted as verified.
 
-## JSON version 5
+## JSON version 6
 
 Object keys have no fixed order; arrays keep source order. This replaces receipt
-version 4, which had no records and no variants with fields; there is no
+version 5, which had no termination obligations; there is no
 legacy-format switch. `accord diff` retains its separately
 versioned [comparison format](diff.md).
 
 | Field | Meaning |
 | --- | --- |
-| `receipt` | Schema version, now 5 |
+| `receipt` | Schema version, now 6 |
 | `accord` | Compiler package version |
 | `file` | Input path as passed to check |
 | `status` | checked, rejected, or unavailable |
@@ -90,7 +90,8 @@ Each definition has these fields:
 
 An obligation carries `kind` (postcondition, coverage, row_reachability,
 overflow, precondition: a call meets its callee's `requires`, bounds: an
-index is within its list, invariant: a machine's init or event leaves a state
+index is within its list, termination: a call a function makes to itself
+makes its `decreases` measure smaller and keeps it non-negative, invariant: a machine's init or event leaves a state
 that meets every invariant and helper invariant, or allowed), `polarity`
 (existential for row reachability and allowed, otherwise universal), `clause`,
 `line`, `key`, `reused`, and `outcome`. Its key hashes the exact normalized

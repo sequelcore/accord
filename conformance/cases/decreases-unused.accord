@@ -1,0 +1,8 @@
+// expect: error
+// A measure on a function that doesn't call itself measures nothing.
+fn successor(n: i32) -> i32
+    requires n < 100
+    decreases n
+{
+    n + 1
+}

@@ -8,7 +8,9 @@
 //! and a seeded sample for integers, and for texts the empty text, every text
 //! literal in the program and characters beyond ASCII. Each `example`'s call
 //! and every input a solver gave are added. Past 4,096 combinations, a seeded
-//! sample of them is taken.
+//! sample of them is taken. An input that needs more calls inside one another
+//! than the interpreter runs isn't compared: the interpreter gives it no
+//! result to compare with.
 //!
 //! An input the boundary must refuse is expected to throw: a broken
 //! `requires` or an `i64` that isn't a safe integer throws a `RangeError`.
@@ -42,13 +44,14 @@ fn to_json(value: &Value, enums: &[Enum]) -> Json {
     }
 }
 
-/// What the generated function must do for `names`.
+/// What the generated function must do for `names`; `None` when the
+/// interpreter needs more calls inside one another than it runs.
 fn expected(
     function: &Function,
     names: &interpret::Names,
     functions: &[Function],
     enums: &[Enum],
-) -> Json {
+) -> Option<Json> {
     let unsafe_i64 = |ty: &Type, v: &Value| {
         *ty == Type::Int(Width::I64) && matches!(v, Value::Int(n) if n.abs() > SAFE)
     };
@@ -58,16 +61,17 @@ fn expected(
         .zip(names)
         .any(|((_, ty), (_, v))| unsafe_i64(ty, v))
     {
-        return json!({"error": "RangeError"});
+        return Some(json!({"error": "RangeError"}));
     }
     match interpret::broken_requires(function, names) {
-        Ok(Some(_)) => return json!({"error": "RangeError"}),
+        Ok(Some(_)) => return Some(json!({"error": "RangeError"})),
         Ok(None) => {}
         Err(reason) => panic!("{}: requires can't be evaluated: {reason}", function.name),
     }
     match interpret::result(function, names, functions) {
-        Ok(result) if unsafe_i64(&function.ret, &result) => json!({"error": "RangeError"}),
-        Ok(result) => json!({"ok": to_json(&result, enums)}),
+        Ok(result) if unsafe_i64(&function.ret, &result) => Some(json!({"error": "RangeError"})),
+        Ok(result) => Some(json!({"ok": to_json(&result, enums)})),
+        Err(reason) if interpret::too_deep(&reason) => None,
         Err(reason) => panic!(
             "{}: no result for an admitted input: {reason}",
             function.name
@@ -241,11 +245,11 @@ fn generated_modules_agree_with_the_interpreter() {
                     .map(|(n, _)| n.clone())
                     .zip(args.iter().cloned())
                     .collect();
-                wanted.push((
-                    name.clone(),
-                    function.name.clone(),
-                    expected(function, &names, &program.functions, &program.enums),
-                ));
+                let Some(want) = expected(function, &names, &program.functions, &program.enums)
+                else {
+                    continue;
+                };
+                wanted.push((name.clone(), function.name.clone(), want));
                 calls.push(json!({
                     "module": module.display().to_string(),
                     "name": camel(&function.name),

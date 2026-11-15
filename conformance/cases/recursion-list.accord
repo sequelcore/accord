@@ -1,0 +1,12 @@
+// expect: proved, proved, proved, proved, proved, passed, passed
+// A measure over a list: `length(xs) - k` shrinks as `k` walks it.
+fn count_from(xs: List<Text>, k: i64) -> i64
+    requires k >= 0 and k <= length(xs)
+    decreases length(xs) - k
+    ensures result == length(xs) - k
+{
+    if k == length(xs) { 0 } else { count_from(xs: xs, k: k + 1) + 1 }
+}
+
+example count_from(xs: ["a", "b", "c"], k: 0) == 3
+example count_from(xs: ["a", "b", "c"], k: 3) == 0

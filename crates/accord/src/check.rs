@@ -15,7 +15,7 @@ pub(crate) use calls::{body_callees, callees};
 use expr::Scope;
 
 use crate::Diagnostic;
-use crate::syntax::{Body, ClauseKind, Enum, Function, Program, Record, Type};
+use crate::syntax::{Body, ClauseKind, Enum, Function, Program, Record, Type, Width};
 
 fn type_name(ty: &Type) -> String {
     ty.name()
@@ -331,7 +331,47 @@ pub(crate) fn check(program: &mut Program, files: &[String]) -> Result<(), Diagn
 
 /// Checks each clause of `function` against its parameters.
 fn check_clauses(types: Types, function: &mut Function) -> Result<(), Diagnostic> {
+    let mut measured = false;
+    for clause in &function.clauses {
+        match clause.kind {
+            ClauseKind::Decreases if measured => {
+                return Err(Diagnostic::new(
+                    clause.line,
+                    "a function has one `decreases` measure",
+                ));
+            }
+            ClauseKind::Decreases => measured = true,
+            ClauseKind::Requires if measured => {
+                return Err(Diagnostic::new(
+                    clause.line,
+                    "`decreases` comes after every `requires`",
+                ));
+            }
+            _ => {}
+        }
+    }
     for clause in &mut function.clauses {
+        if clause.kind == ClauseKind::Decreases {
+            let scope = Scope {
+                types,
+                params: &function.params,
+                result: None,
+                spec: true,
+                functions: None,
+                indexing: false,
+                bound: false,
+            };
+            let hint = scope
+                .needs_context(&clause.expr)
+                .then_some(Type::Int(Width::I64));
+            if !matches!(scope.infer(&mut clause.expr, hint.as_ref())?, Type::Int(_)) {
+                return Err(Diagnostic::new(
+                    clause.line,
+                    "a `decreases` measure must be an integer",
+                ));
+            }
+            continue;
+        }
         let scope = Scope {
             types,
             params: &function.params,

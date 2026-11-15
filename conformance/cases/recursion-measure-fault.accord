@@ -1,0 +1,13 @@
+// expect: proved, proved, proved, refuted, proved, passed, passed
+// A measure that grows at the call is refuted, though the code is right and
+// every other obligation is proved.
+fn steps(n: i32) -> i32
+    requires n >= 0
+    decreases 10 - n
+    ensures result == n
+{
+    if n == 0 { 0 } else { steps(n - 1) + 1 }
+}
+
+example steps(n: 0) == 0
+example steps(n: 5) == 5

@@ -121,6 +121,27 @@ condition can never be the first to hold.
       n > 0
   }
   ```
+- `decreases measure` lets a function call itself. The measure is an
+  integer, a specification with mathematical integers, so it can't mention
+  `result`. A function has at most one, after every `requires`, and only a
+  function that calls itself has one. At each call the function makes to
+  itself, the measure of the call's arguments must be non-negative and
+  smaller than its own, which is an obligation of its own: the recursion
+  ends. The call is proved through the function's contract, as any call is.
+  Functions that call each other are rejected, measure or not.
+
+  ```accord
+  fn steps(n: i32) -> i32
+      requires n >= 0
+      decreases n
+      ensures result == n
+  {
+      if n == 0 { 0 } else { steps(n - 1) + 1 }
+  }
+  ```
+
+  The interpreter, which runs examples and replays counterexamples, runs at
+  most 1000 calls inside one another; an example that needs more fails.
 
 ## Types and values
 
@@ -372,7 +393,8 @@ Accepted on 2026-11-12 ([#82](https://github.com/sequelcore/accord/issues/82)):
    apart from what the machine claims, and every reader told the two apart.
 
 Accepted on 2026-11-13 ([#83](https://github.com/sequelcore/accord/issues/83)),
-for stage 11; 8 to 10 are implemented, 11 and 12 not yet. In a
+for stage 11; 8 to 10 are implemented, and of 11 recursion with `decreases`
+in `fn`; `spec fn` and 12 are not yet. In a
 [probe](probes/2026-11-13-structured-data/README.md), twelve readers read three
 spellings of the SemVer comparator as Accord means them; an independent review
 then found what the probe couldn't show, since its variants each had one field.

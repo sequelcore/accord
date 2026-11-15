@@ -1,0 +1,9 @@
+// expect: error
+// A function has one measure.
+fn steps(n: i32) -> i32
+    requires n >= 0
+    decreases n
+    decreases n + 1
+{
+    if n == 0 { 0 } else { steps(n - 1) + 1 }
+}

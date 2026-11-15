@@ -61,6 +61,29 @@ fn row_reachability_is_existential_evidence_without_printing_the_body() {
 }
 
 #[test]
+fn a_measure_is_a_termination_obligation_with_a_counterexample() {
+    let solvers = Solvers::from_env().expect("solvers");
+    let source = "fn steps(n: i32) -> i32\n    requires n >= 0\n    decreases 10 - n\n{\n    if n == 0 { 0 } else { steps(n - 1) }\n}\n";
+    let report = verify(source, &solvers).expect("checked");
+    let j: serde_json::Value = serde_json::from_str(&receipt::json(&report, "rule")).unwrap();
+    let d = &j["definitions"][0];
+    assert_eq!(d["specification"][1]["text"], "decreases 10 - n");
+    let termination = d["obligations"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|o| o["kind"] == "termination")
+        .expect("a termination obligation");
+    assert_eq!(termination["polarity"], "universal");
+    assert_eq!(
+        termination["clause"],
+        "`steps(n - 1)` meets `decreases 10 - n`"
+    );
+    assert_eq!(termination["outcome"], "refuted");
+    assert!(termination["counterexample"].is_array());
+}
+
+#[test]
 fn review_identity_changes_with_intent_but_not_cache_reuse() {
     let solvers = Solvers::from_env().unwrap();
     let source = "fn flag() -> Bool\n intent \"Original purpose.\"\n ensures result\n{ true }\nexample flag() == true";

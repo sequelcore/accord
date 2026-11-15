@@ -280,6 +280,7 @@ pub(super) fn check(program: &Program, machine: &Machine, solvers: &Solvers) -> 
                     Claim::InRange { .. } => ObligationKind::Overflow,
                     Claim::Requires { .. } => ObligationKind::Precondition,
                     Claim::InBounds { .. } => ObligationKind::Bounds,
+                    Claim::Decreases { .. } => ObligationKind::Termination,
                     Claim::Invariants => ObligationKind::Invariant,
                     Claim::Allowed => ObligationKind::Allowed,
                 },

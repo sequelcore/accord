@@ -32,7 +32,7 @@ mod smt;
 
 use calls::{call_facts, declarations};
 pub(crate) use claims::Claim;
-use claims::claim_of;
+use claims::{claim_of, termination_of};
 use lists::list_facts;
 pub(crate) use operations::Guard;
 use operations::{
@@ -270,21 +270,24 @@ fn obligations_of<'a>(
     }
     for (index, op) in ops.into_iter().enumerate() {
         let bound = op.bound.clone();
-        let mut negated: Vec<String> = op.guards.iter().map(guard_term).collect();
-        let Some((text, line, claim, negation)) = claim_of(program, op, false) else {
-            continue;
-        };
-        negated.push(negation);
-        out.push(obligation(
-            &text,
-            line,
-            Polarity::Universal,
-            claim,
-            "",
-            &before(index),
-            &bound,
-            all("and", negated, "true"),
-        ));
+        let guards: Vec<String> = op.guards.iter().map(guard_term).collect();
+        let termination = termination_of(function, &op);
+        for (text, line, claim, negation) in
+            claim_of(program, op, false).into_iter().chain(termination)
+        {
+            let mut negated = guards.clone();
+            negated.push(negation);
+            out.push(obligation(
+                &text,
+                line,
+                Polarity::Universal,
+                claim,
+                "",
+                &before(index),
+                &bound,
+                all("and", negated, "true"),
+            ));
+        }
     }
     // Stable, so obligations on one line keep the order above.
     out.sort_by_key(|o| o.line);
