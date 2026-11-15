@@ -16,6 +16,8 @@ mod machine;
 mod replay;
 mod value;
 
+#[cfg(test)]
+pub(crate) use eval::too_deep;
 use eval::{Env, Mode, body};
 pub(crate) use machine::{broken_invariant, fields, run as run_machine, transition};
 pub(crate) use replay::{Replay, fails, replay};
@@ -63,6 +65,7 @@ pub(crate) fn execute(
         mode: Mode::Code,
         functions,
         assumed: None,
+        depth: 0,
     };
     body(function, &env)
 }
@@ -134,6 +137,7 @@ pub(crate) fn result(
         mode: Mode::Math,
         functions,
         assumed: None,
+        depth: 0,
     };
     body(function, &env)
 }

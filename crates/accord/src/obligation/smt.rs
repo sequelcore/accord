@@ -222,7 +222,7 @@ pub(crate) fn prelude(function: &Function, program: &Program, datatypes: &str) -
     for clause in function.clauses.iter().filter(|c| match c.kind {
         ClauseKind::Requires => true,
         ClauseKind::Invariant => reads_state,
-        ClauseKind::Ensures | ClauseKind::Open => false,
+        ClauseKind::Ensures | ClauseKind::Decreases | ClauseKind::Open => false,
     }) {
         prelude += &format!("(assert {})\n", term(&clause.expr));
     }

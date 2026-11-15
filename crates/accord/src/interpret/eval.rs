@@ -2,7 +2,7 @@
 
 use super::{Value, broken_requires};
 use crate::obligation::{Guard, term};
-use crate::syntax::{Arith, Body, Expr, Function, Op, Owner, Quantifier, Range};
+use crate::syntax::{Arith, Body, ClauseKind, Expr, Function, Op, Owner, Quantifier, Range};
 
 #[derive(Clone, Copy, PartialEq)]
 pub(super) enum Mode {
@@ -19,6 +19,21 @@ pub(super) struct Env<'a> {
     /// When replaying a model, each call's value as the model gives it, by
     /// the call's term; a call then takes that value instead of running.
     pub(super) assumed: Option<&'a [(String, Value)]>,
+    /// How many calls run inside the one this environment belongs to.
+    pub(super) depth: usize,
+}
+
+/// The most calls the interpreter runs inside one another. A run that needs
+/// more fails, whether or not it would end.
+const MAX_DEPTH: usize = 1000;
+
+/// How a run that needs more than `MAX_DEPTH` calls ends.
+const TOO_DEEP: &str = "calls inside one another";
+
+/// Whether `reason` is why a run needed more than `MAX_DEPTH` calls.
+#[cfg(test)]
+pub(crate) fn too_deep(reason: &str) -> bool {
+    reason.ends_with(&format!("more than {MAX_DEPTH} {TOO_DEEP}"))
 }
 
 impl<'a> Env<'a> {
@@ -34,6 +49,7 @@ impl<'a> Env<'a> {
             mode,
             functions: &[],
             assumed: None,
+            depth: 0,
         }
     }
 }
@@ -185,13 +201,24 @@ impl Env<'_> {
                 if let Some(clause) = broken_requires(callee, &names)? {
                     return Err(format!("`{}` breaks `{clause}`", site.text));
                 }
+                let depth = self.depth + 1;
+                if depth >= MAX_DEPTH {
+                    return Err(format!(
+                        "`{}` runs more than {MAX_DEPTH} {TOO_DEEP}",
+                        site.text
+                    ));
+                }
                 let env = Env {
                     names: &names,
                     result: None,
                     mode: self.mode,
                     functions: self.functions,
                     assumed: None,
+                    depth,
                 };
+                if self.depth == 0 && self.functions.iter().any(measured) {
+                    return deep(|| body(callee, &env));
+                }
                 body(callee, &env)
             }
             Expr::Quantified(quantifier, name, range, condition, _) => {
@@ -301,6 +328,31 @@ pub(super) fn first_row(function: &Function, env: &Env) -> Result<Option<usize>,
         }
     }
     Ok(None)
+}
+
+/// The stack a run that may recurse gets: room for `MAX_DEPTH` calls in a
+/// debug build, which takes tens of kilobytes for each, whatever stack the
+/// caller's thread has.
+const DEEP_STACK: usize = 256 << 20;
+
+/// Whether `function` may call itself.
+fn measured(function: &Function) -> bool {
+    function
+        .clauses
+        .iter()
+        .any(|c| c.kind == ClauseKind::Decreases)
+}
+
+/// `run` on a thread of its own with `DEEP_STACK`.
+fn deep<T: Send>(run: impl FnOnce() -> Result<T, String> + Send) -> Result<T, String> {
+    std::thread::scope(|scope| {
+        std::thread::Builder::new()
+            .stack_size(DEEP_STACK)
+            .spawn_scoped(scope, run)
+            .map_err(|e| format!("the interpreter couldn't start a thread: {e}"))?
+            .join()
+            .unwrap_or_else(|panic| std::panic::resume_unwind(panic))
+    })
 }
 
 pub(super) fn body(function: &Function, env: &Env) -> Result<Value, String> {

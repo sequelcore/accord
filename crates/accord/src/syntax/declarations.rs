@@ -139,6 +139,8 @@ impl Parser<'_> {
                 ClauseKind::Requires
             } else if self.at_word("ensures") {
                 ClauseKind::Ensures
+            } else if self.at_word("decreases") {
+                ClauseKind::Decreases
             } else {
                 ClauseKind::Open
             };
@@ -167,7 +169,7 @@ impl Parser<'_> {
         self.expect_sym("->")?;
         let ret = self.ty()?;
         let intent = self.intent()?;
-        let clauses = self.clauses(&["requires", "ensures", "open"])?;
+        let clauses = self.clauses(&["requires", "ensures", "decreases", "open"])?;
         let body = if self.at_word("decide") {
             self.decide(Self::expr)?
         } else {

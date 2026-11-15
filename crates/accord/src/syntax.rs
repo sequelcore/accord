@@ -329,6 +329,9 @@ impl Range {
 pub(crate) enum ClauseKind {
     Requires,
     Ensures,
+    /// The measure of a function that calls itself: an integer that each
+    /// call makes smaller and keeps non-negative.
+    Decreases,
     /// `open when`: inputs for which any result the contract allows is fine.
     Open,
     /// A machine's invariant or helper invariant. An event or observer

@@ -291,7 +291,9 @@ pub(super) fn canonical(function: &Function, with_body: bool) -> String {
         out += &format!(" (member {:?})", member.role);
     }
     for clause in &function.clauses {
-        if with_body || clause.kind != ClauseKind::Open {
+        // A measure concerns only the calls in the function's own body, so
+        // its callers' identities leave it out.
+        if with_body || !matches!(clause.kind, ClauseKind::Open | ClauseKind::Decreases) {
             out += &format!(
                 " ({:?}{} {})",
                 clause.kind,

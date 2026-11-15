@@ -158,6 +158,9 @@ pub enum ObligationKind {
     Precondition,
     /// An index is within its list.
     Bounds,
+    /// A call a function makes to itself makes its `decreases` measure
+    /// smaller and keeps it non-negative.
+    Termination,
     /// A machine's init or event leaves it in a state that meets every
     /// invariant and helper invariant.
     Invariant,
@@ -176,6 +179,7 @@ impl ObligationKind {
             Self::Overflow => "overflow",
             Self::Precondition => "precondition",
             Self::Bounds => "bounds",
+            Self::Termination => "termination",
             Self::Invariant => "invariant",
             Self::Allowed => "allowed",
         }

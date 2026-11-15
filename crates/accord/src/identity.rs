@@ -79,6 +79,15 @@ pub(crate) fn unit<'a>(program: &'a Program, source: &'a Function) -> Unit<'a> {
     };
     let mut function = renamer.contract(source);
     renamer.body(&mut function, &source.params);
+    // A function that calls itself takes the name its calls give it, so
+    // they name it rather than a copy of its contract.
+    if let Some(index) = renamer
+        .functions
+        .iter()
+        .position(|f| std::ptr::eq(*f, source))
+    {
+        function.name = format!("f{index}");
+    }
     // The direct callees' contracts, then every callee's body: the
     // enums found before the bodies are the ones a script declares.
     let direct = renamer.functions.len();
@@ -267,6 +276,38 @@ fn twice(n: i32) -> i32
     fn renaming_a_callee_changes_no_identity() {
         let renamed = CALLS.replace("successor", "next");
         assert_eq!(without_names(CALLS), without_names(&renamed));
+    }
+
+    const RECURSIVE: &str = "fn steps(n: i32) -> i32
+    requires n >= 0
+    decreases n
+    ensures result == n
+{
+    if n == 0 { 0 } else { steps(n - 1) + 1 }
+}
+
+fn twice(n: i32) -> i32
+    requires n >= 0 and n < 1000
+    ensures result == n
+{
+    steps(n)
+}
+";
+
+    #[test]
+    fn renaming_a_function_that_calls_itself_changes_no_identity() {
+        let renamed = RECURSIVE.replace("steps", "walk");
+        assert_eq!(without_names(RECURSIVE), without_names(&renamed));
+    }
+
+    #[test]
+    fn a_measure_change_leaves_its_callers_identity() {
+        let other = RECURSIVE.replace("decreases n\n", "decreases n + 1\n");
+        let (before, after) = (identities(RECURSIVE), identities(&other));
+        assert_ne!(before[0].1, after[0].1);
+        assert_ne!(before[0].2, after[0].2);
+        assert_eq!(before[1].1, after[1].1);
+        assert_eq!(before[1].2, after[1].2);
     }
 
     const STRUCTURED: &str = "enum Bound { Open, Below(limit: i64), Between(low: i64, high: i64) }
