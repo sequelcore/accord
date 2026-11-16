@@ -20,7 +20,7 @@ mod value;
 pub(crate) use eval::too_deep;
 use eval::{Env, Mode, body};
 pub(crate) use machine::{broken_invariant, fields, run as run_machine, transition};
-pub(crate) use replay::{Replay, fails, replay};
+pub(crate) use replay::{Replay, assumed, fails, replay};
 pub(crate) use value::{Value, read};
 
 use crate::Inputs;
@@ -125,18 +125,20 @@ pub(crate) fn admitted(function: &Function, inputs: &Inputs) -> Result<Names, St
 pub(crate) type Names = Vec<(String, Value)>;
 
 /// `function`'s result for `names`, with mathematical integers; it may call
-/// `functions`.
+/// `functions`. With `assumed`, each call takes the value given for it
+/// instead of running, where its callee's contract admits that value.
 pub(crate) fn result(
     function: &Function,
     names: &Names,
     functions: &[Function],
+    assumed: Option<&[(String, Value)]>,
 ) -> Result<Value, String> {
     let env = Env {
         names,
         result: None,
         mode: Mode::Math,
         functions,
-        assumed: None,
+        assumed,
         depth: 0,
     };
     body(function, &env)

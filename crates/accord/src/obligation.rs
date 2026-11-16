@@ -307,6 +307,20 @@ pub(crate) fn obligations(program: &Program) -> Vec<Obligation<'_>> {
         .flat_map(|function| obligations_of(function, program, &datatypes))
         .collect()
 }
+/// The obligations of `mutant`, a mutant of the first function in
+/// `program`, other than its `ensures`: what the compiler requires of any
+/// body, whatever its contract. A call it makes, to itself too, runs the
+/// program's functions.
+pub(crate) fn mutant_obligations<'a>(
+    mutant: &'a Function,
+    program: &'a Program,
+    datatypes: &str,
+) -> Vec<Obligation<'a>> {
+    obligations_of(mutant, program, datatypes)
+        .into_iter()
+        .filter(|o| !matches!(o.claim, Claim::Ensures(_)))
+        .collect()
+}
 /// The obligations of a unit's function, the first in its program; the
 /// others are its callees, known only through their contracts.
 pub(crate) fn unit_obligations(program: &Program) -> Vec<Obligation<'_>> {

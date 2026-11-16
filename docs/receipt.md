@@ -1,6 +1,6 @@
 # The receipt and review view
 
-**Status: version 6, unstable until the first release.** `accord check <file or
+**Status: version 7, unstable until the first release.** `accord check <file or
 folder>` produces a per-function terminal review view. Add `--json` for the
 same facts as a structured record with stable diagnostic codes. Both report
 only checks actually performed; neither records human approval.
@@ -48,7 +48,7 @@ they are not failed proof attempts. In text mode pre-check errors go to stderr
 with an ACC code. A crash, interrupted command, empty output, or unreadable JSON
 must never be accepted as verified.
 
-## JSON version 6
+## JSON version 7
 
 Object keys have no fixed order; arrays keep source order. This replaces receipt
 version 5, which had no termination obligations; there is no
@@ -57,7 +57,7 @@ versioned [comparison format](diff.md).
 
 | Field | Meaning |
 | --- | --- |
-| `receipt` | Schema version, now 6 |
+| `receipt` | Schema version, now 7 |
 | `accord` | Compiler package version |
 | `file` | Input path as passed to check |
 | `status` | checked, rejected, or unavailable |
@@ -186,11 +186,17 @@ variant named Unknown is unrelated to an undecided solver outcome.
 
 ### Mutation and unproved claims
 
-`strength` contains `tried`, `caught`, `equivalent`, `undecided`, `not_tried`, and
-`survivors[]`. Each survivor has `change`, typed `inputs`, `original`, and `mutant`.
-At most 64 mutants are tried per function. Equivalent mutants are proved to
-behave the same on admitted inputs. A survivor changes behavior while meeting
-the contract; it warns about contract strength but does not change standing.
+`strength` contains `tried`, `caught`, `rejected`, `equivalent`, `undecided`,
+`not_tried`, and `survivors[]`. Each survivor has `change`, typed `inputs`,
+`original`, and `mutant`. At most 64 mutants are tried per function. A mutant
+is judged as its proof would be, each call it makes, to itself included,
+through the callee's contract; a counterexample is replayed the same way. A
+caught mutant breaks the contract. A rejected one breaks another obligation (a
+call's `requires`, termination, a value's range, an index), so the compiler
+refuses it whatever the contract says; the text view shows the count only when
+it isn't zero. Equivalent mutants are proved to behave the same on admitted
+inputs. A survivor changes behavior while meeting the contract; it warns about
+contract strength but does not change standing.
 
 Mutation requires ensures, enabled mutation analysis, and proved original
 obligations. An invalid or unresolved baseline is not a basis for a contract-

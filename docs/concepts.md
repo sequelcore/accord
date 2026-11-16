@@ -91,10 +91,17 @@ never records acceptance; that stays with the person.
 - **Example run:** passed or failed.
 - **Strength** of a contract: small, plausible mistakes are planted in the
   body (mutants), and each is **caught** (the contract rules it out),
-  **equivalent** (proved to give the same result for every admitted input,
-  so not a mistake, and dropped), **surviving** (the contract allows it
-  although it behaves differently, shown with an input on which the two
-  differ) or **undecided**. A contract with a surviving mutant is **weak**.
+  **rejected** (another of its obligations is refuted, such as a call's
+  `requires` or termination, so the compiler refuses it whatever the
+  contract says), **equivalent** (proved to give the same result for every
+  admitted input, so not a mistake, and dropped), **surviving** (the
+  contract allows it although it behaves differently, shown with an input on
+  which the two differ) or **undecided**. A contract with a surviving mutant
+  is **weak**. A mutant is judged as its proof would be: each call it makes,
+  a call to itself included, through the callee's contract. So "caught"
+  means the contract can't prove the mutant, and the counts aren't
+  comparable one for one with tools that run a mutant's calls to itself on
+  the mutated body.
   Only functions with an `ensures` are mutated. The mistakes planted are: a
   comparison or logical operator swapped (`<` and `<=`, `>` and `>=`, `==`
   and `!=`, `and` and `or`); an integer literal moved by one, never below

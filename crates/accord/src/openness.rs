@@ -99,7 +99,7 @@ fn search(unit: &Unit, solvers: &Solvers) -> Option<Determinacy> {
                 .collect();
             let found = (|| {
                 let names = interpret::admitted(function, &inputs)?;
-                let code = interpret::result(function, &names, &unit.program.functions)?;
+                let code = interpret::result(function, &names, &unit.program.functions, None)?;
                 Ok::<_, String>((read(&witness, "r0")?, read(&witness, "r1")?, code))
             })();
             match found {

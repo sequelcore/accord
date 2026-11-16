@@ -1,13 +1,17 @@
 //! Contract strength: small, plausible mistakes planted in a function's body
 //! (mutants), each judged against the function's own contract.
 //!
-//! A mutant the contract rules out is **caught**. One it can't tell apart is
-//! either **equivalent**, proved to give the original's result for every
-//! admitted input, and dropped; or it **survives**: the solvers give an input
-//! on which the code and the mutant differ, and the contract allows both. A
-//! surviving mutant makes the contract weak, and it is reported with that
-//! input, since a bare list of survivors isn't something a person can act on.
-//! Only functions with an `ensures` are mutated: without a contract there is
+//! A mutant is judged as its proof would be: each call it makes, to itself
+//! included, through the callee's contract. One the contract rules out is
+//! **caught**. One the compiler refuses whatever the contract says, because
+//! another of its obligations is refuted (it doesn't end, or breaks a call's
+//! `requires`), is **rejected**. One the contract can't tell apart is either
+//! **equivalent**, proved to give the original's result for every admitted
+//! input, and dropped; or it **survives**: the solvers give an input on which
+//! the code and the mutant differ, and the contract allows both. A surviving
+//! mutant makes the contract weak, and it is reported with that input, since
+//! a bare list of survivors isn't something a person can act on. Only
+//! functions with an `ensures` are mutated: without a contract there is
 //! nothing to catch a mistake.
 
 mod mutants;
@@ -15,9 +19,9 @@ mod mutants;
 use mutants::{describe, mutate};
 
 use crate::identity::Unit;
-use crate::interpret;
+use crate::interpret::{self, Replay};
 use crate::obligation::{self, Polarity};
-use crate::syntax::ClauseKind;
+use crate::syntax::{ClauseKind, Function};
 use crate::{Inputs, Outcome, Refutation, Solvers};
 
 /// The most mutants tried per function; the rest are counted as not tried.
@@ -46,6 +50,9 @@ pub struct Strength {
     pub tried: usize,
     /// Mutants the contract ruled out.
     pub caught: usize,
+    /// Mutants the compiler refuses whatever the contract says: one of
+    /// their other obligations is refuted.
+    pub rejected: usize,
     /// Mutants proved to behave like the code: not mistakes, so dropped.
     pub equivalent: usize,
     /// Mutants the solvers couldn't settle.
@@ -71,6 +78,7 @@ fn judge(unit: &Unit, solvers: &Solvers) -> Option<Strength> {
         function: unit.source.name.clone(),
         tried: 0,
         caught: 0,
+        rejected: 0,
         equivalent: 0,
         undecided: 0,
         not_tried: 0,
@@ -89,36 +97,58 @@ fn judge(unit: &Unit, solvers: &Solvers) -> Option<Strength> {
             continue;
         }
         strength.tried += 1;
-        let (survives, differs) =
+        let (survives, differs, calls) =
             obligation::mutant_scripts(original, &mutant, &unit.program, &datatypes);
+        let functions = &unit.program.functions;
         // A counterexample here must be an input on which the mutant breaks
-        // the contract.
-        let breaks = |inputs: &Inputs| -> Result<(), String> {
+        // the contract: as it runs, or, as the solvers judge it, with each
+        // call taking a value its callee's contract admits. A call the
+        // mutant makes to itself is judged through the contract under test.
+        let breaks = |inputs: &Inputs| -> Result<Replay, String> {
             let names = interpret::admitted(original, inputs)?;
-            let result = interpret::result(&mutant, &names, &unit.program.functions)?;
+            if let Ok(result) = interpret::result(&mutant, &names, functions, None)
+                && !interpret::meets(original, &names, &result)?
+            {
+                return Ok(Replay::Runs);
+            }
+            let assumed = interpret::assumed(&calls, functions, inputs)?;
+            let result = interpret::result(&mutant, &names, functions, Some(&assumed))?;
             match interpret::meets(original, &names, &result)? {
-                false => Ok(()),
+                false => Ok(Replay::Assumed),
                 true => Err("the mutant meets the contract there".to_string()),
             }
         };
-        let (judged, _) = solvers.decide(&survives, &params, Polarity::Universal, breaks);
-        match judged {
-            Outcome::Refuted { .. } => {
+        let mut with_calls = params.clone();
+        with_calls.extend(calls.iter().map(|(constant, _)| constant.clone()));
+        let (judged, _) = solvers.decide_calls(
+            &survives,
+            &unit.callee_bodies,
+            &with_calls,
+            Polarity::Universal,
+            breaks,
+        );
+        let contract_allows = match judged {
+            Outcome::Refuted { .. } | Outcome::WeakCallee { .. } => {
                 strength.caught += 1;
                 continue;
             }
-            Outcome::Proved { .. } => {}
-            _ => {
-                strength.undecided += 1;
-                continue;
-            }
+            Outcome::Proved { .. } => true,
+            _ => false,
+        };
+        if rejected(&mutant, unit, &datatypes, solvers) {
+            strength.rejected += 1;
+            continue;
+        }
+        if !contract_allows {
+            strength.undecided += 1;
+            continue;
         }
         // The witness must be an input on which the two really differ.
         let apart = |inputs: &Inputs| -> Result<(), String> {
             let names = interpret::admitted(original, inputs)?;
             let (ours, theirs) = (
-                interpret::result(original, &names, &unit.program.functions)?,
-                interpret::result(&mutant, &names, &unit.program.functions)?,
+                interpret::result(original, &names, functions, None)?,
+                interpret::result(&mutant, &names, functions, None)?,
             );
             if ours == theirs {
                 Err("the two agree there".to_string())
@@ -141,8 +171,8 @@ fn judge(unit: &Unit, solvers: &Solvers) -> Option<Strength> {
                     .collect();
                 let results = interpret::admitted(original, &inputs).and_then(|names| {
                     Ok((
-                        interpret::result(original, &names, &unit.program.functions)?,
-                        interpret::result(&mutant, &names, &unit.program.functions)?,
+                        interpret::result(original, &names, functions, None)?,
+                        interpret::result(&mutant, &names, functions, None)?,
                     ))
                 });
                 match results {
@@ -159,6 +189,27 @@ fn judge(unit: &Unit, solvers: &Solvers) -> Option<Strength> {
         }
     }
     Some(strength)
+}
+
+/// Whether the compiler would refuse `mutant` as a body of the unit's
+/// function, whatever its contract: one of its other obligations (a call's
+/// `requires`, termination, a value in range, an index) is refuted.
+fn rejected(mutant: &Function, unit: &Unit, datatypes: &str, solvers: &Solvers) -> bool {
+    obligation::mutant_obligations(mutant, &unit.program, datatypes)
+        .iter()
+        .any(|o| {
+            let (outcome, _) = solvers.decide_calls(
+                &o.script,
+                &unit.callee_bodies,
+                &o.params,
+                o.polarity,
+                |model| interpret::replay(o, model),
+            );
+            matches!(
+                outcome,
+                Outcome::Refuted { .. } | Outcome::WeakCallee { .. }
+            )
+        })
 }
 
 /// The strength of every function with an `ensures`, in source order.

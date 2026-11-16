@@ -5,7 +5,7 @@ use super::eval::{Env, Mode, body, first_row};
 use super::{Names, Value, admitted, broken_invariant, broken_requires, read};
 use crate::Inputs;
 use crate::obligation::{Claim, Guard, Obligation, term};
-use crate::syntax::{Expr, Range};
+use crate::syntax::{Expr, Function, Range};
 
 /// How a solver's model of an obligation reproduces when the interpreter
 /// replays it.
@@ -186,6 +186,31 @@ fn bind(obligation: &Obligation, inputs: &Inputs, mut names: Names) -> Result<Na
     Ok(names)
 }
 
+/// The value a solver's model gives each of `calls`, by the call's term.
+pub(crate) fn assumed(
+    calls: &[(String, &Expr)],
+    functions: &[Function],
+    inputs: &Inputs,
+) -> Result<Vec<(String, Value)>, String> {
+    let mut assumed = Vec::new();
+    for (constant, call) in calls {
+        let Expr::Call(name, ..) = call else {
+            continue;
+        };
+        let Some(callee) = functions.iter().find(|f| f.name == *name) else {
+            continue;
+        };
+        let raw = inputs
+            .iter()
+            .find(|(n, _)| n == constant)
+            .map(|(_, v)| v.as_str())
+            .ok_or(format!("no value for `{constant}`"))?;
+        let value = read(raw, &callee.ret).ok_or(format!("`{raw}` isn't a result of `{name}`"))?;
+        assumed.push((term(call), value));
+    }
+    Ok(assumed)
+}
+
 /// Replays a solver's model of an obligation's script: how the inputs do
 /// what the solver says they do (break a universal claim, or satisfy an
 /// existential one), or why they don't.
@@ -197,22 +222,7 @@ pub(crate) fn replay(obligation: &Obligation, inputs: &Inputs) -> Result<Replay,
     if obligation.calls.is_empty() {
         return Err("the interpreter disagrees".to_string());
     }
-    let mut assumed = Vec::new();
-    for (constant, call) in &obligation.calls {
-        let Expr::Call(name, ..) = call else {
-            continue;
-        };
-        let Some(callee) = obligation.functions.iter().find(|f| f.name == *name) else {
-            continue;
-        };
-        let raw = inputs
-            .iter()
-            .find(|(n, _)| n == constant)
-            .map(|(_, v)| v.as_str())
-            .ok_or(format!("no value for `{constant}`"))?;
-        let value = read(raw, &callee.ret).ok_or(format!("`{raw}` isn't a result of `{name}`"))?;
-        assumed.push((term(call), value));
-    }
+    let assumed = assumed(&obligation.calls, obligation.functions, inputs)?;
     if reproduces(obligation, &names, Some(&assumed))? {
         Ok(Replay::Assumed)
     } else {

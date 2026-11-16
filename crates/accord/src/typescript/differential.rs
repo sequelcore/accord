@@ -68,7 +68,7 @@ fn expected(
         Ok(None) => {}
         Err(reason) => panic!("{}: requires can't be evaluated: {reason}", function.name),
     }
-    match interpret::result(function, names, functions) {
+    match interpret::result(function, names, functions, None) {
         Ok(result) if unsafe_i64(&function.ret, &result) => Some(json!({"error": "RangeError"})),
         Ok(result) => Some(json!({"ok": to_json(&result, enums)})),
         Err(reason) if interpret::too_deep(&reason) => None,
@@ -130,7 +130,7 @@ fn expected_member(
         Err(reason) => panic!("{}: requires can't be evaluated: {reason}", member.name),
     }
     if role == Some(Role::Observer) {
-        return match interpret::result(member, &names, functions) {
+        return match interpret::result(member, &names, functions, None) {
             Ok(result) if unsafe_i64(&member.ret, &result) => json!({"error": "RangeError"}),
             Ok(result) => json!({"ok": to_json(&result, enums)}),
             Err(reason) => panic!("{}: no result for an admitted state: {reason}", member.name),
