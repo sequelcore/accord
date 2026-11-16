@@ -134,3 +134,84 @@ fn tesotas_proof_outcome_contract_allows_cancelled_for_a_failed_run() {
         "{cancelled:?}"
     );
 }
+
+#[test]
+fn a_mutant_that_breaks_the_contract_through_its_own_recursion_is_caught() {
+    // The mutant `+ 2` returns 2n, which breaks the contract at n = 2. The
+    // solvers find that with the call to itself judged by the contract, and
+    // the replay must judge it the same way. So must `steps(n - 0)`: from
+    // `steps(n) <= n + 1` the contract gets `n + 2`.
+    let loose = strength(
+        "fn steps(n: i32) -> i32
+    requires n >= 0 and n <= 1000
+    decreases n
+    ensures result <= n + 1
+{
+    if n == 0 { 0 } else { steps(n - 1) + 1 }
+}
+",
+    );
+    let [steps] = loose.as_slice() else {
+        panic!("{loose:?}")
+    };
+    assert_eq!(steps.undecided, 0, "{steps:?}");
+    assert_eq!(steps.caught, 2, "{steps:?}");
+}
+
+#[test]
+fn a_mutant_that_breaks_another_obligation_is_rejected_not_surviving() {
+    // Under this loose contract, four mutants break no `ensures` the solvers
+    // can show, yet none is a program the compiler would accept: each calls
+    // `steps` below zero. Only the two literal changes in the result are
+    // real survivors.
+    let loose = strength(
+        "fn steps(n: i32) -> i32
+    requires n >= 0 and n <= 1000
+    decreases n
+    ensures result <= n + 1
+{
+    if n == 0 { 0 } else { steps(n - 1) + 1 }
+}
+",
+    );
+    let [steps] = loose.as_slice() else {
+        panic!("{loose:?}")
+    };
+    assert_eq!(steps.rejected, 4, "{steps:?}");
+    let changes: Vec<&str> = steps.survivors.iter().map(|s| s.change.as_str()).collect();
+    assert_eq!(
+        changes,
+        ["line 6: `0` became `1`", "line 6: `1` became `0`"],
+        "{steps:?}"
+    );
+    assert_eq!(
+        steps.tried,
+        steps.caught + steps.rejected + steps.survivors.len()
+    );
+}
+
+#[test]
+fn a_mutant_that_never_ends_is_rejected_by_termination() {
+    // The contract can't tell `drain(n - 0)` from the code, since every call
+    // gives 0, yet that mutant never ends: its termination obligation
+    // rejects it, so it is never reported as surviving with a result it
+    // never gives. The four that call `drain` below zero are rejected too,
+    // and the contract catches the one that returns 1.
+    let tail = strength(
+        "fn drain(n: i32) -> i32
+    requires n >= 0
+    decreases n
+    ensures result == 0
+{
+    if n == 0 { 0 } else { drain(n - 1) }
+}
+",
+    );
+    let [drain] = tail.as_slice() else {
+        panic!("{tail:?}")
+    };
+    assert_eq!(drain.undecided, 0, "{drain:?}");
+    assert_eq!(drain.caught, 1, "{drain:?}");
+    assert_eq!(drain.rejected, 5, "{drain:?}");
+    assert!(drain.survivors.is_empty(), "{drain:?}");
+}

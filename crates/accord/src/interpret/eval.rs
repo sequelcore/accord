@@ -1,6 +1,6 @@
 //! Evaluating expressions and bodies, in code or with mathematical integers.
 
-use super::{Value, broken_requires};
+use super::{Value, broken_requires, meets};
 use crate::obligation::{Guard, term};
 use crate::syntax::{Arith, Body, ClauseKind, Expr, Function, Op, Owner, Quantifier, Range};
 
@@ -181,14 +181,6 @@ impl Env<'_> {
                 )
             }
             Expr::Call(name, args, site) => {
-                if let Some(assumed) = self.assumed {
-                    let key = term(expr);
-                    return assumed
-                        .iter()
-                        .find(|(t, _)| *t == key)
-                        .map(|(_, v)| v.clone())
-                        .ok_or(format!("the model gives `{}` no value", site.text));
-                }
                 let Some(callee) = self.functions.iter().find(|f| f.name == *name) else {
                     return Err(format!("`{name}` can't be run here"));
                 };
@@ -200,6 +192,23 @@ impl Env<'_> {
                     .collect::<Result<Vec<_>, String>>()?;
                 if let Some(clause) = broken_requires(callee, &names)? {
                     return Err(format!("`{}` breaks `{clause}`", site.text));
+                }
+                if let Some(assumed) = self.assumed {
+                    // A call takes the model's value only where its callee's
+                    // contract admits it.
+                    let key = term(expr);
+                    let value = assumed
+                        .iter()
+                        .find(|(t, _)| *t == key)
+                        .map(|(_, v)| v.clone())
+                        .ok_or(format!("the model gives `{}` no value", site.text))?;
+                    if !meets(callee, &names, &value)? {
+                        return Err(format!(
+                            "the model's value of `{}` breaks its contract",
+                            site.text
+                        ));
+                    }
+                    return Ok(value);
                 }
                 let depth = self.depth + 1;
                 if depth >= MAX_DEPTH {

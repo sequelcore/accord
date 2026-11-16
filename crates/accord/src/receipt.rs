@@ -13,7 +13,7 @@ pub use text::text;
 use crate::Standing;
 
 /// The receipt schema's version.
-pub const VERSION: u32 = 6;
+pub const VERSION: u32 = 7;
 
 impl Standing {
     /// The standing's name, as the receipt writes it.

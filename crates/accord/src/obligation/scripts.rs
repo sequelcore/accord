@@ -5,21 +5,22 @@ use super::calls::{call_facts, declarations};
 use super::lists::list_facts;
 use super::operations::calls_in;
 use super::smt::{all, ending, fits, prelude, sort, term, value};
-use crate::syntax::{ClauseKind, Function, Program};
+use crate::syntax::{ClauseKind, Expr, Function, Program};
 
 /// The two scripts that judge a mutant of `original` against its contract.
 /// `survives` asserts that the mutant breaks some `ensures`, so `unsat` means
-/// the contract can't tell it apart. `differs` asserts an admitted input on
+/// the contract can't tell it apart; its model also gives each call's
+/// constant, returned with the call. `differs` asserts an admitted input on
 /// which the two give different results, `r0` and `r1`, so `unsat` means the
 /// mutant is equivalent. Both use `original`'s parameters and `requires`,
 /// and know the functions either body calls, in `program`, only through
-/// their contracts.
-pub(crate) fn mutant_scripts(
-    original: &Function,
-    mutant: &Function,
+/// their contracts, a call `original` makes to itself included.
+pub(crate) fn mutant_scripts<'a>(
+    original: &'a Function,
+    mutant: &'a Function,
     program: &Program,
     datatypes: &str,
-) -> (String, String) {
+) -> (String, String, Vec<(String, &'a Expr)>) {
     let mut calls = Vec::new();
     for function in [original, mutant] {
         calls_in(function, &mut calls);
@@ -28,14 +29,16 @@ pub(crate) fn mutant_scripts(
     for call in &calls {
         crate::check::callees(call.expr, &mut callees);
     }
+    let (facts, named_calls) = call_facts(program, &calls);
     let prelude = format!(
-        "{}{}{}{}",
+        "{}{}{}{facts}",
         prelude(original, program, datatypes),
         list_facts(&[original, mutant]),
         declarations(program, &callees),
-        call_facts(program, &calls).0
     );
     let params: Vec<String> = original.params.iter().map(|(n, _)| n.clone()).collect();
+    let mut with_calls = params.clone();
+    with_calls.extend(named_calls.iter().map(|(constant, _)| constant.clone()));
     let ret = sort(&original.ret);
     let (theirs, their_cover) = value(mutant);
     let (ours, our_cover) = value(original);
@@ -53,7 +56,7 @@ pub(crate) fn mutant_scripts(
     let survives = format!(
         "{prelude}(declare-const result {ret})\n(assert {})\n{}",
         all("and", breaks, "true"),
-        ending(&params)
+        ending(&with_calls)
     );
     let mut apart = vec![
         format!("(= r0 {ours})"),
@@ -69,7 +72,7 @@ pub(crate) fn mutant_scripts(
         all("and", apart, "true"),
         ending(&named)
     );
-    (survives, differs)
+    (survives, differs, named_calls)
 }
 /// The script that searches for an open case of `function`: an admitted input
 /// no `open when` covers, with two different results, `r0` and `r1`, that

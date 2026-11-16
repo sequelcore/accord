@@ -198,6 +198,7 @@ fn strength_json(strength: &Strength, definition: &Definition) -> Value {
     json!({
         "tried": strength.tried,
         "caught": strength.caught,
+        "rejected": strength.rejected,
         "equivalent": strength.equivalent,
         "undecided": strength.undecided,
         "not_tried": strength.not_tried,

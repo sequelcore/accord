@@ -139,8 +139,13 @@ fn strength_text(strength: &Strength) -> Vec<String> {
     } else {
         String::new()
     };
+    let rejected = if strength.rejected > 0 {
+        format!(", {} rejected", strength.rejected)
+    } else {
+        String::new()
+    };
     lines.push(format!(
-        "strength     {}: {} {}: {} caught, {} equivalent, {} surviving, {} undecided{not_tried}",
+        "strength     {}: {} {}: {} caught{rejected}, {} equivalent, {} surviving, {} undecided{not_tried}",
         strength.function,
         strength.tried,
         if strength.tried == 1 {
