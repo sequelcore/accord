@@ -234,6 +234,19 @@ impl Env<'_> {
                 self.quantified(*quantifier, name, range, condition)
             }
             Expr::Length(list, _) => Ok(Value::Int(self.list(list)?.len() as i128)),
+            Expr::TextLength(text, _) => Ok(Value::Int(self.text(text)?.chars().count() as i128)),
+            // UTF-8 orders strings by their code points, so Rust's order on
+            // `str` is the order of code points.
+            Expr::TextOrder(op, left, right) => {
+                let (a, b) = (self.text(left)?, self.text(right)?);
+                Ok(Value::Bool(match op {
+                    Op::Lt => a < b,
+                    Op::Le => a <= b,
+                    Op::Gt => a > b,
+                    Op::Ge => a >= b,
+                    _ => unreachable!("`check` writes only orderings as a `TextOrder`"),
+                }))
+            }
             // The state a transition ends in, as its fields' values in order.
             Expr::Next(fields, _) => fields
                 .iter()
@@ -254,6 +267,13 @@ impl Env<'_> {
         match self.eval(expr)? {
             Value::List(items) => Ok(items),
             _ => Err("expected a list".to_string()),
+        }
+    }
+
+    fn text(&self, expr: &Expr) -> Result<String, String> {
+        match self.eval(expr)? {
+            Value::Text(text) => Ok(text),
+            _ => Err("expected a `Text`".to_string()),
         }
     }
 

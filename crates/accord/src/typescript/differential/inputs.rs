@@ -29,8 +29,8 @@ fn texts(expr: &Expr, found: &mut Vec<String>) {
     match expr {
         Expr::Text(text, _) if !found.contains(text) => found.push(text.clone()),
         Expr::List(items, ..) => items.iter().for_each(|i| texts(i, found)),
-        Expr::Not(inner) | Expr::Neg(inner, _) => texts(inner, found),
-        Expr::Binary(_, l, r) | Expr::Arith(_, l, r, _) => {
+        Expr::Not(inner) | Expr::Neg(inner, _) | Expr::TextLength(inner, _) => texts(inner, found),
+        Expr::Binary(_, l, r) | Expr::TextOrder(_, l, r) | Expr::Arith(_, l, r, _) => {
             texts(l, found);
             texts(r, found);
         }
@@ -40,7 +40,13 @@ fn texts(expr: &Expr, found: &mut Vec<String>) {
 }
 
 fn literals(program: &Program) -> Vec<String> {
-    let mut found = vec![String::new(), "é".to_string(), "\u{1d11e}".to_string()];
+    // U+FF5A comes before U+1D11E by code point and after it by UTF-16 unit.
+    let mut found = vec![
+        String::new(),
+        "é".to_string(),
+        "\u{ff5a}".to_string(),
+        "\u{1d11e}".to_string(),
+    ];
     for function in &program.functions {
         function
             .clauses

@@ -21,6 +21,47 @@ pub(super) const TEXT_CHECK: &str = "function isText$(value: string): boolean {
 }
 ";
 
+/// The helpers that count and compare texts by code point, as the proofs
+/// do; JavaScript's `.length` and `<` count and compare UTF-16 units.
+pub(super) const TEXT_HELPERS: [(&str, &str); 2] = [
+    (
+        "textLength$(",
+        "// The number of code points in `value`, not of UTF-16 units.
+function textLength$(value: string): bigint {
+  let count = 0n;
+  for (const _ of value) {
+    count += 1n;
+  }
+  return count;
+}
+",
+    ),
+    (
+        "textLess$(",
+        "// Whether `a` comes before `b`, comparing code points, not UTF-16 units.
+function textLess$(a: string, b: string): boolean {
+  const left = a[Symbol.iterator]();
+  const right = b[Symbol.iterator]();
+  for (;;) {
+    const x = left.next();
+    const y = right.next();
+    if (y.done) {
+      return false;
+    }
+    if (x.done) {
+      return true;
+    }
+    const p = x.value.codePointAt(0)!;
+    const q = y.value.codePointAt(0)!;
+    if (p !== q) {
+      return p < q;
+    }
+  }
+}
+",
+    ),
+];
+
 const TEXT_RANGE: &str = "must hold only characters up to U+2FFFF, with no lone surrogates";
 
 /// A template literal that starts with `${where}: `, so a check of a state

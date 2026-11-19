@@ -91,7 +91,7 @@ impl Scope<'_> {
     pub(super) fn wrapped(&self, expr: &Expr, want: Option<Width>) -> String {
         let operator = match expr {
             Expr::Binary(op, ..) => *op != Op::In,
-            Expr::Arith(..) | Expr::If(..) => true,
+            Expr::TextOrder(..) | Expr::Arith(..) | Expr::If(..) => true,
             _ => false,
         };
         let bare = self.bare(expr, want);
@@ -161,6 +161,17 @@ impl Scope<'_> {
                 self.quantified(*quantifier, name, range, condition)
             }
             Expr::Length(list, _) => self.length(list),
+            Expr::TextLength(text, _) => format!("textLength$({})", self.bare(text, None)),
+            Expr::TextOrder(op, left, right) => {
+                let (a, b) = (self.bare(left, None), self.bare(right, None));
+                match op {
+                    Op::Lt => format!("textLess$({a}, {b})"),
+                    Op::Le => format!("!textLess$({b}, {a})"),
+                    Op::Gt => format!("textLess$({b}, {a})"),
+                    Op::Ge => format!("!textLess$({a}, {b})"),
+                    _ => unreachable!("`check` writes only orderings as a `TextOrder`"),
+                }
+            }
             Expr::Index(list, index, _) => self.index(list, index),
             Expr::Next(..) => {
                 unreachable!("a `next` is written by a machine's body, never as a value")

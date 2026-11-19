@@ -159,6 +159,12 @@ pub(crate) enum Expr {
     /// Whether the value is the named variant of the named enum. Only the
     /// checker writes one: the condition under which a `match` arm runs.
     Is(Box<Expr>, String, String),
+    /// `length(text)`: how many code points the text holds. Only the checker
+    /// writes one, from a `length` whose argument is a `Text`.
+    TextLength(Box<Expr>, usize),
+    /// `<`, `<=`, `>` or `>=` between texts, which compares code points in
+    /// order. Only the checker writes one, from a comparison of texts.
+    TextOrder(Op, Box<Expr>, Box<Expr>),
 }
 
 /// What a field belongs to.
@@ -202,13 +208,16 @@ impl Expr {
             | Expr::Record(_, _, line)
             | Expr::Field(.., line)
             | Expr::Match(_, _, line)
-            | Expr::Length(_, line) => *line,
+            | Expr::Length(_, line)
+            | Expr::TextLength(_, line) => *line,
             Expr::Arith(.., site)
             | Expr::Neg(_, site)
             | Expr::Call(.., site)
             | Expr::Index(.., site) => site.line,
             Expr::Not(inner) | Expr::Is(inner, ..) => inner.line(),
-            Expr::Binary(_, left, _) | Expr::If(left, _, _) => left.line(),
+            Expr::Binary(_, left, _) | Expr::TextOrder(_, left, _) | Expr::If(left, _, _) => {
+                left.line()
+            }
             Expr::Bool(_) => 0,
         }
     }
@@ -223,9 +232,11 @@ impl Expr {
             Expr::Not(inner)
             | Expr::Neg(inner, _)
             | Expr::Length(inner, _)
+            | Expr::TextLength(inner, _)
             | Expr::Field(inner, ..)
             | Expr::Is(inner, ..) => vec![inner],
             Expr::Binary(_, left, right)
+            | Expr::TextOrder(_, left, right)
             | Expr::Arith(_, left, right, _)
             | Expr::Index(left, right, _) => vec![left, right],
             Expr::If(condition, then, otherwise) => vec![condition, then, otherwise],
@@ -257,9 +268,11 @@ impl Expr {
             Expr::Not(inner)
             | Expr::Neg(inner, _)
             | Expr::Length(inner, _)
+            | Expr::TextLength(inner, _)
             | Expr::Field(inner, ..)
             | Expr::Is(inner, ..) => vec![inner],
             Expr::Binary(_, left, right)
+            | Expr::TextOrder(_, left, right)
             | Expr::Arith(_, left, right, _)
             | Expr::Index(left, right, _) => vec![left, right],
             Expr::If(condition, then, otherwise) => vec![condition, then, otherwise],

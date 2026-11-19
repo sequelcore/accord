@@ -1,0 +1,22 @@
+pub fn width(word: Text) -> i64
+    ensures result == length(word)
+{
+    length(word)
+}
+
+pub fn earlier(a: Text, b: Text) -> Text
+    ensures a < b implies result == a
+    ensures not (a < b) implies result == b
+{
+    if a < b { a } else { b }
+}
+
+pub fn between(t: Text, low: Text, high: Text) -> Bool
+    requires length(low) > 0
+    ensures result == (low <= t and t < high)
+{
+    t >= low and high > t
+}
+
+example width(word: "😀") == 1
+example earlier(a: "ｚ", b: "😀") == "ｚ"

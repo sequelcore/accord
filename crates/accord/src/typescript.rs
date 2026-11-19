@@ -16,7 +16,7 @@ use std::collections::BTreeMap;
 use crate::openness::{Determinacy, Openness};
 use crate::syntax::{Body, Enum, Expr, Function, Machine, Program, Role, Type, Width};
 use crate::{Diagnostic, Outcome, Report, Run, Solvers};
-use boundary::{TEXT_CHECK, state_check, state_type, wrapper};
+use boundary::{TEXT_CHECK, TEXT_HELPERS, state_check, state_type, wrapper};
 use expr::{Context, Scope, camel, string};
 
 const HEADER: &str = "// Every obligation of these functions is proved. This TypeScript is not
@@ -265,6 +265,13 @@ fn module(program: &Program, names: &[String], file: usize, openness: &[Determin
     }
     if text {
         items.push(TEXT_CHECK.to_string());
+    }
+    // A name ending in `$` is never an Accord name, so only a call the
+    // writer made spells a helper's.
+    for (call, helper) in TEXT_HELPERS {
+        if items.iter().any(|item| item.contains(call)) {
+            items.push(helper.to_string());
+        }
     }
     for item in items {
         out += "\n";

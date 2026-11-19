@@ -93,13 +93,17 @@ fn walk<'a>(expr: &'a Expr, bound: &[&'a Expr], visit: &mut impl FnMut(&'a Expr,
             each(range.list());
             walk(condition, &[bound, &[expr]].concat(), visit);
         }
-        Expr::Not(inner) | Expr::Neg(inner, _) | Expr::Length(inner, _) => each(inner),
+        Expr::Not(inner)
+        | Expr::Neg(inner, _)
+        | Expr::Length(inner, _)
+        | Expr::TextLength(inner, _) => each(inner),
         Expr::Construct(..)
         | Expr::Record(..)
         | Expr::Field(..)
         | Expr::Match(..)
         | Expr::Is(..) => expr.children().into_iter().for_each(each),
         Expr::Binary(_, left, right)
+        | Expr::TextOrder(_, left, right)
         | Expr::Arith(_, left, right, _)
         | Expr::Index(left, right, _) => {
             each(left);

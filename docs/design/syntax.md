@@ -150,8 +150,12 @@ condition can never be the first to hold.
   literal ends at the next `"` on its line and has no escapes, so it can't
   contain `"`; any other character, accented or not, stands for itself, up
   to U+2FFFF, the last character the solvers reason about. A literal with a
-  later one is rejected. Texts are compared with `==` and `!=` and have no
-  other operations yet.
+  later one is rejected. Texts are compared with `==` and `!=`, and ordered
+  with `<`, `<=`, `>` and `>=` by code point, one character at a time, a
+  text before any longer one it begins. `length(text)` is an `i64`, the
+  number of code points: `length("😀")` is 1. cvc5 proves no order law on
+  texts, such as that of two texts one comes first, so an obligation that
+  rests on one is undecided (`conformance/cases/text-ordered-law.accord`).
 - `List<T>`: a sequence of values of type `T`, written `["read", "grep"]`
   or `[]`. `T` is `Bool`, `Text`, an enum or a record whose values hold no
   integer and no list, however deep; lists of integers wait for a target
@@ -184,11 +188,11 @@ condition can never be the first to hold.
 | Kind | Forms |
 | --- | --- |
 | Logic | `and`, `or`, `not`; in `requires` and `ensures`, also `implies` |
-| Comparison | `==`, `!=` on any type; `<`, `<=`, `>`, `>=` on integers; `in` from an element to a list |
+| Comparison | `==`, `!=` on any type; `<`, `<=`, `>`, `>=` on integers and texts; `in` from an element to a list |
 | Arithmetic | `+`, `-`, `*`, and `-` before a value; `/` and `%` truncate toward zero (`-7 / 2 == -3`, `-7 % 2 == -1`), in code and in specifications, with a zero divisor and `MIN / -1` obligations. `/` and `%` aren't compiled yet |
 | Choice | `if condition { a } else { b }`, always with `else` |
 | Quantifier | `all x in list: condition`, `any x in list: condition` and `count x in list: condition`, by element; `all k in indices(list): condition` and the same for `any` and `count`, by index. `all` and `any` are `Bool`, `count` an `i64`. The condition extends as far as an expression does, so `(all x in xs: x) and ready` needs its parentheses. The name can't be a parameter's, and `count` can't be inside another quantifier yet |
-| Length and index | `length(list)`, `list[k]` |
+| Length and index | `length(list)`, `length(text)`, `list[k]` |
 | Records and variants | `Name { field: value, … }`, `value.field`, `Variant(field: value, …)`, `match value { \| Pattern => result … }` |
 | Call | `name(label: value, …)`; labels are required when the function has more than one parameter. A body or a decision table can call any function of its program; a specification and an example's arguments can't yet. A function can't call itself, directly or through others |
 

@@ -1,0 +1,14 @@
+// expect: proved, proved, passed, passed, passed
+// open: determined
+// `length` counts code points: "😀" (U+1F600) is one, though UTF-16 spells
+// it in two units.
+fn size(word: Text) -> i64
+    ensures result == length(word) and result >= 0
+    ensures word == "😀" implies result == 1
+{
+    length(word)
+}
+
+example size(word: "") == 0
+example size(word: "café") == 4
+example size(word: "😀") == 1

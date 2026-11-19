@@ -71,7 +71,7 @@ fn mutate_expr(expr: &mut Expr, n: &mut usize) -> Option<Change> {
         return Some(Change::NotIn(line));
     }
     match expr {
-        Expr::Binary(op, left, right) => {
+        Expr::Binary(op, left, right) | Expr::TextOrder(op, left, right) => {
             if let Some(to) = swap(*op)
                 && at(n)
             {
@@ -108,7 +108,7 @@ fn mutate_expr(expr: &mut Expr, n: &mut usize) -> Option<Change> {
         Expr::Quantified(_, _, range, condition, _) => {
             mutate_expr(range.list_mut(), n).or_else(|| mutate_expr(condition, n))
         }
-        Expr::Length(list, _) => mutate_expr(list, n),
+        Expr::Length(list, _) | Expr::TextLength(list, _) => mutate_expr(list, n),
         Expr::Next(fields, _) => fields
             .iter_mut()
             .find_map(|(_, value)| mutate_expr(value, n)),

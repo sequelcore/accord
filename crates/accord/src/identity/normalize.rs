@@ -178,7 +178,9 @@ impl<'a> Renamer<'a> {
                 }
             }
             Expr::Not(inner) | Expr::Neg(inner, _) => self.expr(inner, params),
-            Expr::Binary(_, left, right) | Expr::Arith(_, left, right, _) => {
+            Expr::Binary(_, left, right)
+            | Expr::TextOrder(_, left, right)
+            | Expr::Arith(_, left, right, _) => {
                 self.expr(left, params);
                 self.expr(right, params);
             }
@@ -212,7 +214,7 @@ impl<'a> Renamer<'a> {
                 *name = format!("p{}", params.len());
                 self.expr(condition, &inner);
             }
-            Expr::Length(list, _) => self.expr(list, params),
+            Expr::Length(list, _) | Expr::TextLength(list, _) => self.expr(list, params),
             Expr::Next(fields, _) => {
                 for (_, value) in fields {
                     self.expr(value, params);

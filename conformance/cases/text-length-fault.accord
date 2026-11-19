@@ -1,0 +1,10 @@
+// expect: proved, refuted, failed
+// A contract that counts UTF-16 units: two for "😀" (U+1F600).
+fn size(word: Text) -> i64
+    ensures result == length(word)
+    ensures word == "😀" implies result == 2
+{
+    length(word)
+}
+
+example size(word: "😀") == 2

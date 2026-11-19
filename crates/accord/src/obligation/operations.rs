@@ -59,11 +59,15 @@ fn operations<'a>(
     match expr {
         Expr::Arith(_, left, right, _)
         | Expr::Binary(_, left, right)
+        | Expr::TextOrder(_, left, right)
         | Expr::Index(left, right, _) => {
             each(left, out);
             each(right, out);
         }
-        Expr::Neg(inner, _) | Expr::Not(inner) | Expr::Length(inner, _) => each(inner, out),
+        Expr::Neg(inner, _)
+        | Expr::Not(inner)
+        | Expr::Length(inner, _)
+        | Expr::TextLength(inner, _) => each(inner, out),
         Expr::Call(_, args, _) => args.iter().for_each(|(_, arg)| each(arg, out)),
         Expr::List(items, ..) => items.iter().for_each(|item| each(item, out)),
         Expr::Next(fields, _) => fields.iter().for_each(|(_, value)| each(value, out)),
@@ -143,11 +147,15 @@ pub(super) fn spec_indexes<'a>(
         }
         Expr::Arith(_, left, right, _)
         | Expr::Binary(_, left, right)
+        | Expr::TextOrder(_, left, right)
         | Expr::Index(left, right, _) => {
             spec_indexes(left, guards, bound, out);
             spec_indexes(right, guards, bound, out);
         }
-        Expr::Neg(inner, _) | Expr::Not(inner) | Expr::Length(inner, _) => {
+        Expr::Neg(inner, _)
+        | Expr::Not(inner)
+        | Expr::Length(inner, _)
+        | Expr::TextLength(inner, _) => {
             spec_indexes(inner, guards, bound, out);
         }
         Expr::List(items, ..) => items
