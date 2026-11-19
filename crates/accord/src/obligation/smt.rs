@@ -75,6 +75,18 @@ pub(crate) fn term(expr: &Expr) -> String {
             quantified(*quantifier, name, range, condition)
         }
         Expr::Length(list, _) => format!("(seq.len {})", term(list)),
+        Expr::TextLength(text, _) => format!("(str.len {})", term(text)),
+        // `a > b` is `b < a`, and `a >= b` is `b <= a`.
+        Expr::TextOrder(op, left, right) => {
+            let (l, r) = (term(left), term(right));
+            match op {
+                Op::Lt => format!("(str.< {l} {r})"),
+                Op::Le => format!("(str.<= {l} {r})"),
+                Op::Gt => format!("(str.< {r} {l})"),
+                Op::Ge => format!("(str.<= {r} {l})"),
+                _ => unreachable!("`check` writes only orderings as a `TextOrder`"),
+            }
+        }
         Expr::Index(list, index, _) => format!("(seq.nth {} {})", term(list), term(index)),
         // Identity reads a `next` as one term; a script reads it field by
         // field (`meets_invariants`).

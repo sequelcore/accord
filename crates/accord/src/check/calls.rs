@@ -121,7 +121,9 @@ pub(crate) fn callees(expr: &Expr, out: &mut Vec<String>) {
         | Expr::Field(..)
         | Expr::Match(..)
         | Expr::Is(..) => expr.children().into_iter().for_each(|c| callees(c, out)),
-        Expr::Binary(_, left, right) | Expr::Arith(_, left, right, _) => {
+        Expr::Binary(_, left, right)
+        | Expr::TextOrder(_, left, right)
+        | Expr::Arith(_, left, right, _) => {
             callees(left, out);
             callees(right, out);
         }
@@ -135,7 +137,7 @@ pub(crate) fn callees(expr: &Expr, out: &mut Vec<String>) {
             callees(range.list(), out);
             callees(condition, out);
         }
-        Expr::Length(list, _) => callees(list, out),
+        Expr::Length(list, _) | Expr::TextLength(list, _) => callees(list, out),
         Expr::Next(fields, _) => fields.iter().for_each(|(_, value)| callees(value, out)),
         Expr::Index(list, index, _) => {
             callees(list, out);

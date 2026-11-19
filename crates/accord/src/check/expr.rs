@@ -5,7 +5,7 @@ use super::Types;
 use super::calls::Signature;
 use super::type_name;
 use crate::Diagnostic;
-use crate::syntax::{Expr, Type};
+use crate::syntax::{Expr, Type, Width};
 
 pub(super) struct Scope<'a> {
     pub types: Types<'a>,
@@ -211,7 +211,19 @@ impl Scope<'_> {
                 self.condition(inner)?;
                 Ok(Type::Bool)
             }
-            Expr::Binary(op, left, right) => self.binary(*op, left, right),
+            Expr::Binary(op, left, right) => {
+                let (ty, texts) = self.binary(*op, left, right)?;
+                if texts {
+                    let blank = || Box::new(Expr::Bool(false));
+                    *expr = Expr::TextOrder(
+                        *op,
+                        std::mem::replace(left, blank()),
+                        std::mem::replace(right, blank()),
+                    );
+                }
+                Ok(ty)
+            }
+            Expr::TextOrder(op, left, right) => self.binary(*op, left, right).map(|(ty, _)| ty),
             Expr::Call(name, args, site) => {
                 let line = site.line;
                 if let Some(Type::Enum(owner)) = expected
@@ -248,7 +260,19 @@ impl Scope<'_> {
             Expr::Quantified(quantifier, name, range, condition, line) => {
                 self.quantified(*quantifier, name, range, condition, *line)
             }
-            Expr::Length(list, line) => self.length(list, *line),
+            Expr::Length(list, line) => {
+                if self.length(list, *line)? {
+                    *expr = Expr::TextLength(
+                        std::mem::replace(list, Box::new(Expr::Bool(false))),
+                        *line,
+                    );
+                }
+                Ok(Type::Int(Width::I64))
+            }
+            Expr::TextLength(text, line) => {
+                self.length(text, *line)?;
+                Ok(Type::Int(Width::I64))
+            }
             Expr::Next(_, line) => Err(Diagnostic::new(
                 *line,
                 "`next` can only end an init or an event",

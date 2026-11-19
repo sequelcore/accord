@@ -59,13 +59,18 @@ impl Scope<'_> {
         })
     }
 
-    /// The type of `length(list)`: `i64`.
-    pub(super) fn length(&self, list: &mut Expr, line: usize) -> Result<Type, Diagnostic> {
-        match self.infer(list, None)? {
-            Type::List(_) => Ok(Type::Int(Width::I64)),
+    /// Checks `length(value)`, an `i64`, and says whether it measures a text
+    /// rather than a list.
+    pub(super) fn length(&self, value: &mut Expr, line: usize) -> Result<bool, Diagnostic> {
+        match self.infer(value, None)? {
+            Type::List(_) => Ok(false),
+            Type::Text => Ok(true),
             other => Err(Diagnostic::new(
                 line,
-                format!("`length` needs a list, not a `{}`", type_name(&other)),
+                format!(
+                    "`length` needs a list or a text, not a `{}`",
+                    type_name(&other)
+                ),
             )),
         }
     }

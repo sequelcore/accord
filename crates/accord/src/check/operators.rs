@@ -6,13 +6,13 @@ use crate::Diagnostic;
 use crate::syntax::{Expr, Op, Type};
 
 impl Scope<'_> {
-    /// The type of `left op right`.
+    /// The type of `left op right`, and whether it orders texts.
     pub(super) fn binary(
         &self,
         op: Op,
         left: &mut Expr,
         right: &mut Expr,
-    ) -> Result<Type, Diagnostic> {
+    ) -> Result<(Type, bool), Diagnostic> {
         // A `true` or `false` carries no line; the other side does.
         let line = match left.line() {
             0 => right.line(),
@@ -33,7 +33,7 @@ impl Scope<'_> {
                     (self.infer(left, element.as_ref())?, list)
                 };
                 if list == Type::List(Box::new(element.clone())) {
-                    Ok(Type::Bool)
+                    Ok((Type::Bool, false))
                 } else {
                     Err(Diagnostic::new(
                         line,
@@ -52,16 +52,19 @@ impl Scope<'_> {
                         line,
                         "both sides of a comparison need the same type",
                     ))
-                } else if ordered && !matches!(l, Type::Int(_)) {
-                    Err(Diagnostic::new(line, "only integers can be ordered"))
+                } else if ordered && !matches!(l, Type::Int(_) | Type::Text) {
+                    Err(Diagnostic::new(
+                        line,
+                        "only integers and texts can be ordered",
+                    ))
                 } else {
-                    Ok(Type::Bool)
+                    Ok((Type::Bool, ordered && l == Type::Text))
                 }
             }
             Op::And | Op::Or | Op::Implies => {
                 self.condition(left)?;
                 self.condition(right)?;
-                Ok(Type::Bool)
+                Ok((Type::Bool, false))
             }
         }
     }

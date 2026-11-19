@@ -49,7 +49,11 @@ unreachable. `and` and `or` are `&&` and `||`; both evaluation orders are
 safe, since each operand is proved not to overflow whatever the other's value.
 `in` is `.includes()`. Lists compare element by element. `all`, `any` and
 `count` are `every`, `some` and `filter(…).length`, `length(list)` is
-`list.length`, and both are `bigint`s, since they are `i64`s. An index a
+`list.length`, and both are `bigint`s, since they are `i64`s. A text's
+`length` and its order count and compare code points, as the proofs do, not
+UTF-16 units as JavaScript's `.length` and `<` do: the module calls its own
+`textLength$` and `textLess$`, so `length("😀")` is `1n` and `"ｚ"` (U+FF5A)
+comes before `"😀"` (U+1F600). An index a
 quantifier ranges over is the callback's `number`, read as a `bigint`
 except where it indexes an array. `list[k]` is `list[k]!`: every index is
 proved within its list, so a module typechecks under
@@ -120,7 +124,8 @@ proofs cover, and never runs on one they don't.
 A module is not proved equivalent to the Accord program it comes from. The
 compiler's own tests compare each module with the interpreter: on every
 combination of `Bool` and enum values, each integer width's boundaries and a
-seeded sample, the program's text literals and characters beyond ASCII, each
+seeded sample, the program's text literals and characters beyond ASCII,
+one of them ordered differently by UTF-16 unit than by code point, each
 `example`'s call and every input a solver gave, with a seeded sample past
 4,096 combinations per function. For a machine, the same inputs for each
 init, event and observer, and for events and observers, states built from its
