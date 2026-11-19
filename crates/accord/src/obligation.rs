@@ -17,6 +17,10 @@
 //! operation it is about, and a claim about the body's value assumes them
 //! all, since each is an obligation of its own.
 //!
+//! A text's length is unbounded in SMT-LIB, so every script assumes each
+//! length it takes is at most the most code points a text holds; that limit
+//! is trusted, as a list's greatest length is.
+//!
 //! Each index carries the obligation that it is in range, in code and in an
 //! `ensures`. An operation inside a quantifier's condition is about every
 //! index the quantifier ranges over: its script asks for one where it fails.
@@ -25,6 +29,7 @@ use crate::syntax::{Body, ClauseKind, Expr, Function, Program, Role};
 
 mod calls;
 mod claims;
+mod lengths;
 mod lists;
 mod operations;
 mod scripts;
@@ -33,6 +38,7 @@ mod smt;
 use calls::{call_facts, declarations};
 pub(crate) use claims::Claim;
 use claims::{claim_of, termination_of};
+pub(crate) use lengths::{limit_lengths, takes_text_length};
 use lists::list_facts;
 pub(crate) use operations::Guard;
 use operations::{

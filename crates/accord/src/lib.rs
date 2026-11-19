@@ -308,6 +308,9 @@ pub struct Definition {
     /// The functions it calls, directly or not, that aren't verified; its
     /// own proofs assume their contracts.
     pub unverified_callees: Vec<String>,
+    /// Whether its proofs can assume the most code points a text holds:
+    /// it, or a contract it calls, takes a text's length.
+    pub measures_text: bool,
 }
 
 /// Everything one check of a file established.

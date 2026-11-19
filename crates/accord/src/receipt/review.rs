@@ -38,6 +38,12 @@ pub(super) fn limits(report: &Report, d: &Definition) -> Vec<(&'static str, &'st
             "Every list is assumed to hold at most 4,294,967,295 elements, as a TypeScript array does, and `count` is known to the solvers only through trusted axioms: its bounds, when it is zero and when it is the length.",
         ));
     }
+    if d.measures_text {
+        out.push((
+            "text_assumptions",
+            "Every text is assumed to hold at most 9,007,199,254,740,991 code points, as a JavaScript string does.",
+        ));
+    }
     let verdicts: Vec<_> = report
         .verdicts
         .iter()

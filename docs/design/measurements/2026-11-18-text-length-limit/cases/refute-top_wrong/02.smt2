@@ -1,0 +1,7 @@
+(set-option :produce-models true)
+(set-logic ALL)
+(declare-const p0 String)
+(assert (not (and (<= (- 9223372036854775808) (+ (str.len p0) 1)) (<= (+ (str.len p0) 1) 9223372036854775807))))
+(check-sat)
+(get-value (p0))
+(get-info :reason-unknown)

@@ -1,0 +1,8 @@
+(set-option :produce-models true)
+(set-logic ALL)
+(declare-const p0 String)
+(declare-const result Int)
+(assert (and (= result (+ (str.len p0) 1)) (not (= result (+ (str.len p0) 1)))))
+(check-sat)
+(get-value (p0))
+(get-info :reason-unknown)

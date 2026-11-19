@@ -1,0 +1,9 @@
+// expect: proved, undecided
+// A text's length is at most 2^53 - 1, and 2000 times that leaves `i64`,
+// so the product isn't proved in range. Refuting it would take a text of
+// more than 4.6 * 10^15 code points, which no solver gives as a model.
+fn scaled(word: Text) -> i64
+    ensures result == length(word) * 2000
+{
+    length(word) * 2000
+}
