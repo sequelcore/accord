@@ -1,0 +1,12 @@
+// expect: refuted, refuted, refuted, failed, failed
+// Keeps the later text instead of the earlier one.
+fn earlier(a: Text, b: Text) -> Text
+    ensures a < b implies result == a
+    ensures not (a < b) implies result == b
+    ensures a == "ｚ" and b == "😀" implies result == "ｚ"
+{
+    if a < b { b } else { a }
+}
+
+example earlier(a: "ｚ", b: "😀") == "ｚ"
+example earlier(a: "read", b: "grep") == "grep"

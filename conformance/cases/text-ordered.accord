@@ -1,5 +1,21 @@
-// expect: error
-fn before(tool: Text) -> Bool
+// expect: proved, proved, proved, proved, passed, passed, passed
+// open: determined, determined
+// `<` compares code points: "ｚ" (U+FF5A) comes before "😀" (U+1F600),
+// though UTF-16 orders them the other way.
+fn earlier(a: Text, b: Text) -> Text
+    ensures a < b implies result == a
+    ensures not (a < b) implies result == b
+    ensures a == "ｚ" and b == "😀" implies result == "ｚ"
 {
-    tool < "read"
+    if a < b { a } else { b }
 }
+
+fn between(t: Text, low: Text, high: Text) -> Bool
+    ensures result == (low <= t and t < high)
+{
+    t >= low and high > t
+}
+
+example earlier(a: "ｚ", b: "😀") == "ｚ"
+example earlier(a: "read", b: "grep") == "grep"
+example between(t: "re", low: "r", high: "s") == true

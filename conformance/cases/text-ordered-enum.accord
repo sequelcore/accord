@@ -1,0 +1,8 @@
+// expect: error
+// Only integers and texts are ordered; an enum isn't.
+enum Level { Low, High }
+
+fn below(a: Level, b: Level) -> Bool
+{
+    a < b
+}

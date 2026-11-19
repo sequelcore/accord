@@ -1,0 +1,9 @@
+// expect: undecided
+// That of two texts one comes first is an order law of `<`. Z3 proves it;
+// cvc5 1.4.2 proves no order law on texts and runs out of time, so the
+// obligation is undecided rather than proved.
+fn earlier(a: Text, b: Text) -> Text
+    ensures result <= a and result <= b
+{
+    if a < b { a } else { b }
+}
