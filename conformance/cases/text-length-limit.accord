@@ -1,0 +1,58 @@
+// expect: proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved, proved
+// Every text holds at most 2^53 - 1 code points, as a JavaScript string
+// does, so arithmetic on a text's length stays within `i64` wherever the
+// length is taken: of a parameter, a record's field, an element, inside
+// `all`, `any` and `count`, and through a callee's contract.
+record Tool {
+    name: Text,
+    uses: i32,
+}
+
+fn width(t: Text) -> i64
+    ensures result == length(t)
+{
+    length(t)
+}
+
+fn top(word: Text) -> i64
+    ensures result == length(word) + 1
+{
+    length(word) + 1
+}
+
+fn named(tool: Tool) -> i64
+    ensures result == length(tool.name) + 1
+{
+    length(tool.name) + 1
+}
+
+fn at(xs: List<Text>, i: i64) -> i64
+    requires i >= 0 and i < length(xs)
+    ensures result == length(xs[i]) + 1
+{
+    length(xs[i]) + 1
+}
+
+fn all_counted(xs: List<Text>) -> Bool
+    ensures result
+{
+    all w in xs: length(w) + 1 > 0
+}
+
+fn any_long(xs: List<Text>) -> Bool
+    ensures result == (any w in xs: length(w) > 5)
+{
+    any w in xs: length(w) * 2 > 10
+}
+
+fn long_ones(xs: List<Text>) -> i64
+    ensures result >= 0 and result <= length(xs)
+{
+    count w in xs: length(w) + 1 > 3
+}
+
+fn widths(xs: List<Text>) -> Bool
+    ensures result
+{
+    all w in xs: width(w) + 1 > 0
+}
