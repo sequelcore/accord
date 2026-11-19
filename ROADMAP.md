@@ -13,6 +13,30 @@ stages will change as the earlier ones teach us.
 
 ## Decisions
 
+Taken on 2026-11-19:
+
+- **Code that isn't proved is part of the language.** A general-purpose
+  program has parts nobody will prove: glue, parsers, calls to the
+  operating system. Such code is marked in its source, never counts as
+  proved, and the receipt lists it with what it is trusted or tested for,
+  as Verus does with `external_body`
+  ([reference](https://verus-lang.github.io/verus/guide/reference-attributes.html)).
+  An obligation left undecided in code that isn't marked still stops
+  `accord build`. How the code is marked, what a verified caller may assume
+  of it and how evidence binds to it are settled in stage 12
+  ([#96](https://github.com/sequelcore/accord/issues/96)), whose `wc` needs
+  them for its runtime and its calls to the system (row 11 of the
+  [native code constraints](docs/design/native-code-constraints.md#decide-these-before-the-stage-that-needs-them)).
+- **Stage 13's target stays** Accord's own E2 tooling. A program closer to a
+  service was considered and not chosen: it would bring concurrency forward.
+- **What general-purpose programs still need is named now**, each settled
+  before the stage that needs it: how native code manages memory, before
+  stage 14 (row 12); calls to code outside Accord, in stage 13 (row 13);
+  programs that run until they are stopped, and concurrency, after stage 15.
+  Whether stage 14 splits into a native backend and its validation and
+  measurement is reviewed when stage 11 closes, with stages 12 to 14's
+  dates.
+
 Taken on 2026-11-12:
 
 - **Stage 10's semantics, before its code** ([#82](https://github.com/sequelcore/accord/issues/82)).
@@ -136,7 +160,7 @@ Taken on 2026-11-07:
 | 10. State machines | `machine` declarations, invariants, explicit-state model checking, planted faults | A Tesota design model ported, its faults detected; the circuit breaker of [opossum](https://github.com/nodeshift/opossum) (Apache-2.0), closed, open and half-open, proved, and opossum's tests pass with the generated module | Done ([#82](https://github.com/sequelcore/accord/issues/82)): machines checked by the solvers and an explorer, and written as TypeScript ([syntax](docs/design/syntax.md#machines), [TypeScript](docs/typescript.md)); Tesota's ProviderRetry model in `conformance/cases/provider-retry.accord`, its two faults refuted and its 148 states matching tla-ts ([measurement](docs/design/measurements/2026-11-12-stage-10-machines/README.md)); opossum's breaker in `conformance/programs/opossum/`, proved, with opossum's lint and tests passing with the generated module (`scripts/check-opossum.sh`) |
 | 11. Structured data | Records, sum types and `match`, recursion with `decreases`, `Text` operations beyond equality | Version comparison from [node-semver](https://github.com/npm/node-semver) (ISC) proved, and node-semver's tests for it pass with the generated module | Next ([#83](https://github.com/sequelcore/accord/issues/83)) |
 | 12. Complete programs | Effects (files, standard input and output, exit codes) declared in types, errors as values, a `main` | `wc` from [uutils/coreutils](https://github.com/uutils/coreutils) (MIT) written only in Accord, its effects in its types and its proofs still fail-closed; uutils' tests for `wc` pass against it | |
-| 13. Standard library and modules | Maps and sets, generic types, imports between packages, as stages 11 and 12's programs need them | Accord's own E2 tooling (`docs/design/e2-human-review/materials.py` and `score.py`) rewritten in Accord; their self-tests and CI check pass | |
+| 13. Standard library and modules | Maps and sets, generic types, imports between packages, as stages 11 and 12's programs need them, and calls to code outside Accord | Accord's own E2 tooling (`docs/design/e2-human-review/materials.py` and `score.py`) rewritten in Accord; their self-tests and CI check pass | |
 | 14. Native code | A native backend (LLVM), and validation of its output before it relies on a proof | Stage 12's `wc` compiled natively; uutils' tests pass, and a published measurement against uutils' Rust `wc`, with the same algorithm and each side's safety checks stated | |
 | 15. Tools | A language server, a formatter, packages | Stages 11 to 14's programs maintained with them, without knowledge of the compiler | |
 
@@ -149,6 +173,8 @@ revision it used.
 
 Later, each when a stage needs it: escape routes to Lean and Dafny for what
 SMT can't decide, and translation validation of the compiler's own output.
+After stage 15, a stage with its own target: programs that run until they
+are stopped, such as servers, and concurrency.
 
 ## Experiments
 
@@ -165,5 +191,5 @@ Each is registered, with its measure and success rule, before any run.
 ## Trust
 
 Each release states what it trusts: the parser, the obligation generator, the
-solvers and the interpreter. Nothing about the compiler itself is proved
+solvers, the interpreter, and any code marked as not proved. Nothing about the compiler itself is proved
 until translation validation exists.
