@@ -153,7 +153,11 @@ condition can never be the first to hold.
   later one is rejected. Texts are compared with `==` and `!=`, and ordered
   with `<`, `<=`, `>` and `>=` by code point, one character at a time, a
   text before any longer one it begins. `length(text)` is an `i64`, the
-  number of code points: `length("😀")` is 1. cvc5 proves no order law on
+  number of code points: `length("😀")` is 1. Every text is assumed to hold
+  at most 9,007,199,254,740,991 (2^53 − 1) code points, as a JavaScript
+  string does, so arithmetic on a length can stay within `i64`; a receipt
+  lists the assumption wherever a proof can rest on it
+  (`conformance/cases/text-length-limit*.accord`). cvc5 proves no order law on
   texts, such as that of two texts one comes first, so an obligation that
   rests on one is undecided (`conformance/cases/text-ordered-law.accord`).
 - `List<T>`: a sequence of values of type `T`, written `["read", "grep"]`

@@ -141,6 +141,7 @@ mod tests {
                     hash: String::new(),
                     standing,
                     unverified_callees: Vec::new(),
+                    measures_text: false,
                 })
                 .collect();
             file_standing(&definitions)

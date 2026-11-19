@@ -205,6 +205,7 @@ pub(crate) fn report(
                 hash: unit.hash.clone(),
                 standing,
                 unverified_callees,
+                measures_text: obligation::takes_text_length(&unit.program),
             }
         })
         .collect();

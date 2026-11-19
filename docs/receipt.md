@@ -208,7 +208,8 @@ and trusted compiler components as outside this proof. It also lists applicable
 limits such as excluded inputs, absent examples, missing postconditions,
 refuted/undecided/unsupported obligations, obligations blocked by a weak callee
 contract, unverified callees, the assumptions about lists (their greatest
-length and `count`'s axioms), failed examples, open cases, declared
+length and `count`'s axioms) and about texts (their greatest length, where
+a proof takes one), failed examples, open cases, declared
 freedoms, unrun or incomplete mutation analysis, and surviving mutants. These
 are scope statements, not additional solver proofs or approvals.
 

@@ -349,6 +349,9 @@ pub(super) fn check(program: &Program, machine: &Machine, solvers: &Solvers) -> 
         hash,
         standing: Standing::Unverified,
         unverified_callees: Vec::new(),
+        measures_text: units
+            .iter()
+            .any(|unit| crate::obligation::takes_text_length(&unit.program)),
     };
     Checked {
         verdicts,

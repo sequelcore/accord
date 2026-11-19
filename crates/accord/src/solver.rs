@@ -13,7 +13,7 @@ use reply::{Answer, parse_answer};
 
 use crate::interpret::Replay;
 use crate::ledger::Ledger;
-use crate::obligation::Polarity;
+use crate::obligation::{Polarity, limit_lengths};
 use crate::{Inputs, Outcome, Refutation};
 
 /// The two solvers every obligation goes to.
@@ -94,6 +94,9 @@ impl Solvers {
         polarity: Polarity,
         replay: impl Fn(&Inputs) -> Result<Replay, String>,
     ) -> (Outcome, bool) {
+        // Every script states the trusted limit on the texts it measures,
+        // whichever part of the compiler wrote it.
+        let script = &limit_lengths(script);
         let with_bodies = format!("{script}; callees {callees}\n");
         let keys: Vec<&str> = if callees.is_empty() {
             vec![script]
